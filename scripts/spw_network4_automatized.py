@@ -7,15 +7,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-fIn = 'wmxR.txt'
+fIn = 'wmxB.txt'
 
 SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
 
 fName = os.path.join(SWBasePath, 'files', fIn)
 
-first = 0.6
-last = 1.2
-data_points = 7
+first = 0.5
+last = 2.5
+data_points = 21
 
 multipliers = np.linspace(first, last, data_points)
 
