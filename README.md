@@ -1,12 +1,15 @@
 # KOKI_sharp_waves
 
-stdp_network_b.py + spikeTrain.txt -> wmx.txt (learning process)
+poisson_proc.py + generate_spike_train.py -> spikeTrain.npz
+(or with Matlab codes: gen_firingrate.m, inom_poisson.m, spike_trains.m)
 
-plotrast_origin.m - raster plot
+stdp_network_b.py + spikeTrain.npz -> wmx.txt (learning process)
 
-plotdynattr_origin.m - plot of the global activity
+(plotrast_origin.m - raster plot)
 
-showmatrix2_origin.m - shows the weight matrix
+(plotdynattr_origin.m - plot of the global activity)
+
+(showmatrix2_origin.m - shows the weight matrix)
 
 spw_network4a_1.py - activity during sleep/rest
 
