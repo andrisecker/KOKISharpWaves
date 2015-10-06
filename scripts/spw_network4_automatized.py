@@ -12,8 +12,6 @@ fOut ='resultsC.txt'
 
 SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
 
-fName = os.path.join(SWBasePath, 'files', fIn)
-
 first = 0.5
 last = 2.5
 data_points = 21
@@ -21,13 +19,13 @@ data_points = 21
 multipliers = np.linspace(first, last, data_points)
 
 
-NE=4000
-NI=1000
+NE = 4000
+NI = 1000
 
-eps_pyr=0.16
-eps_bas=0.4
+eps_pyr = 0.16
+eps_bas = 0.4
 
-z=1*nS
+z = 1*nS
 gL_Pyr = 4.333e-3 * uS  # 3.3333e-3
 tauMem_Pyr = 60.0 * ms
 Cm_Pyr = tauMem_Pyr * gL_Pyr
@@ -128,26 +126,29 @@ def myresetfunc(P, spikes):
 
 def replay():
     '''
-    decides if there is a replay or not, and stores the results in a nunmpy ndarray (X)
-    :param : 
-    :return: adds plus one column to the result matrix (X)
+    Decides if there is a replay or not:
+    takes the ISIs from 200 to 800 ms (plus one the left side and plus one the right side),
+    searches for the max # of spikes (and plus one bin one left- and right side)
+    if the 90% of the spikes(in 200-800 ms ISI interval) are in that 3 bins then it's periodic activity: replay
+    :return: adds plus one column to the result array (X)
     '''
 
-    bin_means = np.linspace(175, 825, 14)
-    tmp1 = isi.count[3:17]
-    max_index = np.argmax(tmp1)
+    binsROI = isi.count[3:17]  # bins from 150 to 850 (range of interest)
+    binMeans = np.linspace(175, 825, 14)
+    maxInd = np.argmax(binsROI)
 
-    if 1 <= max_index <= 12:
-        tmp2 = tmp1[max_index-1:max_index+2]
-        avg_replay_interval = (tmp1[max_index-1]*bin_means[max_index-1] + tmp1[max_index]*bin_means[max_index] + tmp1[max_index+1]*bin_means[max_index+1])/(tmp1[max_index-1]+tmp1[max_index]+tmp1[max_index+1])
+    if 1 <= maxInd <= len(binsROI) - 1:
+        bins3 = binsROI[maxInd-1:maxInd+2]
+        tmp = binsROI[maxInd-1]*binMeans[maxInd-1] + binsROI[maxInd]*binMeans[maxInd] + binsROI[maxInd+1]*binMeans[maxInd+1]
+        avgReplayInterval = tmp / (binsROI[maxInd-1] + binsROI[maxInd] + binsROI[maxInd+1])
     else:
-        tmp2 = []
+        bins3 = []
 
-    if sum(int(i) for i in tmp1)*0.9 < sum(int(i) for i in tmp2):
-        X[:,k] = [multiplier, meanre, reac[1:].max(), reac[1:].argmax()+1, reac[3:8].max(), reac[3:8].argmax()+3, meanri, riac[1:].max(), riac[1:].argmax()+1, riac[3:8].max(), riac[3:8].argmax()+3, 1, avg_replay_interval]
-        print 'avg. replay interval: ', avg_replay_interval
+    if sum(int(i) for i in binsROI) * 0.9 < sum(int(i) for i in bins3):
+        X[:, k] = [multiplier, meanre, reac[1:].max(), reac[1:].argmax()+1, reac[3:8].max(), reac[3:8].argmax()+3, meanri, riac[1:].max(), riac[1:].argmax()+1, riac[3:8].max(), riac[3:8].argmax()+3, 1, avgReplayInterval]
+        print 'avg. replay interval:', str(avgReplayInterval)
     else:
-        X[:,k] = [multiplier, meanre, reac[1:].max(), reac[1:].argmax()+1, reac[3:8].max(), reac[3:8].argmax()+3, meanri, riac[1:].max(), riac[1:].argmax()+1, riac[3:8].max(), riac[3:8].argmax()+3, 0, np.nan]
+        X[:, k] = [multiplier, meanre, reac[1:].max(), reac[1:].argmax()+1, reac[3:8].max(), reac[3:8].argmax()+3, meanri, riac[1:].max(), riac[1:].argmax()+1, riac[3:8].max(), riac[3:8].argmax()+3, 0, np.nan]
         print 'Not replay'
 
 
@@ -157,14 +158,14 @@ X = np.zeros((13, data_points))
 for k in range(0, data_points):
 
     multiplier = multipliers[k]
-    print "multiplier=" ,multiplier
+    print "multiplier=", multiplier
 
     SCR = SimpleCustomRefractoriness(myresetfunc, tref_Pyr, state='vm')
 
     eqs=Brette_Gerstner(C=Cm_Pyr,gL=gL_Pyr,EL=Vrest_Pyr,VT=theta_Pyr,DeltaT=delta_T_Pyr,tauw=tau_w_Pyr,a=a_Pyr) + """ dg_ampa/dt = -g_ampa/tauSyn_PyrExc : 1
     dg_gaba/dt = -g_gaba/tauSyn_PyrInh : 1"""
     
-    PE=NeuronGroup(NE,model=eqs_adexp,threshold=v_spike_Pyr,reset=SCR)
+    PE = NeuronGroup(NE,model=eqs_adexp,threshold=v_spike_Pyr,reset=SCR)
     PI = NeuronGroup(NI, model=eqs_bas, threshold=theta_Bas, reset=reset_Bas, refractory=tref_Bas)
     PE.vm = Vrest_Pyr
     PE.g_ampa = 0
@@ -179,7 +180,8 @@ for k in range(0, data_points):
     
     Cext = IdentityConnection(MF,PE, 'g_ampa', weight=J_PyrMF)
     Cee = Connection(PE,PE, 'g_ampa', delay=delay_PyrExc)
-    
+
+    fName = os.path.join(SWBasePath, 'files', fIn)
     f = file(fName, 'r')
 
     Wee = [line.split() for line in f]
@@ -202,13 +204,14 @@ for k in range(0, data_points):
     popre = PopulationRateMonitor(PE, bin=0.001)
     popri = PopulationRateMonitor(PI, bin=0.001)
     poprext = PopulationRateMonitor(MF, bin=0.001)
-    bins = [0*ms, 50*ms, 100*ms, 150*ms, 200*ms, 250*ms, 300*ms, 350*ms, 400*ms, 450*ms, 500*ms, 550*ms, 600*ms, 650*ms, 700*ms, 750*ms, 800*ms, 850*ms, 900*ms, 950*ms, 1000*ms]
-    isi = ISIHistogramMonitor(PE,bins)
+    bins = [0*ms, 50*ms, 100*ms, 150*ms, 200*ms, 250*ms, 300*ms, 350*ms, 400*ms, 450*ms, 500*ms,
+            550*ms, 600*ms, 650*ms, 700*ms, 750*ms, 800*ms, 850*ms, 900*ms, 950*ms, 1000*ms]
+    isi = ISIHistogramMonitor(PE, bins)
 
 
-    run(10000*ms,report='text')
+    run(10000*ms, report='text')
 
-    # Saved figure
+    # Save figures
     figure()
     subplot(2, 1, 1)
     raster_plot(sme, spacebetweengroups=1, title='Raster plot', newfigure=False)
@@ -277,7 +280,7 @@ ax2.set_title('Maximum autocerrelations in ripple range')
 
 savefig(os.path.join(SWBasePath, 'figures', 'autocorrelations.png'))
 
-# saving result array (X)    
+# Save result array (X)
 fName= os.path.join(SWBasePath, 'files', fOut)
 header = 'Multiplier, Mean_exc.rate, Max.exc.AC., at[ms], Max.exc.AC.in_ripple_range, at[ms], Mean_inh.rate, Max.inh.AC., at[ms], Max.inh.AC.in_ripple_range, at[ms], replay, avg. replay interval'
 np.savetxt(fName, X, fmt='%.6f', delimiter='\t', header=header)

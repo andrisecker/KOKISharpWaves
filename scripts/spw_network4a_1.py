@@ -6,19 +6,17 @@ from brian.library.IF import *
 import numpy as np
 import os
 
-fIn = 'wmxR.txt'
+fIn = 'wmxC.txt'
 
 SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
 
-fName = os.path.join(SWBasePath, 'files', fIn)
+NE = 4000
+NI = 1000
 
-NE=4000
-NI=1000
+eps_pyr = 0.16
+eps_bas = 0.4
 
-eps_pyr=0.16
-eps_bas=0.4
-
-z=1*nS
+z = 1*nS
 gL_Pyr = 4.333e-3 * uS  #3.3333e-3
 tauMem_Pyr = 60.0 * ms
 Cm_Pyr = tauMem_Pyr * gL_Pyr
@@ -116,26 +114,6 @@ def myresetfunc(P, spikes):
     P.vm[spikes] = reset_Pyr   #reset voltage
     P.w[spikes] += b_Pyr  #low pass filter of spikes (adaptation mechanism)
 
-def replay():
-    '''
-    decides if there is a replay or not
-    '''
-
-    bin_means = np.linspace(175, 825, 14)
-    tmp1 = isi.count[3:17]
-    max_index = np.argmax(tmp1)
-
-    if 1 <= max_index <= 12:
-        tmp2 = tmp1[max_index-1:max_index+2]
-        avg_replay_interval = (tmp1[max_index-1]*bin_means[max_index-1] + tmp1[max_index]*bin_means[max_index] + tmp1[max_index+1]*bin_means[max_index+1])/(tmp1[max_index-1]+tmp1[max_index]+tmp1[max_index+1])
-    else:
-        tmp2 = []
-
-    if sum(int(i) for i in tmp1)*0.9 < sum(int(i) for i in tmp2):
-        print 'Replay'
-    else:
-        print 'Not replay'
-
 
 SCR = SimpleCustomRefractoriness(myresetfunc, tref_Pyr, state='vm')
 
@@ -158,9 +136,14 @@ print 'Connecting the network'
 Cext = IdentityConnection(MF,PE, 'g_ampa', weight=J_PyrMF)
 
 Cee = Connection(PE,PE, 'g_ampa', delay=delay_PyrExc)
+
+fName = os.path.join(SWBasePath, 'files', fIn)
 f = file(fName, 'r')
+
 Wee=[line.split() for line in f]
+
 f.close()
+
 for i in range(NE):
     Wee[i][:] = [float(x)*1.e9 for x in Wee[i]]
     Wee[i][i] = 0.
@@ -179,10 +162,35 @@ smi = SpikeMonitor(PI)
 popre = PopulationRateMonitor(PE, bin=0.001)
 popri = PopulationRateMonitor(PI, bin=0.001)
 poprext = PopulationRateMonitor(MF, bin=0.001)
-bins = [0*ms, 50*ms, 100*ms, 150*ms, 200*ms, 250*ms, 300*ms, 350*ms, 400*ms, 450*ms, 500*ms, 550*ms, 600*ms, 650*ms, 700*ms, 750*ms, 800*ms, 850*ms, 900*ms, 950*ms, 1000*ms]
+bins = [0*ms, 50*ms, 100*ms, 150*ms, 200*ms, 250*ms, 300*ms, 350*ms, 400*ms, 450*ms, 500*ms,
+        550*ms, 600*ms, 650*ms, 700*ms, 750*ms, 800*ms, 850*ms, 900*ms, 950*ms, 1000*ms]
 isi = ISIHistogramMonitor(PE, bins)
 
-run(5000*ms,report='text')
+run(10000*ms, report='text')
+
+def replay():
+    '''
+    Decides if there is a replay or not:
+    takes the ISIs from 200 to 800 ms (plus one the left side and plus one the right side),
+    searches for the max # of spikes (and plus one bin one left- and right side)
+    if the 90% of the spikes(in 200-800 ms ISI interval) are in that 3 bins then it's periodic activity: replay
+    '''
+
+    binsROI = isi.count[3:17]  # bins from 150 to 850 (range of interest)
+    binMeans = np.linspace(175, 825, 14)
+    maxInd = np.argmax(binsROI)
+
+    if 1 <= maxInd <= len(binsROI) - 1:
+        bins3 = binsROI[maxInd-1:maxInd+2]
+        tmp = binsROI[maxInd-1]*binMeans[maxInd-1] + binsROI[maxInd]*binMeans[maxInd] + binsROI[maxInd+1]*binMeans[maxInd+1]
+        avgReplayInterval = tmp / (binsROI[maxInd-1] + binsROI[maxInd] + binsROI[maxInd+1])
+    else:
+        bins3 = []
+
+    if sum(int(i) for i in binsROI) * 0.9 < sum(int(i) for i in bins3):
+        print 'Replay', 'avg. replay interval:', str(avgReplayInterval)
+    else:
+        print 'Not replay'
 
 replay()
 
