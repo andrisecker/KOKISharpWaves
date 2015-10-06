@@ -7,7 +7,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-fIn = 'wmxB.txt'
+fIn = 'wmxC.txt'
+fOut ='resultsC.txt'
 
 SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
 
@@ -127,7 +128,7 @@ def myresetfunc(P, spikes):
 
 def replay():
     '''
-    decides if there is a replay or not, and stores the results in an ndarray (X)
+    decides if there is a replay or not, and stores the results in a nunmpy ndarray (X)
     :param : 
     :return: adds plus one column to the result matrix (X)
     '''
@@ -277,6 +278,6 @@ ax2.set_title('Maximum autocerrelations in ripple range')
 savefig(os.path.join(SWBasePath, 'figures', 'autocorrelations.png'))
 
 # saving result array (X)    
-fOut = os.path.join(SWBasePath, 'files', 'results.txt')
+fName= os.path.join(SWBasePath, 'files', fOut)
 header = 'Multiplier, Mean_exc.rate, Max.exc.AC., at[ms], Max.exc.AC.in_ripple_range, at[ms], Mean_inh.rate, Max.inh.AC., at[ms], Max.inh.AC.in_ripple_range, at[ms], replay, avg. replay interval'
-# np.savetxt(fOut, X, fmt='%.6f', delimiter='\t', header=header)
+np.savetxt(fName, X, fmt='%.6f', delimiter='\t', header=header)

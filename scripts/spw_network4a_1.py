@@ -6,7 +6,7 @@ from brian.library.IF import *
 import numpy as np
 import os
 
-fIn = 'wmxB.txt'
+fIn = 'wmxR.txt'
 
 SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
 
