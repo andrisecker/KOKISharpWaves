@@ -3,7 +3,7 @@
 
 import numpy as np
 
-def generateFiringRate(nPop, pop, phase0, t):
+def generateFiringRate(nPop, pop, phase0, t, **kwargs):
     '''
     Calculates the lambda parameter of the Poisson process, that represent the firing rate in CA3 (pyr. cells)
     (takes preferred place and phase precession into account)
@@ -17,21 +17,27 @@ def generateFiringRate(nPop, pop, phase0, t):
     theta = 7.0  # theta frequence [Hz]
     avgRateInField = 20.0  # avg. in-field firing rate [ms]
     vMice = 32.43567842  # velocity of the mice [cm/s]
-    lPlaceField = 30.0  # length of the place field [cm]
     lRoute = 300.0  # circumference [cm]
+    lPlaceField = 30.0  # length of the place field [cm]
 
     r = lRoute / (2 * np.pi)  #radius [cm]
-    tRoute = lRoute / vMice  # [s]
+    phiPFRad = lPlaceField / r  # angle of place field [rad]
 
+    tRoute = lRoute / vMice  # [s]
     wMice = 2 * np.pi / tRoute  # angular velocity
     x = np.mod(wMice * t, 2 * np.pi)  # position of the mice [rad]
 
-    phiPFRad = lPlaceField / r  # angle of place field [rad]
+    if 'phiStarts' not in kwargs.keys():
+        phiStart = (float(pop) / float(nPop)) * 2 * np.pi
+    else:
+        phiStarts = kwargs['phiStarts']
+        if pop not in phiStarts.keys():
+            phiStart = np.random.rand(1)[0] * 2 * np.pi
+            phiStarts[pop] = phiStart
+        else:
+            phiStart = phiStarts[pop]
 
-    phiStart = (pop / nPop) * 2 * np.pi
-    phiEnd = phiStart + phiPFRad
-
-    assert phiStart < phiEnd
+    phiEnd = np.mod(phiStart + phiPFRad, 2 * np.pi)
 
     # phase precession
     y = phase0 + 2 * np.pi * theta * t
@@ -41,28 +47,38 @@ def generateFiringRate(nPop, pop, phase0, t):
     sig = 0.5  # deviation of phase-locking (von Misses distribution -> see lambda2)
     s = 1.0 / sig
 
-    if phiStart <= x and x < phiEnd:  # if the mice is in the place field (of the current population)
+    if phiStart < phiEnd:
+        if phiStart <= x and x < phiEnd:  # if the mice is in the place field
+            lambda1 = np.cos((2 * np.pi) / (2 * phiPFRad) * (x - shift)) * avgRateInField
+            lambda2 = np.exp(s * np.cos(y - m)) / np.exp(s)
 
-        lambda1 = np.cos((2 * np.pi) / (2 * phiPFRad) * (x - shift)) * avgRateInField
-        lambda2 = np.exp(s * np.cos(y - m)) / np.exp(s)
+        else:
+            lambda1 = 0
+            lambda2 = 1
+
+        lambdaP = lambda1 * lambda2
 
     else:
+        if phiStart <= x or x < phiEnd:  # if the mice is in the place field
+            lambda1 = np.cos((2 * np.pi) / (2 * phiPFRad) * (x - shift)) * avgRateInField
+            lambda2 = np.exp(s * np.cos(y - m)) / np.exp(s)
 
-        lambda1 = 0
-        lambda2 = 1
+        else:
+            lambda1 = 0
+            lambda2 = 1
 
-    lambdaP = lambda1 * lambda2
+        lambdaP = lambda1 * lambda2
 
     return lambdaP
 
 
-def inhomPoisson(nPop, phase0, pop, seed):
+def inhomPoisson(nPop, pop, phase0, seed, **kwargs):
     '''
     Makes a homogenous Poisson process and transfer it to inhomogenous via deleting spikes
     (based on an other Poisson process made by generateFiringRates)
     :param nPop: # of neuron populations (see generateFiringRate)
-    :param phase0: initial phase (see generateFiringRate)
     :param pop: current population (see generateFiringRate)
+    :param phase0: initial phase (see generateFiringRate)
     :param seed: seed for random number generation
     :return: inhP: python list which represent an inhomogenos Poisson process
     '''
@@ -88,7 +104,7 @@ def inhomPoisson(nPop, phase0, pop, seed):
     inhP = []  # inhomogeneous Poisson process
     for i, t in enumerate(homP):
         np.random.seed(seed + i + 1)
-        if  generateFiringRate(nPop, pop, phase0, t) / lambdaE >= np.random.rand(1):
+        if  generateFiringRate(nPop, pop, phase0, t, **kwargs) / lambdaE >= np.random.rand(1):
             inhP.append(t)
 
     return inhP

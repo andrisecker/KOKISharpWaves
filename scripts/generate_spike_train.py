@@ -3,38 +3,51 @@
 
 import numpy as np
 import os
-import random
 from poisson_proc import inhomPoisson
 
 fOut = 'spikeTrainsR.npz'
 
-SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
-
 nPop = 4000  # of populations
 nNeuron = 1  # of neurons in one population
+# mode = 'continuous'
+mode = 'random'
+# if nNeuron != 1 mode -> 'block'
+
+SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
 
 seed = 0
 
 spikeTrains = []
 
 if nNeuron != 1:
-
     for pop in range(0, nPop):
         for neuron in range(0, nNeuron):
-            spikeTrains.append(inhomPoisson(float(nPop), 0.0, float(pop), seed))
-            print str(pop + 1), '/', str(neuron + 1), 'done from', str(nPop), '/', str(nNeuron)
+            spikeTrains.append(inhomPoisson(nPop, pop, 0.0, seed))
+            print str(pop + 1), '/', str(neuron + 1)
             seed += 1
-else:
 
+elif nNeuron == 1 and mode == 'continuous':
     neurons = np.linspace(0, nPop - 1, nPop)
-    random.shuffle(neurons)
-    for i, neuron in enumerate(neurons):
-        spikeTrains.append(inhomPoisson(float(nPop), 0.0, float(neuron), seed))
-        print str(i + 1), 'done from', str(nPop)
+    for neuron in neurons:
+        spikeTrains.append(inhomPoisson(nPop, neuron, 0.0, seed))
+        print str(neuron + 1)
         seed += 1
 
-assert len(spikeTrains) == nPop * nNeuron
+elif nNeuron == 1 and mode == 'random':
+    phiStarts = {}
+    for neuron in range(0, nPop):
+        spikeTrains.append(inhomPoisson(nPop, neuron, 0.0, seed, phiStarts=phiStarts))
+        print str(neuron + 1)
+        seed += 1
 
+    assert len(phiStarts.keys()) == nPop
+
+    tmpList = phiStarts.values()
+    indexing = [i[0] for i in sorted(enumerate(tmpList), key=lambda x:x[1])]
+    tmpArray = np.asarray(spikeTrains)
+    spikeTrains = tmpArray[indexing].tolist()
+
+assert len(spikeTrains) == nPop * nNeuron
 
 # save results to .npz
 fName = os.path.join(SWBasePath, 'files', fOut)
