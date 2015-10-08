@@ -6,7 +6,7 @@ from brian.library.IF import *
 import numpy as np
 import os
 
-fIn = 'wmxC.txt'
+fIn = 'wmxR.txt'
 
 SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
 
@@ -180,7 +180,7 @@ def replay():
     binMeans = np.linspace(175, 825, 14)
     maxInd = np.argmax(binsROI)
 
-    if 1 <= maxInd <= len(binsROI) - 1:
+    if 1 <= maxInd <= len(binsROI) - 2:
         bins3 = binsROI[maxInd-1:maxInd+2]
         tmp = binsROI[maxInd-1]*binMeans[maxInd-1] + binsROI[maxInd]*binMeans[maxInd] + binsROI[maxInd+1]*binMeans[maxInd+1]
         avgReplayInterval = tmp / (binsROI[maxInd-1] + binsROI[maxInd] + binsROI[maxInd+1])
