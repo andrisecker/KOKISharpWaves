@@ -7,8 +7,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-fIn = 'wmxC.txt'
-fOut ='resultsC.txt'
+fIn = 'wmxR.txt'
+fOut ='resultsR2.txt'
 
 SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
 
@@ -145,11 +145,21 @@ def replay():
         bins3 = []
 
     if sum(int(i) for i in binsROI) * 0.9 < sum(int(i) for i in bins3):
-        X[:, k] = [multiplier, meanre, reac[1:].max(), reac[1:].argmax()+1, reac[3:8].max(), reac[3:8].argmax()+3, meanri, riac[1:].max(), riac[1:].argmax()+1, riac[3:8].max(), riac[3:8].argmax()+3, 1, avgReplayInterval]
         print 'avg. replay interval:', str(avgReplayInterval)
+        if reac[3:8].argmax() != 0 and reac[3:8].argmax() != len(reac[3:8]):
+            X[:, k] = [multiplier, meanre, reac[1:].max(), reac[1:].argmax()+1, reac[3:8].max(), reac[3:8].argmax()+3, meanri, riac[1:].max(), riac[1:].argmax()+1, riac[3:8].max(), riac[3:8].argmax()+3, 1, avgReplayInterval]
+            print 'ripple interval:', str(reac[3:8].argmax()+3)
+        else:
+            X[:, k] = [multiplier, meanre, reac[1:].max(), reac[1:].argmax()+1, reac[3:8].max(), np.nan, meanri, riac[1:].max(), riac[1:].argmax()+1, riac[3:8].max(), riac[3:8].argmax()+3, 1, avgReplayInterval]
+            print 'no ripple oscillation'
     else:
-        X[:, k] = [multiplier, meanre, reac[1:].max(), reac[1:].argmax()+1, reac[3:8].max(), reac[3:8].argmax()+3, meanri, riac[1:].max(), riac[1:].argmax()+1, riac[3:8].max(), riac[3:8].argmax()+3, 0, np.nan]
-        print 'Not replay'
+        print 'not replay'
+        if reac[3:8].argmax() != 0 and reac[3:8].argmax() != len(reac[3:8]):
+            X[:, k] = [multiplier, meanre, reac[1:].max(), reac[1:].argmax()+1, reac[3:8].max(), reac[3:8].argmax()+3, meanri, riac[1:].max(), riac[1:].argmax()+1, riac[3:8].max(), riac[3:8].argmax()+3, 0, np.nan]
+            print 'ripple interval:', str(reac[3:8].argmax()+3)
+        else:
+            X[:, k] = [multiplier, meanre, reac[1:].max(), reac[1:].argmax()+1, reac[3:8].max(), np.nan, meanri, riac[1:].max(), riac[1:].argmax()+1, riac[3:8].max(), riac[3:8].argmax()+3, 0, np.nan]
+            print 'no ripple oscillation'
 
 
 X = np.zeros((13, data_points))
@@ -158,14 +168,11 @@ X = np.zeros((13, data_points))
 for k in range(0, data_points):
 
     multiplier = multipliers[k]
-    print "multiplier=", multiplier
+    print 'multiplier=', multiplier
 
     SCR = SimpleCustomRefractoriness(myresetfunc, tref_Pyr, state='vm')
-
-    eqs=Brette_Gerstner(C=Cm_Pyr,gL=gL_Pyr,EL=Vrest_Pyr,VT=theta_Pyr,DeltaT=delta_T_Pyr,tauw=tau_w_Pyr,a=a_Pyr) + """ dg_ampa/dt = -g_ampa/tauSyn_PyrExc : 1
-    dg_gaba/dt = -g_gaba/tauSyn_PyrInh : 1"""
     
-    PE = NeuronGroup(NE,model=eqs_adexp,threshold=v_spike_Pyr,reset=SCR)
+    PE = NeuronGroup(NE, model=eqs_adexp, threshold=v_spike_Pyr, reset=SCR)
     PI = NeuronGroup(NI, model=eqs_bas, threshold=theta_Bas, reset=reset_Bas, refractory=tref_Bas)
     PE.vm = Vrest_Pyr
     PE.g_ampa = 0
@@ -178,8 +185,8 @@ for k in range(0, data_points):
         
     print 'Connecting the network'
     
-    Cext = IdentityConnection(MF,PE, 'g_ampa', weight=J_PyrMF)
-    Cee = Connection(PE,PE, 'g_ampa', delay=delay_PyrExc)
+    Cext = IdentityConnection(MF, PE, 'g_ampa', weight=J_PyrMF)
+    Cee = Connection(PE, PE, 'g_ampa', delay=delay_PyrExc)
 
     fName = os.path.join(SWBasePath, 'files', fIn)
     f = file(fName, 'r')
@@ -211,18 +218,6 @@ for k in range(0, data_points):
 
     run(10000*ms, report='text')
 
-    # Save figures
-    figure()
-    subplot(2, 1, 1)
-    raster_plot(sme, spacebetweengroups=1, title='Raster plot', newfigure=False)
-    subplot(2, 1, 2)
-    hist_plot(isi, title='ISI histogram', newfigure=False)
-    xlim([0, 1000])
-
-    figName = os.path.join(SWBasePath, 'figures', str(multiplier)+'*.png')
-    savefig(figName)
-    close()
-
     # Saved results
     meanre = np.mean(popre.rate)  # mean exc. rate
     reub = popre.rate - meanre
@@ -230,12 +225,38 @@ for k in range(0, data_points):
     reac = np.correlate(reub, reub, 'same') / revar  # max exc. autocorr: reac[1:].max() at reac[1:]argmax()+1 [ms]
     reac = reac[len(reac)/2:]  # max exc. autocorr. in ripple range: reac[3:8].max() at reac[3:8].argmax()+3 [ms]
 
-    meanri=np.mean(popri.rate)  # mean inh. rate
-    riub=popri.rate - meanri
-    rivar=np.sum(riub**2)
-    riac=np.correlate(riub, riub, 'same') / rivar
-    riac=riac[len(riac)/2:]
+    meanri = np.mean(popri.rate)  # mean inh. rate
+    riub = popri.rate - meanri
+    rivar = np.sum(riub**2)
+    riac = np.correlate(riub, riub, 'same') / rivar
+    riac = riac[len(riac)/2:]
 
+    # Saved figures
+    fig = plt.figure(figsize=(10, 8))
+
+    subplot(3, 1, 1)
+    raster_plot(sme, spacebetweengroups=1, title='Raster plot', newfigure=False)
+
+    subplot(3, 1, 2)
+    hist_plot(isi, title='ISI histogram', newfigure=False)
+    xlim([0, 1000])
+
+    ax = fig.add_subplot(3, 1, 3)
+    reacPlot = reac[2:201] # 500 - 5 Hz interval
+    reacRipple = reac[3:8] # 333 - 142 Hz interval
+    ax.plot(np.linspace(2, 200, len(reacPlot)), reacPlot, 'b-', label='AC of exc. firing rates (500-5 Hz)')
+    ax.plot(np.linspace(3, 7, 5), reacRipple, 'r-', linewidth=2, label='AC of exc. firing rates (333-142 Hz)')
+    ax.set_title('Autocorrelogram (of firing rates in pyr. pop.)')
+    ax.set_xlabel('Time (ms)')
+    ax.set_xlim([2, 200])
+    ax.set_ylabel('AutoCorrelation')
+    ax.legend()
+
+    fig.tight_layout()
+
+    figName = os.path.join(SWBasePath, 'figures', str(multiplier)+'*.png')
+    savefig(figName)
+    close()
 
     replay()  # function define before the for loop
 
@@ -245,38 +266,51 @@ for k in range(0, data_points):
 
 # Plots
 fig = plt.figure()
+
 ax1 = fig.add_subplot(2, 1, 1)
-ax1.plot(multipliers, X[12, :])
+ax1.plot(multipliers, X[12, :], linewidth=2, marker='|')
 ax1.set_title('Average replay interval')
 ax1.set_xlim(first, last)
+ax1.set_ylabel('Time (ms)')
 
 ax2 = fig.add_subplot(2, 1, 2)
 ax3 = ax2.twinx()
-ax2.plot(multipliers, X[1, :], 'b-')
+ax2.plot(multipliers, X[1, :], 'b-', linewidth=2, marker='|')
 ax2.set_ylabel(ylabel='PC (exc.) rate', color='blue')
-ax3.plot(multipliers, X[6, :], 'g-')
+ax3.plot(multipliers, X[6, :], 'g-', linewidth=2, marker='|')
 ax3.set_ylabel('BC (inh.) rate', color='green')
 ax2.set_xlabel('scale factors')
 ax2.set_xlim(first, last)
 ax2.set_title('Mean firing rates')
 
+fig.tight_layout()
+
 savefig(os.path.join(SWBasePath, 'figures', 'replay_and_firing_rates.png'))
 
 fig2 = plt.figure()
-ax1 = fig2.add_subplot(2, 1, 1)
-ax1.plot(multipliers, X[2, :], label='PC (exc.)')
-ax1.plot(multipliers, X[7, :], label='BC (inh.)')
+
+ax1 = fig2.add_subplot(3, 1, 1)
+ax1.plot(multipliers, X[2, :], label='PC (exc.)', linewidth=2, marker='|')
+ax1.plot(multipliers, X[7, :], label='BC (inh.)', linewidth=2, marker='|')
 ax1.legend()
 ax1.set_xlim(first, last)
 ax1.set_title('Maximum autocerrelations')
 
-ax2 = fig2.add_subplot(2, 1, 2)
-ax2.plot(multipliers, X[4, :], label='PC (exc.)')
-ax2.plot(multipliers, X[9, :], label='BC (inh.)')
+ax2 = fig2.add_subplot(3, 1, 2)
+ax2.plot(multipliers, X[4, :], label='PC (exc.)', linewidth=2, marker='|')
+ax2.plot(multipliers, X[9, :], label='BC (inh.)', linewidth=2, marker='|')
 ax2.legend()
-ax2.set_xlabel('scale factors')
 ax2.set_xlim(first, last)
 ax2.set_title('Maximum autocerrelations in ripple range')
+
+ax3 = fig2.add_subplot(3, 1, 3)
+ax3.plot(multipliers, X[5, :], linewidth=2, marker='|')
+ax3.set_xlim(first, last)
+ax3.set_xlabel('scale factors')
+ax3.set_ylabel('Time (ms)')
+ax3.set_title('Ripple interval')
+
+fig2.tight_layout()
 
 savefig(os.path.join(SWBasePath, 'figures', 'autocorrelations.png'))
 

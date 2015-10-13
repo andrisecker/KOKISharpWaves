@@ -4,6 +4,7 @@
 from brian import *
 from brian.library.IF import *
 import numpy as np
+import matplotlib.pyplot as plt
 import os
 
 fIn = 'wmxR.txt'
@@ -13,11 +14,13 @@ SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
 NE = 4000
 NI = 1000
 
+# sparseness
 eps_pyr = 0.16
 eps_bas = 0.4
 
+# parameters for pyr cells
 z = 1*nS
-gL_Pyr = 4.333e-3 * uS  #3.3333e-3
+gL_Pyr = 4.333e-3 * uS  # 3.3333e-3
 tauMem_Pyr = 60.0 * ms
 Cm_Pyr = tauMem_Pyr * gL_Pyr
 Vrest_Pyr = -70.0 * mV
@@ -25,51 +28,31 @@ reset_Pyr = -53.0*mV
 theta_Pyr = -50.0*mV
 tref_Pyr = 5*ms
 
-#Adaptation parameters for pyr cells
-a_Pyr = -0.8*nS  #nS    Subthreshold adaptation conductance
-# moves threshold up
-b_Pyr = 0.04*nA  #nA    Spike-triggered adaptation
-# -> decreases the slope of the f-I curve
-delta_T_Pyr = 2.0*mV  #0.8 mV Slope factor
-tau_w_Pyr = 300*ms  #88 #144.0 ms Adaptation time constant
+# Adaptation parameters for pyr cells
+a_Pyr = -0.8*nS  # nS    Subthreshold adaptation conductance
+b_Pyr = 0.04*nA  # nA    Spike-triggered adaptation
+delta_T_Pyr = 2.0*mV  # Slope factor
+tau_w_Pyr = 300*ms  # Adaptation time constant
 
 v_spike_Pyr = theta_Pyr + 10*delta_T_Pyr
 
-gL_Bas = 5.0e-3*uS  #7.14293e-3
+# parameters for bas cells
+gL_Bas = 5.0e-3*uS  # 7.14293e-3
 tauMem_Bas = 14.0*ms
 Cm_Bas = tauMem_Bas * gL_Bas
 Vrest_Bas = -70.0*mV
-reset_Bas = -64.0*mV  #-56.0
+reset_Bas = -64.0*mV  # -56.0
 theta_Bas  = -50.0*mV
-tref_Bas = 0.1*ms  #0.1*ms
+tref_Bas = 0.1*ms  # 0.1*ms
 
-'''
-gL_Bas = 10.0e-3*uS #5.0e-3 *uS#7.14293e-3
-tauMem_Bas = 14.0*ms
-Cm_Bas = tauMem_Bas * gL_Bas
-Vrest_Bas = -70.0*mV
-reset_Bas = -55*mV #-64.0*mV #-56.0
-theta_Bas  = -50.0 *mV
-tref_Bas = 2.0*ms
-'''
-
-# Initialize the synaptic parameters
-# J_PyrExc  = 1.0e-5*0
-# J_Pyr_Exc_factor = 20.e8    #20.0e8 #14.5e8 #12.0e8 #10.0e8 #7.0e8
-
-'''
-J_PyrInh  = 0.12500    # (nS)
-J_BasExc  = 5.2083/2.
-J_BasInh  = 0.15 #1.0  #0.15     #0.083333e-3
-'''
-
-J_PyrInh = 0.125
+# synaptic weights
+J_PyrInh = 0.125  # nS
 J_BasExc = 5.2083
-J_BasInh = 0.15  #0.08333 #0.15
+J_BasInh = 0.15  # 0.08333 #0.15
 
-print "J_PyrInh", J_PyrInh
-print "J_BasExc", J_BasExc
-print "J_BasInh", J_BasInh
+print 'J_PyrInh:', J_PyrInh
+print 'J_BasExc:', J_BasExc
+print 'J_BasInh:', J_BasInh
 
 J_PyrMF = 5.0  #8.0 #2.0 #5.0
 
@@ -89,12 +72,12 @@ delay_PyrInh = 1.5*ms
 delay_BasExc = 3.0*ms
 delay_BasInh = 1.5*ms
 
-p_rate_mf = 5.0*Hz #10.0*Hz
+p_rate_mf = 5.0*Hz  #10.0*Hz
 
 # Creating populations
 eqs_adexp = '''
-dvm/dt=(gL_Pyr*(Vrest_Pyr-vm)+gL_Pyr*delta_T_Pyr*exp((vm- theta_Pyr)/delta_T_Pyr)-w -(g_ampa*z*(vm-E_Exc)+g_gaba*z*(vm-E_Inh)))/Cm_Pyr : volt
-dw/dt=(a_Pyr*(vm- Vrest_Pyr )-w)/tau_w_Pyr : amp
+dvm/dt = (-gL_Pyr*(vm-Vrest_Pyr) + gL_Pyr*delta_T_Pyr*exp((vm- theta_Pyr)/delta_T_Pyr)-w - (g_ampa*z*(vm-E_Exc) + g_gaba*z*(vm-E_Inh)))/Cm_Pyr : volt
+dw/dt = (a_Pyr*(vm- Vrest_Pyr )-w)/tau_w_Pyr : amp
 dg_ampa/dt = -g_ampa/tauSyn_PyrExc : 1
 dg_gaba/dt = -g_gaba/tauSyn_PyrInh : 1
 '''
@@ -105,47 +88,47 @@ w += b_Pyr
 '''
 
 eqs_bas = '''
-dvm/dt = (-gL_Bas*(vm-Vrest_Bas)-(g_ampa*z*(vm-E_Exc)+g_gaba*z*(vm-E_Inh)))/Cm_Bas :volt
+dvm/dt = (-gL_Bas*(vm-Vrest_Bas) - (g_ampa*z*(vm-E_Exc) + g_gaba*z*(vm-E_Inh)))/Cm_Bas :volt
 dg_ampa/dt = -g_ampa/tauSyn_BasExc : 1
 dg_gaba/dt = -g_gaba/tauSyn_BasInh : 1
 '''
 
 def myresetfunc(P, spikes):
-    P.vm[spikes] = reset_Pyr   #reset voltage
-    P.w[spikes] += b_Pyr  #low pass filter of spikes (adaptation mechanism)
+    P.vm[spikes] = reset_Pyr   # reset voltage
+    P.w[spikes] += b_Pyr  # low pass filter of spikes (adaptation mechanism)
 
 
 SCR = SimpleCustomRefractoriness(myresetfunc, tref_Pyr, state='vm')
 
-eqs=Brette_Gerstner(C=Cm_Pyr,gL=gL_Pyr,EL=Vrest_Pyr,VT=theta_Pyr,DeltaT=delta_T_Pyr,tauw=tau_w_Pyr,a=a_Pyr) + ''' dg_ampa/dt = -g_ampa/tauSyn_PyrExc : 1
-dg_gaba/dt = -g_gaba/tauSyn_PyrInh : 1'''
-PE=NeuronGroup(NE,model=eqs_adexp,threshold=v_spike_Pyr,reset=SCR)
+PE = NeuronGroup(NE, model=eqs_adexp, threshold=v_spike_Pyr, reset=SCR)
 
 PI = NeuronGroup(NI, model=eqs_bas, threshold=theta_Bas, reset=reset_Bas, refractory=tref_Bas)
+
 PE.vm = Vrest_Pyr
 PE.g_ampa = 0
 PE.g_gaba = 0
+
 PI.vm  = Vrest_Bas
 PI.g_ampa = 0
 PI.g_gaba = 0
 
 MF = PoissonGroup(NE, p_rate_mf)
 
-
 print 'Connecting the network'
-Cext = IdentityConnection(MF,PE, 'g_ampa', weight=J_PyrMF)
 
-Cee = Connection(PE,PE, 'g_ampa', delay=delay_PyrExc)
+Cext = IdentityConnection(MF, PE, 'g_ampa', weight=J_PyrMF)
+
+Cee = Connection(PE, PE, 'g_ampa', delay=delay_PyrExc)
 
 fName = os.path.join(SWBasePath, 'files', fIn)
 f = file(fName, 'r')
 
-Wee=[line.split() for line in f]
+Wee = [line.split() for line in f]
 
 f.close()
 
 for i in range(NE):
-    Wee[i][:] = [float(x)*1.e9 for x in Wee[i]]
+    Wee[i][:] = [float(x) * 1.e9 for x in Wee[i]]
     Wee[i][i] = 0.
 
 Cee.connect(PE, PE, Wee)
@@ -156,17 +139,17 @@ Cii = Connection(PI, PI, 'g_gaba', weight=J_BasInh, sparseness=eps_bas, delay=de
 
 print 'Connections done'
 
-
+# Monitors
 sme = SpikeMonitor(PE)
 smi = SpikeMonitor(PI)
-popre = PopulationRateMonitor(PE, bin=0.001)
-popri = PopulationRateMonitor(PI, bin=0.001)
+popre = PopulationRateMonitor(PE, bin=1*ms)
+popri = PopulationRateMonitor(PI, bin=1*ms)
 poprext = PopulationRateMonitor(MF, bin=0.001)
 bins = [0*ms, 50*ms, 100*ms, 150*ms, 200*ms, 250*ms, 300*ms, 350*ms, 400*ms, 450*ms, 500*ms,
         550*ms, 600*ms, 650*ms, 700*ms, 750*ms, 800*ms, 850*ms, 900*ms, 950*ms, 1000*ms]
 isi = ISIHistogramMonitor(PE, bins)
 
-run(10000*ms, report='text')
+run(5000*ms, report='text')
 
 def replay():
     '''
@@ -188,38 +171,46 @@ def replay():
         bins3 = []
 
     if sum(int(i) for i in binsROI) * 0.9 < sum(int(i) for i in bins3):
-        print 'Replay', 'avg. replay interval:', str(avgReplayInterval)
+        print 'Replay,', 'avg. replay interval:', avgReplayInterval, '[ms]'
     else:
         print 'Not replay'
 
 replay()
 
-# Plots
-figure()
+# Results
+meanre = np.mean(popre.rate)
+print 'Mean excitatory rate: ', meanre
+reub = popre.rate - meanre
+revar = np.sum(reub**2)
+reac = np.correlate(reub, reub, mode='same') / revar  # cross correlation of reub and reub -> autocorrelation
+reac = reac[len(reac)/2:]
+print 'Maximum exc. autocorrelation:', reac[1:].max(), 'at', reac[1:].argmax()+1, '[ms]'
+if reac[3:8].argmax() != 0 and reac[3:8].argmax() != len(reac[3:8]):
+    print 'Maximum exc. AC in ripple range:', reac[3:8].max(), 'at', reac[3:8].argmax()+3, '[ms]'
+else:
+    print 'No ripple oscillation'
 
-subplot(2, 1, 1)
+# Plots
+fig = plt.figure(figsize=(10, 8))
+
+subplot(3, 1, 1)
 raster_plot(sme, spacebetweengroups=1, title='Raster plot', newfigure=False)
-subplot(2, 1, 2)
+
+subplot(3, 1, 2)
 hist_plot(isi, title='ISI histogram', newfigure=False)
 xlim([0, 1000])
 
-show()
+ax = fig.add_subplot(3, 1, 3)
+reacPlot = reac[2:201] # 500 - 5 Hz interval
+reacRipple = reac[3:8] # 333 - 142 Hz interval
+ax.plot(np.linspace(2, 200, len(reacPlot)), reacPlot, 'b-', label='AC of exc. firing rates (500-5 Hz)')
+ax.plot(np.linspace(3, 7, 5), reacRipple, 'r-', linewidth=2, label='AC of exc. firing rates (333-142 Hz)')
+ax.set_title('Autocorrelogram (of firing rates in pyr. pop.)')
+ax.set_xlabel('Time (ms)')
+ax.set_xlim([2, 200])
+ax.set_ylabel('AutoCorrelation')
 
-# Results
-meanre = np.mean(popre.rate)
-print "Mean excitatory rate: ", meanre
-reub = popre.rate - meanre
-revar = np.sum(reub**2)
-reac = np.correlate(reub, reub, "same") / revar
-reac = reac[len(reac)/2:]
-print "Maximum exc. autocorrelation: ", reac[1:].max(), "at ", reac[1:].argmax()+1, "ms"
-print "Maximum exc. AC in ripple range: ", reac[3:8].max(), "at ", reac[3:8].argmax()+3, "ms"
+plt.legend()
+fig.tight_layout()
 
-meanri = np.mean(popri.rate)
-print "Mean inhibitory rate: ", meanri
-riub = popri.rate - meanri
-rivar = np.sum(riub**2)
-riac = np.correlate(riub, riub, "same") / rivar
-riac = riac[len(riac)/2:]
-print "Maximum inh. autocorrelation: ", riac[1:].max(), "at ", riac[1:].argmax()+1, "ms"
-print "Maximum inh. AC in ripple range: ", riac[3:8].max(), "at ", riac[3:8].argmax()+3, "ms"
+plt.show()
