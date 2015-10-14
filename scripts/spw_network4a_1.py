@@ -4,6 +4,7 @@
 from brian import *
 from brian.library.IF import *
 import numpy as np
+from scipy import signal
 import matplotlib.pyplot as plt
 import os
 
@@ -149,17 +150,18 @@ bins = [0*ms, 50*ms, 100*ms, 150*ms, 200*ms, 250*ms, 300*ms, 350*ms, 400*ms, 450
         550*ms, 600*ms, 650*ms, 700*ms, 750*ms, 800*ms, 850*ms, 900*ms, 950*ms, 1000*ms]
 isi = ISIHistogramMonitor(PE, bins)
 
-run(5000*ms, report='text')
+run(10000*ms, report='text')
 
-def replay():
+def replay(isi):
     '''
     Decides if there is a replay or not:
-    takes the ISIs from 200 to 800 ms (plus one the left side and plus one the right side),
     searches for the max # of spikes (and plus one bin one left- and right side)
-    if the 90% of the spikes(in 200-800 ms ISI interval) are in that 3 bins then it's periodic activity: replay
+    if the 90% of the spikes are in that 3 bins then it's periodic activity: replay
+    :param isi: Inter Spike Intervals of the pyr. pop.
+    :return avgReplayInterval: counted average replay interval
     '''
 
-    binsROI = isi.count[3:17]  # bins from 150 to 850 (range of interest)
+    binsROI = isi
     binMeans = np.linspace(175, 825, 14)
     maxInd = np.argmax(binsROI)
 
@@ -173,44 +175,131 @@ def replay():
     if sum(int(i) for i in binsROI) * 0.9 < sum(int(i) for i in bins3):
         print 'Replay,', 'avg. replay interval:', avgReplayInterval, '[ms]'
     else:
+        avgReplayInterval = np.nan
         print 'Not replay'
 
-replay()
+    return avgReplayInterval
 
-# Results
-meanre = np.mean(popre.rate)
-print 'Mean excitatory rate: ', meanre
-reub = popre.rate - meanre
-revar = np.sum(reub**2)
-reac = np.correlate(reub, reub, mode='same') / revar  # cross correlation of reub and reub -> autocorrelation
-reac = reac[len(reac)/2:]
-print 'Maximum exc. autocorrelation:', reac[1:].max(), 'at', reac[1:].argmax()+1, '[ms]'
-if reac[3:8].argmax() != 0 and reac[3:8].argmax() != len(reac[3:8]):
-    print 'Maximum exc. AC in ripple range:', reac[3:8].max(), 'at', reac[3:8].argmax()+3, '[ms]'
-else:
-    print 'No ripple oscillation'
+def ripple(rate):
+    '''
+    Decides if there is a high freq. ripple oscillation or not
+    calculates the autocorrelation and the power spectrum of the activity
+    :param rate: firing rate of the neuron population
+    :return: meanr, rAC: mean rate, autocorrelation of the rate
+             maxAC, tMaxAC: maximum autocorrelation, time interval of maxAC
+             maxACR, tMaxAC: maximum autocorrelation in ripple range, time interval of maxACR
+             f, Pxx: sample frequencies and power spectral density (results of PSD analysis)
+    '''
+
+    meanr = np.mean(rate)
+    rUb = rate - meanr
+    rVar = np.sum(rUb**2)
+    rAC = np.correlate(rUb, rUb, mode='same') / rVar  # cross correlation of reub and reub -> autocorrelation
+    rAC = rAC[len(rAC)/2:]
+
+    maxAC = rAC[1:].max()
+    tMaxAC = rAC[1:].argmax()+1
+    maxACR = rAC[3:9].max()
+    tMaxACR = rAC[3:9].argmax()+3
+
+    # see more: http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.signal.welch.html
+    fs = 10000
+    f, Pxx = signal.welch(rate, fs)
+
+    return meanr, rAC, maxAC, tMaxAC, maxACR, tMaxACR, f, Pxx
+
+avgReplayInterval = replay(isi.count[3:17])  # bins from 150 to 850 (range of interest)
+
+meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE = ripple(popre.rate)
+meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI = ripple(popri.rate)
+
+
+print 'Mean excitatory rate: ', meanEr
+print 'Maximum exc. autocorrelation:', maxEAC, 'at', tMaxEAC, '[ms]'
+print 'Maximum exc. AC in ripple range:', maxEACR, 'at', tMaxEACR, '[ms]'
+print 'Mean inhibitory rate: ', meanIr
+print 'Maximum inh. autocorrelation:', maxIAC, 'at', tMaxIAC, '[ms]'
+print 'Maximum inh. AC in ripple range:', maxIACR, 'at', tMaxIACR, '[ms]'
+
 
 # Plots
+
+# Population activity, ISI
 fig = plt.figure(figsize=(10, 8))
 
-subplot(3, 1, 1)
+subplot(2, 1, 1)
 raster_plot(sme, spacebetweengroups=1, title='Raster plot', newfigure=False)
 
-subplot(3, 1, 2)
+subplot(2, 1, 2)
 hist_plot(isi, title='ISI histogram', newfigure=False)
 xlim([0, 1000])
 
-ax = fig.add_subplot(3, 1, 3)
-reacPlot = reac[2:201] # 500 - 5 Hz interval
-reacRipple = reac[3:8] # 333 - 142 Hz interval
-ax.plot(np.linspace(2, 200, len(reacPlot)), reacPlot, 'b-', label='AC of exc. firing rates (500-5 Hz)')
-ax.plot(np.linspace(3, 7, 5), reacRipple, 'r-', linewidth=2, label='AC of exc. firing rates (333-142 Hz)')
+fig.tight_layout()
+
+# Exc. autocorrelolgram, PSD
+rEACPlot = rEAC[2:201]  # 500 - 5 Hz interval
+rEACRipple = rEAC[3:9]  # 333 - 125 Hz interval
+
+fERoi = np.where(fE < 550)  # tuple with indices
+fEPlot = fE[0:fERoi[0][-1]]
+PxxEPlot = PxxE[0:fERoi[0][-1]]
+ftmp1 = np.where(fEPlot > 125)
+ftmp2 = np.where(fEPlot < 333)
+fERipple = fEPlot[ftmp1[0][0]:ftmp2[0][-1]]
+PxxERipple = PxxEPlot[ftmp1[0][0]:ftmp2[0][-1]]
+
+fig2 = plt.figure(figsize=(10, 8))
+
+ax = fig2.add_subplot(2, 1, 1)
+ax.plot(np.linspace(2, 200, len(rEACPlot)), rEACPlot, 'b-', label='AC of exc. firing rates (2-200 ms)')
+ax.plot(np.linspace(3, 8, 6), rEACRipple, 'r-', linewidth=2, label='AC of exc. firing rates (3-8 ms)')
 ax.set_title('Autocorrelogram (of firing rates in pyr. pop.)')
 ax.set_xlabel('Time (ms)')
 ax.set_xlim([2, 200])
 ax.set_ylabel('AutoCorrelation')
+ax.legend()
 
-plt.legend()
-fig.tight_layout()
+ax2 = fig2.add_subplot(2, 1, 2)
+ax2.semilogy(fEPlot, PxxEPlot, 'b-', label='PSD of exc. firing rates (0-500 Hz)')
+ax2.semilogy(fERipple, PxxERipple, 'r-', linewidth=2, label='PSD of exc. firing rates (125-333 Hz)')
+ax2.set_xlim([0, 500])
+ax2.set_xlabel('frequency [Hz]')
+ax2.set_title('Power Source Density (of firing rates in pyr. pop.)')
+ax2.legend()
+
+fig2.tight_layout()
+
+# Inh. autocorrelolgram, PSD
+rIACPlot = rIAC[2:201]  # 500 - 5 Hz interval
+rIACRipple = rIAC[3:9]  # 333 - 125 Hz interval
+
+fIRoi = np.where(fI < 550)  # tuple with indices
+fIPlot = fI[0:fIRoi[0][-1]]
+PxxIPlot = PxxI[0:fIRoi[0][-1]]
+ftmp1 = np.where(fIPlot > 125)
+ftmp2 = np.where(fIPlot < 333)
+fIRipple = fIPlot[ftmp1[0][0]:ftmp2[0][-1]]
+PxxIRipple = PxxIPlot[ftmp1[0][0]:ftmp2[0][-1]]
+
+fig3 = plt.figure(figsize=(10, 8))
+
+ax = fig3.add_subplot(2, 1, 1)
+ax.plot(np.linspace(2, 200, len(rIACPlot)), rIACPlot, 'g-', label='AC of inh. firing rates (2-200 ms)')
+ax.plot(np.linspace(3, 8, 6), rIACRipple, 'r-', linewidth=2, label='AC of inh. firing rates (3-8 ms)')
+ax.set_title('Autocorrelogram (of firing rates in bas. pop.)')
+ax.set_xlabel('Time (ms)')
+ax.set_xlim([2, 200])
+ax.set_ylabel('AutoCorrelation')
+ax.legend()
+
+ax2 = fig3.add_subplot(2, 1, 2)
+ax2.semilogy(fIPlot, PxxIPlot, 'g-', label='PSD of inh. firing rates (0-500 Hz)')
+ax2.semilogy(fIRipple, PxxIRipple, 'r-', linewidth=2, label='PSD of inh. firing rates (125-333 Hz)')
+ax2.set_xlim([0, 500])
+ax2.set_xlabel('frequency [Hz]')
+ax2.set_title('Power Source Density (of firing rates in bas. pop.)')
+ax2.legend()
+
+fig3.tight_layout()
 
 plt.show()
