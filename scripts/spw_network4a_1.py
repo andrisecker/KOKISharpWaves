@@ -129,7 +129,7 @@ Wee = [line.split() for line in f]
 f.close()
 
 for i in range(NE):
-    Wee[i][:] = [float(x) * 1.e9 for x in Wee[i]]
+    Wee[i][:] = [float(x) * 1.e9 * 0.5 for x in Wee[i]]
     Wee[i][i] = 0.
 
 Cee.connect(PE, PE, Wee)
@@ -187,12 +187,13 @@ def ripple(rate):
     '''
     Decides if there is a high freq. ripple oscillation or not
     calculates the autocorrelation and the power spectrum of the activity
-    and applies a Fisher g-test (on the spectrum)
+    and applies a Fisher g-test (on the spectrum) and if p value is smaller than 0.01 it's ripple
     :param rate: firing rate of the neuron population
     :return: meanr, rAC: mean rate, autocorrelation of the rate
              maxAC, tMaxAC: maximum autocorrelation, time interval of maxAC
              maxACR, tMaxAC: maximum autocorrelation in ripple range, time interval of maxACR
              f, Pxx: sample frequencies and power spectral density (results of PSD analysis)
+             avgRippleF, rippleP: average frequency and power of the oscillation
     '''
 
     meanr = np.mean(rate)
@@ -227,10 +228,26 @@ def ripple(rate):
         I.append(np.power(-1, i-1) * Nchoosei * np.power((1-i*fisherG), N-1))
     pVal = np.sum(I)
 
-    return meanr, rAC, maxAC, tMaxAC, maxACR, tMaxACR, f, Pxx, pVal
+
+    if pVal < 0.01:
+        avgRippleF = f[PxxRipple.argmax() + rippleS]
+        rippleP = 10 * np.log10(PxxRipple.max() / max(Pxx))
+    else:
+        avgRippleF = np.nan
+        rippleP = np.nan
+
+    return meanr, rAC, maxAC, tMaxAC, maxACR, tMaxACR, f, Pxx, avgRippleF, rippleP
+
 
 
 def gamma(f, Pxx):
+    '''
+    Decides if there is a gamma oscillation or not
+    and applies a Fisher g-test (on the spectrum) and if p value is smaller than 0.01 it's gamma
+    :param f: calculated frequecies of the power spectrum
+    :param Pxx: power spectrum of the neural activity
+    :return: avgGammaF, gammaP: average frequency and power of the oscillation
+    '''
 
     f = np.asarray(f)
     gammaS = np.where(30 < f)[0][0]
@@ -249,15 +266,23 @@ def gamma(f, Pxx):
         I.append(np.power(-1, i-1) * Nchoosei * np.power((1-i*fisherG), N-1))
     pVal = np.sum(I)
 
-    return pVal
+
+    if pVal < 0.01:
+        avgGammaF = f[PxxGamma.argmax() + gammaS]
+        gammaP = 10 * np.log10(PxxGamma.max() / max(Pxx))
+    else:
+        avgGammaF = np.nan
+        gammaP = np.nan
+
+    return avgGammaF, gammaP
 
 
 avgReplayInterval = replay(isi.count[3:17])  # bins from 150 to 850 (range of interest)
 
-meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, pValRE = ripple(popre.rate)
-pValGE = gamma(fE, PxxE)
-meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, pValRI = ripple(popri.rate)
-pValGI = gamma(fI, PxxI)
+meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(popre.rate)
+avgGammaFE, gammaPE = gamma(fE, PxxE)
+meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(popri.rate)
+avgGammaFI, gammaPI = gamma(fI, PxxI)
 
 print 'Mean excitatory rate: ', meanEr
 print 'Maximum exc. autocorrelation:', maxEAC, 'at', tMaxEAC, '[ms]'
@@ -321,17 +346,10 @@ ax3 = fig2.add_subplot(3, 1, 3)
 ax3.plot(fE, PxxEPlot, 'b-', marker='o', linewidth=1.5)
 ax3.plot(fRipple, PxxRipplePlot, 'r-', marker='o', linewidth=2)
 ax3.plot(fGamma, PxxGammaPlot, 'k-', marker='o', linewidth=2)
-ax3.text(350, -5, 'p values:',
-        fontsize=11, color='black')
-ax3.text(350, -9, str(pValRE),
-        fontsize=11, color='red')
-ax3.text(350, -13, str(pValGE),
-        fontsize=11, color='black')
 ax3.set_title('Power Spectrum Density')
 ax3.set_xlim([0, 500])
 ax3.set_xlabel('Frequency [Hz]')
 ax3.set_ylabel('PSD [dB]')
-# ax3.set_ylim([-45, 0])
 
 fig2.tight_layout()
 
@@ -374,17 +392,10 @@ ax3 = fig3.add_subplot(3, 1, 3)
 ax3.plot(fI, PxxIPlot, 'g-', marker='o', linewidth=1.5)
 ax3.plot(fRipple, PxxRipplePlot, 'r-', marker='o', linewidth=2)
 ax3.plot(fGamma, PxxGammaPlot, 'k-', marker='o', linewidth=2)
-ax3.text(350, -5, 'p values:',
-        fontsize=11, color='black')
-ax3.text(350, -9, str(pValRI),
-        fontsize=11, color='red')
-ax3.text(350, -13, str(pValGI),
-        fontsize=11, color='black')
 ax3.set_title('Power Spectrum Density')
 ax3.set_xlim([0, 500])
 ax3.set_xlabel('Frequency [Hz]')
 ax3.set_ylabel('PSD [dB]')
-# ax3.set_ylim([-45, 0])
 
 fig3.tight_layout()
 
