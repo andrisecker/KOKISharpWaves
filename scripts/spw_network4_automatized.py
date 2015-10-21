@@ -14,8 +14,8 @@ fOut ='resultsR6.txt'
 SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
 
 first = 0.5
-last = 2.5
-data_points = 21
+last = 0.7
+data_points = 3
 
 multipliers = np.linspace(first, last, data_points)
 
@@ -146,13 +146,6 @@ def replay(isi):
     else:
         bins3 = []
 
-    if 1 <= maxInd <= len(binsROI) - 2:
-        bins3 = binsROI[maxInd-1:maxInd+2]
-        tmp = binsROI[maxInd-1]*binMeans[maxInd-1] + binsROI[maxInd]*binMeans[maxInd] + binsROI[maxInd+1]*binMeans[maxInd+1]
-        avgReplayInterval = tmp / (binsROI[maxInd-1] + binsROI[maxInd] + binsROI[maxInd+1])
-    else:
-        bins3 = []
-
     if sum(int(i) for i in binsROI) * 0.9 < sum(int(i) for i in bins3):
         print 'Replay, avg. replay interval:', avgReplayInterval, '[ms]'
     else:
@@ -166,7 +159,7 @@ def ripple(rate):
     '''
     Decides if there is a high freq. ripple oscillation or not
     calculates the autocorrelation and the power spectrum of the activity
-    and applies a Fisher g-test (on the spectrum) and if p value is smaller than 0.01 it's ripple
+    and applies a Fisher g-test (on the spectrum) and if p value is smaller than 0.001 it's ripple
     :param rate: firing rate of the neuron population
     :return: meanr, rAC: mean rate, autocorrelation of the rate
              maxAC, tMaxAC: maximum autocorrelation, time interval of maxAC
@@ -208,19 +201,23 @@ def ripple(rate):
         I.append(np.power(-1, i-1) * Nchoosei * np.power((1-i*fisherG), N-1))
     pVal = np.sum(I)
 
-    if pVal < 0.01:
+    if pVal < 0.001:
         avgRippleF = f[PxxRipple.argmax() + rippleS]
-        rippleP = 10 * np.log10(PxxRipple.max() / max(Pxx))
     else:
         avgRippleF = np.nan
-        rippleP = np.nan
+
+    power = sum(Pxx)
+    tmp = sum(PxxRipple)
+    rippleP = (tmp / power) * 100
+
+
 
     return meanr, rAC, maxAC, tMaxAC, maxACR, tMaxACR, f, Pxx, avgRippleF, rippleP
 
 def gamma(f, Pxx):
     '''
     Decides if there is a gamma oscillation or not
-    and applies a Fisher g-test (on the spectrum) and if p value is smaller than 0.01 it's gamma
+    and applies a Fisher g-test (on the spectrum) and if p value is smaller than 0.001 it's gamma
     :param f: calculated frequecies of the power spectrum
     :param Pxx: power spectrum of the neural activity
     :return: avgGammaF, gammaP: average frequency and power of the oscillation
@@ -243,12 +240,14 @@ def gamma(f, Pxx):
         I.append(np.power(-1, i-1) * Nchoosei * np.power((1-i*fisherG), N-1))
     pVal = np.sum(I)
 
-    if pVal < 0.01:
+    if pVal < 0.001:
         avgGammaF = f[PxxGamma.argmax() + gammaS]
-        gammaP = 10 * np.log10(PxxGamma.max() / max(Pxx))
     else:
         avgGammaF = np.nan
-        gammaP = np.nan
+
+    power = sum(Pxx)
+    tmp = sum(PxxGamma)
+    gammaP = (tmp / power) * 100
 
     return avgGammaF, gammaP
 
@@ -504,8 +503,8 @@ ax2.plot(multipliers, X[13, :], label='Ripple power (exc.)', color='red', linewi
 ax.set_xlim(first, last)
 ax.set_ylabel(ylabel='freq [Hz]', color='blue')
 ax.set_ylim([np.nanmin(X[12, :])-5, np.nanmax(X[12, :])+8])
-ax2.set_ylabel(ylabel='power [db]', color='red')
-ax2.set_ylim([np.nanmin(X[13, :])-0.01, np.nanmax(X[13, :])+0.04])
+ax2.set_ylabel(ylabel='power %', color='red')
+ax2.set_ylim([0, 100])
 ax.set_title('Ripple oscillation')
 ax.legend(loc=2)
 ax2.legend()
@@ -517,8 +516,8 @@ ax4.plot(multipliers, X[17, :], label='Ripple power (inh.)', color='red', linewi
 ax3.set_xlim(first, last)
 ax3.set_ylabel(ylabel='freq [Hz]', color='green')
 ax3.set_ylim([np.nanmin(X[16, :])-5, np.nanmax(X[16, :])+8])
-ax4.set_ylabel(ylabel='power [db]', color='red')
-ax4.set_ylim([np.nanmin(X[13, :])-0.01, np.nanmax(X[13, :])+0.04])
+ax4.set_ylabel(ylabel='power %', color='red')
+ax4.set_ylim([0, 100])
 ax3.set_xlabel('scale factors')
 ax3.legend(loc=2)
 ax4.legend()
@@ -536,8 +535,8 @@ ax2.plot(multipliers, X[15, :], label='Gamma power (exc.)', color='red', linewid
 ax.set_xlim(first, last)
 ax.set_ylabel(ylabel='freq [Hz]', color='blue')
 ax.set_ylim([np.nanmin(X[14, :])-5, np.nanmax(X[14, :])+8])
-ax2.set_ylabel(ylabel='power [db]', color='red')
-ax2.set_ylim([np.nanmin(X[15, :])-0.01, np.nanmax(X[15, :])+0.04])
+ax2.set_ylabel(ylabel='power %', color='red')
+ax2.set_ylim([0, 100])
 ax.set_title('Gamma oscillation')
 ax.legend(loc=2)
 ax2.legend()
@@ -549,8 +548,8 @@ ax4.plot(multipliers, X[19, :], label='Gamma power (inh.)', color='red', linewid
 ax3.set_xlim(first, last)
 ax3.set_ylabel(ylabel='freq [Hz]', color='green')
 ax3.set_ylim([np.nanmin(X[18, :])-5, np.nanmax(X[18, :])+8])
-ax4.set_ylabel(ylabel='power [db]', color='red')
-ax4.set_ylim([np.nanmin(X[19, :])-0.01, np.nanmax(X[19, :])+0.04])
+ax4.set_ylabel(ylabel='power %', color='red')
+ax4.set_ylim([0, 100])
 ax3.set_xlabel('scale factors')
 ax3.legend(loc=2)
 ax4.legend()
@@ -566,4 +565,4 @@ header = 'Multiplier, Mean_exc.rate, Max.exc.AC., at[ms], Max.exc.AC.in_ripple_r
          'avg. replay interval,' \
          'avgRippleFE, ripplePE, avgGammaFE, ripplePE,' \
          'avgRippleFI, ripplePI, avgGammaFI, ripplePI'
-np.savetxt(fName, X, fmt='%.6f', delimiter='\t', header=header)
+# np.savetxt(fName, X, fmt='%.6f', delimiter='\t', header=header)

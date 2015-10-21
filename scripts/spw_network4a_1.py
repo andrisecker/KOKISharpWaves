@@ -129,7 +129,7 @@ Wee = [line.split() for line in f]
 f.close()
 
 for i in range(NE):
-    Wee[i][:] = [float(x) * 1.e9 * 0.5 for x in Wee[i]]
+    Wee[i][:] = [float(x) * 1.e9 for x in Wee[i]]
     Wee[i][i] = 0.
 
 Cee.connect(PE, PE, Wee)
@@ -231,10 +231,12 @@ def ripple(rate):
 
     if pVal < 0.01:
         avgRippleF = f[PxxRipple.argmax() + rippleS]
-        rippleP = 10 * np.log10(PxxRipple.max() / max(Pxx))
     else:
         avgRippleF = np.nan
-        rippleP = np.nan
+
+    power = sum(Pxx)
+    tmp = sum(PxxRipple)
+    rippleP = (tmp / power) * 100
 
     return meanr, rAC, maxAC, tMaxAC, maxACR, tMaxACR, f, Pxx, avgRippleF, rippleP
 
@@ -267,12 +269,14 @@ def gamma(f, Pxx):
     pVal = np.sum(I)
 
 
-    if pVal < 0.01:
+    if pVal < 0.1:
         avgGammaF = f[PxxGamma.argmax() + gammaS]
-        gammaP = 10 * np.log10(PxxGamma.max() / max(Pxx))
     else:
         avgGammaF = np.nan
-        gammaP = np.nan
+
+    power = sum(Pxx)
+    tmp = sum(PxxGamma)
+    gammaP = (tmp / power) * 100
 
     return avgGammaF, gammaP
 
