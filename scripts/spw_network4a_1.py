@@ -4,9 +4,9 @@
 from brian import *
 from brian.library.IF import *
 import numpy as np
-from scipy import signal, misc
 import matplotlib.pyplot as plt
 import os
+from detect_oscillations import replay, ripple, gamma
 
 fIn = 'wmxR.txt'
 
@@ -44,10 +44,10 @@ Cm_Bas = tauMem_Bas * gL_Bas
 Vrest_Bas = -70.0*mV
 reset_Bas = -64.0*mV  # -56.0
 theta_Bas  = -50.0*mV
-tref_Bas = 0.1*ms  # 0.1*ms
+tref_Bas = 1*ms
 
 # synaptic weights
-J_PyrInh = 0.125  # nS
+J_PyrInh = 0.25  # nS
 J_BasExc = 5.2083
 J_BasInh = 0.15  # 0.08333 #0.15
 
@@ -153,134 +153,6 @@ isi = ISIHistogramMonitor(PE, bins)
 
 run(10000*ms, report='text')
 
-
-def replay(isi):
-    '''
-    Decides if there is a replay or not:
-    searches for the max # of spikes (and plus one bin one left- and right side)
-    if the 90% of the spikes are in that 3 bins then it's periodic activity: replay
-    :param isi: Inter Spike Intervals of the pyr. pop.
-    :return avgReplayInterval: counted average replay interval
-    '''
-
-    binsROI = isi
-    binMeans = np.linspace(175, 825, 14)
-    maxInd = np.argmax(binsROI)
-
-    if 1 <= maxInd <= len(binsROI) - 2:
-        bins3 = binsROI[maxInd-1:maxInd+2]
-        tmp = binsROI[maxInd-1]*binMeans[maxInd-1] + binsROI[maxInd]*binMeans[maxInd] + binsROI[maxInd+1]*binMeans[maxInd+1]
-        avgReplayInterval = tmp / (binsROI[maxInd-1] + binsROI[maxInd] + binsROI[maxInd+1])
-    else:
-        bins3 = []
-
-    if sum(int(i) for i in binsROI) * 0.9 < sum(int(i) for i in bins3):
-        print 'Replay,', 'avg. replay interval:', avgReplayInterval, '[ms]'
-    else:
-        avgReplayInterval = np.nan
-        print 'Not replay'
-
-    return avgReplayInterval
-
-
-def ripple(rate):
-    '''
-    Decides if there is a high freq. ripple oscillation or not
-    calculates the autocorrelation and the power spectrum of the activity
-    and applies a Fisher g-test (on the spectrum) and if p value is smaller than 0.01 it's ripple
-    :param rate: firing rate of the neuron population
-    :return: meanr, rAC: mean rate, autocorrelation of the rate
-             maxAC, tMaxAC: maximum autocorrelation, time interval of maxAC
-             maxACR, tMaxAC: maximum autocorrelation in ripple range, time interval of maxACR
-             f, Pxx: sample frequencies and power spectral density (results of PSD analysis)
-             avgRippleF, rippleP: average frequency and power of the oscillation
-    '''
-
-    meanr = np.mean(rate)
-    rUb = rate - meanr
-    rVar = np.sum(rUb**2)
-    rAC = np.correlate(rUb, rUb, mode='same') / rVar  # cross correlation of reub and reub -> autocorrelation
-    rAC = rAC[len(rAC)/2:]
-
-    maxAC = rAC[1:].max()
-    tMaxAC = rAC[1:].argmax()+1
-    maxACR = rAC[3:9].max()
-    tMaxACR = rAC[3:9].argmax()+3
-
-    fs = 1000
-    f, Pxx = signal.welch(rate, fs, nperseg=512, scaling='spectrum')
-    # see more: http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.signal.welch.html
-
-    f = np.asarray(f)
-    rippleS = np.where(145 < f)[0][0]
-    rippleE = np.where(f < 250)[0][-1]
-    f.tolist()
-    PxxRipple = Pxx[rippleS:rippleE]
-
-    # Fisher g-test
-    fisherG = PxxRipple.max() / np.sum(PxxRipple)
-
-    N = len(PxxRipple)
-    upper = int(np.floor(1 / fisherG))
-    I = []
-    for i in range(1, upper):
-        Nchoosei = misc.comb(N, i)
-        I.append(np.power(-1, i-1) * Nchoosei * np.power((1-i*fisherG), N-1))
-    pVal = np.sum(I)
-
-
-    if pVal < 0.01:
-        avgRippleF = f[PxxRipple.argmax() + rippleS]
-    else:
-        avgRippleF = np.nan
-
-    power = sum(Pxx)
-    tmp = sum(PxxRipple)
-    rippleP = (tmp / power) * 100
-
-    return meanr, rAC, maxAC, tMaxAC, maxACR, tMaxACR, f, Pxx, avgRippleF, rippleP
-
-
-
-def gamma(f, Pxx):
-    '''
-    Decides if there is a gamma oscillation or not
-    and applies a Fisher g-test (on the spectrum) and if p value is smaller than 0.01 it's gamma
-    :param f: calculated frequecies of the power spectrum
-    :param Pxx: power spectrum of the neural activity
-    :return: avgGammaF, gammaP: average frequency and power of the oscillation
-    '''
-
-    f = np.asarray(f)
-    gammaS = np.where(30 < f)[0][0]
-    gammaE = np.where(f < 80)[0][-1]
-    f.tolist()
-    PxxGamma = Pxx[gammaS:gammaE]
-
-    # Fisher g-test
-    fisherG = PxxGamma.max() / np.sum(PxxGamma)
-
-    N = len(PxxGamma)
-    upper = int(np.floor(1 / fisherG))
-    I = []
-    for i in range(1, upper):
-        Nchoosei = misc.comb(N, i)
-        I.append(np.power(-1, i-1) * Nchoosei * np.power((1-i*fisherG), N-1))
-    pVal = np.sum(I)
-
-
-    if pVal < 0.1:
-        avgGammaF = f[PxxGamma.argmax() + gammaS]
-    else:
-        avgGammaF = np.nan
-
-    power = sum(Pxx)
-    tmp = sum(PxxGamma)
-    gammaP = (tmp / power) * 100
-
-    return avgGammaF, gammaP
-
-
 avgReplayInterval = replay(isi.count[3:17])  # bins from 150 to 850 (range of interest)
 
 meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(popre.rate)
@@ -310,13 +182,14 @@ subplot(2, 1, 2)
 hist_plot(isi, title='ISI histogram', newfigure=False)
 xlim([0, 1000])
 
+fig.tight_layout()
 
 # Pyr population
 fig2 = plt.figure(figsize=(10, 8))
 
 ax = fig2.add_subplot(3, 1, 1)
 ax.plot(np.linspace(0, 10000, len(popre.rate)), popre.rate, 'b-')
-ax.set_title('Pyr. populational rate')
+ax.set_title('Pyr. population rate')
 ax.set_xlabel('Time [ms]')
 
 rEACPlot = rEAC[2:201] # 500 - 5 Hz interval
@@ -324,7 +197,7 @@ rEACPlot = rEAC[2:201] # 500 - 5 Hz interval
 ax2 = fig2.add_subplot(3, 1, 2)
 ax2.plot(np.linspace(2, 200, len(rEACPlot)), rEACPlot, 'b-')
 ax2.set_title('Autocorrelogram 2-200 ms')
-ax2.set_xlabel('Time (ms)')
+ax2.set_xlabel('Time [ms]')
 ax2.set_xlim([2, 200])
 ax2.set_ylabel('AutoCorrelation')
 
@@ -362,7 +235,7 @@ fig3 = plt.figure(figsize=(10, 8))
 
 ax = fig3.add_subplot(3, 1, 1)
 ax.plot(np.linspace(0, 10000, len(popri.rate)), popre.rate, 'g-')
-ax.set_title('Bas. populational rate')
+ax.set_title('Bas. population rate')
 ax.set_xlabel('Time [ms]')
 
 rIACPlot = rIAC[2:201] # 500 - 5 Hz interval
@@ -370,7 +243,7 @@ rIACPlot = rIAC[2:201] # 500 - 5 Hz interval
 ax2 = fig3.add_subplot(3, 1, 2)
 ax2.plot(np.linspace(2, 200, len(rIACPlot)), rIACPlot, 'g-')
 ax2.set_title('Autocorrelogram 2-200 ms')
-ax2.set_xlabel('Time (ms)')
+ax2.set_xlabel('Time [ms]')
 ax2.set_xlim([2, 200])
 ax2.set_ylabel('AutoCorrelation')
 
@@ -402,5 +275,43 @@ ax3.set_xlabel('Frequency [Hz]')
 ax3.set_ylabel('PSD [dB]')
 
 fig3.tight_layout()
+
+# raster plot and rate (higher resolution)
+fig4 = plt.figure(figsize=(10, 8))
+
+spikes = sme.spikes
+spikingNeurons = [i[0] for i in spikes]
+spikeTimes = [i[1] for i in spikes]
+
+tmp = np.asarray(spikeTimes)
+ROI = np.where(tmp > 9.9)[0].tolist()
+
+rasterX = np.asarray(spikeTimes)[ROI] * 1000
+rasterY = np.asarray(spikingNeurons)[ROI]
+
+if rasterY.min()-50 > 0:
+    ymin = rasterY.min()-50
+else:
+    ymin = 0
+
+if rasterY.max()+50 < 4000:
+    ymax = rasterY.max()+50
+else:
+    ymax = 4000
+
+ax = fig4.add_subplot(2, 1, 1)
+ax.scatter(rasterX, rasterY, c='blue', marker='.')
+ax.set_title('Raster plot (last 100 ms)')
+ax.set_xlim([9900, 10000])
+ax.set_xlabel('Time [ms]')
+ax.set_ylim([ymin, ymax])
+ax.set_ylabel('Neuron number')
+
+ax2 = fig4.add_subplot(2, 1, 2)
+ax2.plot(np.linspace(9900, 10000, len(popre.rate[9900:10000])), popre.rate[9900:10000], 'b-', linewidth=2)
+ax2.set_title('Pyr. population rate (last 100 ms)')
+ax2.set_xlabel('Time [ms]')
+
+fig4.tight_layout()
 
 plt.show()
