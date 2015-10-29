@@ -318,7 +318,7 @@ for k in range(0, data_points):
     fig3.savefig(figName)
     close()
 
-    # raster plot and rate (higher resolution)
+    # raster plot and rate pyr (higher resolution)
     fig4 = plt.figure(figsize=(10, 8))
 
     spikes = sme.spikes
@@ -350,14 +350,56 @@ for k in range(0, data_points):
     ax.set_ylabel('Neuron number')
 
     ax2 = fig4.add_subplot(2, 1, 2)
-    ax2.plot(np.linspace(9900, 10000, len(popre.rate[9900:10000])), popre.rate[9900:10000], 'b-', linewidth=2)
+    ax2.plot(np.linspace(9900, 10000, len(popre.rate[9900:10000])), popre.rate[9900:10000], 'b-', linewidth=1.5)
     ax2.set_title('Pyr. population rate (last 100 ms)')
     ax2.set_xlabel('Time [ms]')
 
     fig4.tight_layout()
 
-    figName = os.path.join(SWBasePath, 'figures', str(multiplier)+'*rast_rate.png')
+    figName = os.path.join(SWBasePath, 'figures', str(multiplier)+'*pyr_rate.png')
     fig4.savefig(figName)
+    close()
+
+    # raster plot and rate bas (higher resolution)
+    fig5 = plt.figure(figsize=(10, 8))
+
+    spikes = smi.spikes
+    spikingNeurons = [i[0] for i in spikes]
+    spikeTimes = [i[1] for i in spikes]
+
+    tmp = np.asarray(spikeTimes)
+    ROI = np.where(tmp > 9.9)[0].tolist()
+
+    rasterX = np.asarray(spikeTimes)[ROI] * 1000
+    rasterY = np.asarray(spikingNeurons)[ROI]
+
+    if rasterY.min()-50 > 0:
+        ymin = rasterY.min()-50
+    else:
+        ymin = 0
+
+    if rasterY.max()+50 < 4000:
+        ymax = rasterY.max()+50
+    else:
+        ymax = 4000
+
+    ax = fig5.add_subplot(2, 1, 1)
+    ax.scatter(rasterX, rasterY, c='green', marker='.')
+    ax.set_title('Bas. raster plot (last 100 ms)')
+    ax.set_xlim([9900, 10000])
+    ax.set_xlabel('Time [ms]')
+    ax.set_ylim([ymin, ymax])
+    ax.set_ylabel('Neuron number')
+
+    ax2 = fig5.add_subplot(2, 1, 2)
+    ax2.plot(np.linspace(9900, 10000, len(popri.rate[9900:10000])), popri.rate[9900:10000], 'g-', linewidth=1.5)
+    ax2.set_title('Bas. population rate (last 100 ms)')
+    ax2.set_xlabel('Time [ms]')
+
+    fig5.tight_layout()
+
+    figName = os.path.join(SWBasePath, 'figures', str(multiplier)+'*bas_rate.png')
+    fig5.savefig(figName)
     close()
 
     # Reinitialize variables
