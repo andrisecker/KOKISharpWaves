@@ -9,13 +9,13 @@ import os
 from detect_oscillations import replay, ripple, gamma
 
 fIn = 'wmxR.txt'
-fOut ='resultsR8.txt'
+fOut ='resultsR16.txt'
 
 SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
 
-first = 0.7
-last = 1.5
-data_points = 9
+first = 0.5
+last = 2.5
+data_points = 21
 
 multipliers = np.linspace(first, last, data_points)
 
@@ -44,43 +44,23 @@ tau_w_Pyr = 300*ms  # 88 # 144.0   # ms    Adaptation time constant
 
 v_spike_Pyr = theta_Pyr + 10*delta_T_Pyr
 
-gL_Bas = 5.0e-3*uS  # 7.14293e-3
+gL_Bas = 5.0e-3*uS
 tauMem_Bas = 14.0*ms
 Cm_Bas = tauMem_Bas * gL_Bas
 Vrest_Bas = -70.0*mV
-reset_Bas = -64.0*mV  # -56.0
+reset_Bas = -64.0*mV
 theta_Bas  = -50.0*mV
-tref_Bas = 1*ms  # 0.1*ms
+tref_Bas = 0.1*ms  # 0.1*ms
 
-'''
-gL_Bas = 10.0e-3*uS #5.0e-3 *uS#7.14293e-3
-tauMem_Bas = 14.0*ms
-Cm_Bas = tauMem_Bas * gL_Bas
-Vrest_Bas = -70.0*mV
-reset_Bas = -55*mV #-64.0*mV #-56.0
-theta_Bas  = -50.0 *mV
-tref_Bas = 2.0*ms
-'''
-
-# Initialize the synaptic parameters
-# J_PyrExc  = 1.0e-5*0
-# J_Pyr_Exc_factor = 20.e8    #20.0e8 #14.5e8 #12.0e8 #10.0e8 #7.0e8
-
-'''
-J_PyrInh  = 0.12500    # (nS)
-J_BasExc  = 5.2083/2.
-J_BasInh  = 0.15 #1.0  #0.15     #0.083333e-3
-'''
-
-J_PyrInh = 0.25
+J_PyrInh = 0.15
 J_BasExc = 5.2083
-J_BasInh = 0.15  # 0.08333 #0.15
+J_BasInh = 0.25
 
 print "J_PyrInh", J_PyrInh
 print "J_BasExc", J_BasExc
 print "J_BasInh", J_BasInh
 
-J_PyrMF = 5.0  # 8.0 #2.0 #5.0
+J_PyrMF = 5.0
 
 # Synaptic reversal potentials
 E_Exc = 0.0*mV
@@ -240,7 +220,7 @@ for k in range(0, data_points):
     rippleS = np.where(145 < fE)[0][0]
     rippleE = np.where(fE < 250)[0][-1]
     gammaS = np.where(30 < fE)[0][0]
-    gammaE = np.where(fE < 145)[0][-1]
+    gammaE = np.where(fE < 80)[0][-1]
     fE.tolist()
 
     PxxRipple = PxxE[rippleS:rippleE]
@@ -291,7 +271,7 @@ for k in range(0, data_points):
     rippleS = np.where(145 < fI)[0][0]
     rippleE = np.where(fI < 250)[0][-1]
     gammaS = np.where(30 < fI)[0][0]
-    gammaE = np.where(fI < 145)[0][-1]
+    gammaE = np.where(fI < 80)[0][-1]
     fI.tolist()
 
     PxxRipple = PxxI[rippleS:rippleE]
@@ -522,4 +502,4 @@ header = 'Multiplier, Mean_exc.rate, Max.exc.AC., at[ms], Max.exc.AC.in_ripple_r
          'avg. replay interval,' \
          'avgRippleFE, ripplePE, avgGammaFE, ripplePE,' \
          'avgRippleFI, ripplePI, avgGammaFI, ripplePI'
-# np.savetxt(fName, X, fmt='%.6f', delimiter='\t', header=header)
+np.savetxt(fName, X, fmt='%.6f', delimiter='\t', header=header)

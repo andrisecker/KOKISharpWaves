@@ -21,7 +21,7 @@ eps_bas = 0.4
 
 # parameters for pyr cells
 z = 1*nS
-gL_Pyr = 4.333e-3 * uS  # 3.3333e-3
+gL_Pyr = 4.333e-3 * uS
 tauMem_Pyr = 60.0 * ms
 Cm_Pyr = tauMem_Pyr * gL_Pyr
 Vrest_Pyr = -70.0 * mV
@@ -38,24 +38,24 @@ tau_w_Pyr = 300*ms  # Adaptation time constant
 v_spike_Pyr = theta_Pyr + 10*delta_T_Pyr
 
 # parameters for bas cells
-gL_Bas = 5.0e-3*uS  # 7.14293e-3
+gL_Bas = 5.0e-3*uS
 tauMem_Bas = 14.0*ms
 Cm_Bas = tauMem_Bas * gL_Bas
 Vrest_Bas = -70.0*mV
-reset_Bas = -64.0*mV  # -56.0
+reset_Bas = -64.0*mV
 theta_Bas  = -50.0*mV
-tref_Bas = 1*ms
+tref_Bas = 0.1*ms
 
 # synaptic weights
-J_PyrInh = 0.25  # nS
+J_PyrInh = 0.15  # nS
 J_BasExc = 5.2083
-J_BasInh = 0.15  # 0.08333 #0.15
+J_BasInh = 0.25
 
 print 'J_PyrInh:', J_PyrInh
 print 'J_BasExc:', J_BasExc
 print 'J_BasInh:', J_BasInh
 
-J_PyrMF = 5.0  #8.0 #2.0 #5.0
+J_PyrMF = 5.0
 
 # Synaptic reversal potentials
 E_Exc = 0.0*mV
@@ -169,7 +169,7 @@ print 'Maximum inh. AC in ripple range:', maxIACR, 'at', tMaxIACR, '[ms]'
 
 
 fName = os.path.join(SWBasePath, 'files', 'poprate.npz')
-# np.savez(fName, rate=popre.rate, rate2=popri.rate)
+np.savez(fName, rate=popre.rate, rate2=popri.rate)
 
 
 # Plots
