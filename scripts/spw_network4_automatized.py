@@ -8,14 +8,15 @@ import matplotlib.pyplot as plt
 import os
 from detect_oscillations import replay, ripple, gamma
 
-fIn = 'wmxR.txt'
-fOut ='resultsR16.txt'
+
+fIn = 'wmxR_gauss_rectangle.txt'
+fOut ='resultsR22.txt'
 
 SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
 
 first = 0.5
-last = 2.5
-data_points = 21
+last = 2
+data_points = 16
 
 multipliers = np.linspace(first, last, data_points)
 
@@ -42,7 +43,7 @@ b_Pyr = 0.04*nA     # nA    Spike-triggered adaptation
 delta_T_Pyr = 2.0*mV  # 0.8    # mV    Slope factor
 tau_w_Pyr = 300*ms  # 88 # 144.0   # ms    Adaptation time constant
 
-v_spike_Pyr = theta_Pyr + 10*delta_T_Pyr
+v_spike_Pyr = theta_Pyr + 10 * delta_T_Pyr
 
 gL_Bas = 5.0e-3*uS
 tauMem_Bas = 14.0*ms
@@ -53,7 +54,7 @@ theta_Bas  = -50.0*mV
 tref_Bas = 0.1*ms  # 0.1*ms
 
 J_PyrInh = 0.15
-J_BasExc = 5.2083
+J_BasExc = 4.5  # 5.2083
 J_BasInh = 0.25
 
 print "J_PyrInh", J_PyrInh
@@ -141,7 +142,7 @@ for k in range(0, data_points):
     f.close()
     
     for i in range(NE):
-        Wee[i][:] = [float(x) * 1.e9 * multiplier for x in Wee[i]]  # *0.6
+        Wee[i][:] = [float(x) * 1.e9 * multiplier for x in Wee[i]]
         Wee[i][i] = 0.
         
     Cee.connect(PE, PE, Wee)
@@ -151,6 +152,7 @@ for k in range(0, data_points):
     
     print 'Connections done'
 
+    Wee = []
 
     sme = SpikeMonitor(PE)
     smi = SpikeMonitor(PI)
@@ -252,7 +254,7 @@ for k in range(0, data_points):
     fig3 = plt.figure(figsize=(10, 8))
 
     ax = fig3.add_subplot(3, 1, 1)
-    ax.plot(np.linspace(0, 10000, len(popri.rate)), popre.rate, 'g-')
+    ax.plot(np.linspace(0, 10000, len(popri.rate)), popri.rate, 'g-')
     ax.set_title('Bas. population rate')
     ax.set_xlabel('Time [ms]')
 
@@ -358,10 +360,10 @@ for k in range(0, data_points):
     else:
         ymin = 0
 
-    if rasterY.max()+50 < 4000:
+    if rasterY.max()+50 < 1000:
         ymax = rasterY.max()+50
     else:
-        ymax = 4000
+        ymax = 1000
 
     ax = fig5.add_subplot(2, 1, 1)
     ax.scatter(rasterX, rasterY, c='green', marker='.')
@@ -494,6 +496,21 @@ ax4.legend()
 fig4.tight_layout()
 
 fig4.savefig(os.path.join(SWBasePath, 'figures', 'gamma.png'))
+
+if len(fIn) > 8:
+
+    fName = os.path.join(SWBasePath, 'files', fIn)
+    wmxM = np.loadtxt(fName)
+
+    fig5 = plt.figure(figsize=(10, 8))
+
+    ax = fig5.add_subplot(1, 1, 1)
+    i = ax.imshow(wmxM, interpolation='None')
+    fig5.colorbar(i)
+    ax.set_title('Modified weight matrix')
+
+    fig5.savefig(os.path.join(SWBasePath, 'figures', 'wmx.png'))
+
 
 # Save result array (X)
 fName= os.path.join(SWBasePath, 'files', fOut)
