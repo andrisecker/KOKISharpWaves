@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 import os
 from detect_oscillations import replay, ripple, gamma
 
-fIn = 'wmxR.txt'
+
+fIn = 'wmxR_gauss.txt'
 
 SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
 
@@ -35,7 +36,7 @@ b_Pyr = 0.04*nA  # nA    Spike-triggered adaptation
 delta_T_Pyr = 2.0*mV  # Slope factor
 tau_w_Pyr = 300*ms  # Adaptation time constant
 
-v_spike_Pyr = theta_Pyr + 10*delta_T_Pyr
+v_spike_Pyr = theta_Pyr + 10 * delta_T_Pyr
 
 # parameters for bas cells
 gL_Bas = 5.0e-3*uS
@@ -48,7 +49,7 @@ tref_Bas = 0.1*ms
 
 # synaptic weights
 J_PyrInh = 0.15  # nS
-J_BasExc = 5.2083
+J_BasExc = 4.5  # 5.2083
 J_BasInh = 0.25
 
 print 'J_PyrInh:', J_PyrInh
@@ -129,7 +130,7 @@ Wee = [line.split() for line in f]
 f.close()
 
 for i in range(NE):
-    Wee[i][:] = [float(x) * 1.e9 for x in Wee[i]]
+    Wee[i][:] = [float(x) * 1.e9  for x in Wee[i]]
     Wee[i][i] = 0.
 
 Cee.connect(PE, PE, Wee)
@@ -234,7 +235,7 @@ fig2.tight_layout()
 fig3 = plt.figure(figsize=(10, 8))
 
 ax = fig3.add_subplot(3, 1, 1)
-ax.plot(np.linspace(0, 10000, len(popri.rate)), popre.rate, 'g-')
+ax.plot(np.linspace(0, 10000, len(popri.rate)), popri.rate, 'g-')
 ax.set_title('Bas. population rate')
 ax.set_xlabel('Time [ms]')
 
@@ -332,10 +333,10 @@ if rasterY.min()-50 > 0:
 else:
     ymin = 0
 
-if rasterY.max()+50 < 4000:
+if rasterY.max()+50 < 1000:
     ymax = rasterY.max()+50
 else:
-    ymax = 4000
+    ymax = 1000
 
 ax = fig5.add_subplot(2, 1, 1)
 ax.scatter(rasterX, rasterY, c='green', marker='.')
