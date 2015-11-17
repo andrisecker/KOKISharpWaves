@@ -2,14 +2,14 @@
 # -*- coding: utf8 -*-
 
 from brian import *
-from brian.library.IF import *
+# from brian.library.IF import *
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 from detect_oscillations import replay, ripple, gamma
 
 
-fIn = 'wmxR_gauss.txt'
+fIn = 'wmxR_mix_rows_cols.txt'
 
 SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
 
@@ -130,7 +130,7 @@ Wee = [line.split() for line in f]
 f.close()
 
 for i in range(NE):
-    Wee[i][:] = [float(x) * 1.e9  for x in Wee[i]]
+    Wee[i][:] = [float(x) * 1.e9 * 2.8 for x in Wee[i]]
     Wee[i][i] = 0.
 
 Cee.connect(PE, PE, Wee)
@@ -167,10 +167,19 @@ print 'Maximum exc. AC in ripple range:', maxEACR, 'at', tMaxEACR, '[ms]'
 print 'Mean inhibitory rate: ', meanIr
 print 'Maximum inh. autocorrelation:', maxIAC, 'at', tMaxIAC, '[ms]'
 print 'Maximum inh. AC in ripple range:', maxIACR, 'at', tMaxIACR, '[ms]'
+print ''
+print 'Average exc. ripple freq:', avgRippleFE
+print 'Exc. ripple power:', ripplePE
+print 'Average exc. gamma freq:', avgGammaFE
+print 'Exc. gamma power:', gammaPE
+print 'Average inh. ripple freq:', avgRippleFI
+print 'Inh. ripple power:', ripplePI
+print 'Average inh. gamma freq:', avgGammaFI
+print 'Inh. gamma power:', gammaPI
 
 
 fName = os.path.join(SWBasePath, 'files', 'poprate.npz')
-np.savez(fName, rate=popre.rate, rate2=popri.rate)
+# np.savez(fName, rate=popre.rate, rate2=popri.rate)
 
 
 # Plots

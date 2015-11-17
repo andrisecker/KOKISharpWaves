@@ -6,35 +6,30 @@ from brian import *
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import random
 
-# mode = 'blocks'
-# mode = 'continuous'
-mode = 'random'
-assert mode in ['blocks', 'continuous', 'random']
+fIn = 'spikeTrainsR.npz'
+fOut = 'wmxR.txt'
 
 SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
 
-N = 4000
-
-Npop = 50
-Nn = N/Npop
+N = 4000  # # of neurons
 
 
-#importing spike times from file
-fName = os.path.join(SWBasePath, 'files', 'spikeTrain.txt')
-f = file(fName, 'r')
-data = [line.split() for line in f]
-f.close()
+# importing spike times from file
+fName = os.path.join(SWBasePath, 'files', fIn)
+npzFile = np.load(fName)
+spikeTrains = npzFile['spikeTrains']
 
 spiketimes = []
+
 for neuron in range(N):
-    data[neuron] = [float(x) for x in data[neuron]]
-    nrn = neuron * np.ones(len(data[neuron]))
-    z = zip(nrn, data[neuron])
+    nrn = neuron * np.ones(len(spikeTrains[neuron]))
+    z = zip(nrn, spikeTrains[neuron])
     spiketimes.append(z)
 
 spiketimes = [item for sublist in spiketimes for item in sublist]
+
+PC = SpikeGeneratorGroup(N, spiketimes)
 
 
 def learning(spikingNeuronGroup):
@@ -43,10 +38,11 @@ def learning(spikingNeuronGroup):
     and learns a 'pattern' via STDP
     :param spikingNeuronGroup: Brian class of spiking neurons
     :return weightmx: numpy ndarray with the learned synaptic weights
-    :return sp: SpikeMonitor of the network (for plotting and frther analysis)
+             sp: SpikeMonitor of the network (for plotting and further analysis)
     '''
 
     Conn = Connection(spikingNeuronGroup, spikingNeuronGroup, weight=0.1e-9, sparseness=0.16)
+
     # f(s) = A_p * exp(-s/tau_p) (if s > 0)
     # A_p = 0.01, tau_p = 20e-3
     # see more: https://brian.readthedocs.org/en/1.4.1/reference-plasticity.html#brian.ExponentialSTDP
@@ -57,43 +53,20 @@ def learning(spikingNeuronGroup):
     run(400, report='text')
 
     # weight matrix
-    weightmx = [[Conn[i,j] for j in range(N)] for i in range(N)]
+    weightmx = [[Conn[i, j] for j in range(N)] for i in range(N)]
 
     return weightmx, sp
 
 
-PC = SpikeGeneratorGroup(N, spiketimes)
-
-if mode == 'blocks':
-    for i in range(Npop):
-        PC.subgroup(Nn)
-
-    weightmx, sp = learning(PC)
-
-    fOut = 'wmxB.txt'
-
-elif mode == 'continuous':
-    for i in range(N):
-        PC.subgroup(1)
-
-    weightmx, sp = learning(PC)
-
-    fOut = 'wmxC.txt'
-
-elif mode == 'random':
-    rndList = list(range(N))
-    random.shuffle(rndList)
-    for i in rndList:
-        PC.subgroup(1)
-
-    weightmx, sp = learning(PC)
-
-    fOut = 'wmxR.txt'
+weightmx, sp = learning(PC)
 
 
-np.savetxt(os.path.join(SWBasePath, 'files', fOut), weightmx)
+# save results to .txt and npz
+fName = os.path.join(SWBasePath, 'files', fOut)
+np.savetxt(fName, weightmx)
 
-#plots
+
+# Plots
 figure()
 raster_plot(sp, spacebetweengroups=1, title='Raster plot', newfigure=False)
 
@@ -103,7 +76,6 @@ raster_plot(sp, spacebetweengroups=1, title='Raster plot', newfigure=False)
 # ax.set_title('Spike times of the 1st neuron')
 # ax.set_xlabel('bins [ms]')
 # ax.set_ylabel('number of spikes')
-
 
 fig3 = plt.figure(figsize=(10, 8))
 ax = fig3.add_subplot(1, 1, 1)

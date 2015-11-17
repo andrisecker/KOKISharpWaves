@@ -8,7 +8,7 @@ def replay(isi):
     '''
     Decides if there is a replay or not:
     searches for the max # of spikes (and plus one bin one left- and right side)
-    if the 90% of the spikes are in that 3 bins then it's periodic activity: replay
+    if the 70% of the spikes are in that 3 bins then it's periodic activity: replay
     :param isi: Inter Spike Intervals of the pyr. pop.
     :return avgReplayInterval: counted average replay interval
     '''
@@ -24,7 +24,10 @@ def replay(isi):
     else:
         bins3 = []
 
-    if sum(int(i) for i in binsROI) * 0.9 < sum(int(i) for i in bins3):
+    # print 'ROI:', sum(int(i) for i in binsROI)
+    # print '3 bins:', sum(int(i) for i in bins3)
+
+    if sum(int(i) for i in binsROI) * 0.7 < sum(int(i) for i in bins3):
         print 'Replay, avg. replay interval:', avgReplayInterval, '[ms]'
     else:
         avgReplayInterval = np.nan
@@ -37,7 +40,7 @@ def ripple(rate):
     '''
     Decides if there is a high freq. ripple oscillation or not
     calculates the autocorrelation and the power spectrum of the activity
-    and applies a Fisher g-test (on the spectrum) and if p value is smaller than 0.001 it's ripple
+    and applies a Fisher g-test (on the spectrum) and if p value is smaller than 0.01 it's ripple
     :param rate: firing rate of the neuron population
     :return: meanr, rAC: mean rate, autocorrelation of the rate
              maxAC, tMaxAC: maximum autocorrelation, time interval of maxAC
@@ -77,6 +80,7 @@ def ripple(rate):
         Nchoosei = misc.comb(N, i)
         I.append(np.power(-1, i-1) * Nchoosei * np.power((1-i*fisherG), N-1))
     pVal = np.sum(I)
+    print 'ripple pVal', pVal
 
     if pVal < 0.01:
         avgRippleF = f[PxxRipple.argmax() + rippleS]
@@ -91,10 +95,11 @@ def ripple(rate):
 
     return meanr, rAC, maxAC, tMaxAC, maxACR, tMaxACR, f, Pxx, avgRippleF, rippleP
 
+
 def gamma(f, Pxx):
     '''
     Decides if there is a gamma oscillation or not
-    and applies a Fisher g-test (on the spectrum) and if p value is smaller than 0.001 it's gamma
+    and applies a Fisher g-test (on the spectrum) and if p value is smaller than 0.01 it's gamma
     :param f: calculated frequecies of the power spectrum
     :param Pxx: power spectrum of the neural activity
     :return: avgGammaF, gammaP: average frequency and power of the oscillation
@@ -116,6 +121,7 @@ def gamma(f, Pxx):
         Nchoosei = misc.comb(N, i)
         I.append(np.power(-1, i-1) * Nchoosei * np.power((1-i*fisherG), N-1))
     pVal = np.sum(I)
+    print 'gamma pVal', pVal
 
     if pVal < 0.01:
         avgGammaF = f[PxxGamma.argmax() + gammaS]

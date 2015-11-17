@@ -2,21 +2,21 @@
 # -*- coding: utf8 -*-
 
 from brian import *
-from brian.library.IF import *
+# from brian.library.IF import *
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 from detect_oscillations import replay, ripple, gamma
 
 
-fIn = 'wmxR_gauss_rectangle.txt'
-fOut ='resultsR22.txt'
+fIn = 'wmxR_avg_3990_weak_weights.txt'
+fOut ='resultsR34.txt'
 
-SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
+SWBasePath =  '/home/bandi/workspace/KOKI/SharpWaves' #os.path.split(os.path.split(__file__)[0])[0]
 
 first = 0.5
-last = 2
-data_points = 16
+last = 2.5
+data_points = 21
 
 multipliers = np.linspace(first, last, data_points)
 
@@ -134,7 +134,7 @@ for k in range(0, data_points):
     Cext = IdentityConnection(MF, PE, 'g_ampa', weight=J_PyrMF)
     Cee = Connection(PE, PE, 'g_ampa', delay=delay_PyrExc)
 
-    fName = os.path.join(SWBasePath, 'files', fIn)
+    fName =  os.path.join(SWBasePath, 'files', fIn)
     f = file(fName, 'r')
 
     Wee = [line.split() for line in f]
@@ -194,9 +194,8 @@ for k in range(0, data_points):
 
     fig.tight_layout()
 
-    figName = os.path.join(SWBasePath, 'figures', str(multiplier)+'*.png')
+    figName =  os.path.join(SWBasePath, 'figures', str(multiplier)+'*.png')
     fig.savefig(figName)
-    close()
 
 
     # Pyr population
@@ -247,7 +246,6 @@ for k in range(0, data_points):
 
     figName = os.path.join(SWBasePath, 'figures', str(multiplier)+'*pyr.png')
     fig2.savefig(figName)
-    close()
 
 
     # Bas population
@@ -298,7 +296,6 @@ for k in range(0, data_points):
 
     figName = os.path.join(SWBasePath, 'figures', str(multiplier)+'*bas.png')
     fig3.savefig(figName)
-    close()
 
     # raster plot and rate pyr (higher resolution)
     fig4 = plt.figure(figsize=(10, 8))
@@ -340,7 +337,6 @@ for k in range(0, data_points):
 
     figName = os.path.join(SWBasePath, 'figures', str(multiplier)+'*pyr_rate.png')
     fig4.savefig(figName)
-    close()
 
     # raster plot and rate bas (higher resolution)
     fig5 = plt.figure(figsize=(10, 8))
@@ -382,14 +378,15 @@ for k in range(0, data_points):
 
     figName = os.path.join(SWBasePath, 'figures', str(multiplier)+'*bas_rate.png')
     fig5.savefig(figName)
-    close()
+
+    plt.close('all')
 
     # Reinitialize variables
     reinit(states=True)
 
 
 # Plots
-fig = plt.figure()
+fig = plt.figure(figsize=(10, 8))
 
 ax = fig.add_subplot(2, 1, 1)
 ax.plot(multipliers, X[11, :], linewidth=2, marker='|')
@@ -497,6 +494,8 @@ fig4.tight_layout()
 
 fig4.savefig(os.path.join(SWBasePath, 'figures', 'gamma.png'))
 
+plt.close('all')
+
 if len(fIn) > 8:
 
     fName = os.path.join(SWBasePath, 'files', fIn)
@@ -510,6 +509,7 @@ if len(fIn) > 8:
     ax.set_title('Modified weight matrix')
 
     fig5.savefig(os.path.join(SWBasePath, 'figures', 'wmx.png'))
+    plt.close()
 
 
 # Save result array (X)
