@@ -94,7 +94,6 @@ def shuffle_rows_cols(wmxO):
     tmp = tmp[colPert.tolist()]
 
     wmxM = np.transpose(tmp)
-    print wmxM.shape
 
     return wmxM
 
@@ -261,5 +260,11 @@ def shuffle_blocks(wmxO, popSize):
     for i, vali in enumerate(x):
         for j, valj in enumerate(y):
             wmxM[i*popSize:(i+1)*popSize, j*popSize:(j+1)*popSize] = d[vali, valj]
+
+    return wmxM
+
+def mirror(wmxO):
+
+    wmxM = np.fliplr(wmxO)
 
     return wmxM

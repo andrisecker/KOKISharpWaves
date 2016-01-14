@@ -7,7 +7,7 @@ from wmx_modifications import *
 
 
 fIn = 'wmxR.npz'
-fOut = 'wmxR_shuffle_blocks.txt'
+fOut = 'wmxR_shuffled_rows_cols3.txt'
 
 SWBasePath = os.path.split(os.path.split(os.path.split(__file__)[0])[0])[0]
 
@@ -15,18 +15,21 @@ fName = os.path.join(SWBasePath, 'files', 'wmxR.npz')
 npzFile = np.load(fName)
 wmxO = npzFile['wmx']
 
+np.fill_diagonal(wmxO, 0)
+
 print 'original matrix loaded'
 
 # wmxM = gauss(wmxO)
 # wmxM = gauss_rectangle(wmxO)
 # wmxM = mean_rectangle(wmxO)
-# wmxM = shuffle_rows_cols(wmxO)
+wmxM = shuffle_rows_cols(wmxO)
 # wmxM = shuffle_block_rows_cols(wmxO)
 # wmxM = avg_weak_weights(wmxO)
-# wmxM = avg_x_weak_weights(wmxO, 3990)
+# wmxM = avg_x_weak_weights(wmxO, 3995)
 # wmxM = disconnected(wmxO)
 # wmxM = binary_weights(wmxO, 0.5)
-wmxM = shuffle_blocks(wmxO, 200)
+# wmxM = shuffle_blocks(wmxO, 200)
+# wmxM = mirror(wmxO)
 
 print 'modification done'
 

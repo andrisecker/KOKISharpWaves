@@ -9,16 +9,16 @@ import os
 from detect_oscillations import replay, ripple, gamma
 
 
-fIn = 'wmxR_avg_3990_weak_weights.txt'
-fOut ='resultsR34.txt'
+fIn = 'wmxC.txt'
+fOut = 'baselineC.txt'
 
-SWBasePath =  '/home/bandi/workspace/KOKI/SharpWaves' #os.path.split(os.path.split(__file__)[0])[0]
+SWBasePath = '/home/bandi/workspace/KOKI/SharpWaves'  #os.path.split(os.path.split(__file__)[0])[0]
 
 first = 0.5
 last = 2.5
-data_points = 21
+dataPoints = 21
 
-multipliers = np.linspace(first, last, data_points)
+multipliers = np.linspace(first, last, dataPoints)
 
 NE = 4000
 NI = 1000
@@ -107,10 +107,10 @@ def myresetfunc(P, spikes):
     P.w_[spikes] += b_Pyr  # low pass filter of spikes (adaptation mechanism)
 
 
-X = np.zeros((20, data_points))
+X = np.zeros((20, dataPoints))
 
 
-for k in range(0, data_points):
+for k in range(0, dataPoints):
 
     multiplier = multipliers[k]
     print 'multiplier=', multiplier
@@ -143,7 +143,6 @@ for k in range(0, data_points):
     
     for i in range(NE):
         Wee[i][:] = [float(x) * 1.e9 * multiplier for x in Wee[i]]
-        Wee[i][i] = 0.
         
     Cee.connect(PE, PE, Wee)
     Cei = Connection(PE, PI, 'g_ampa', weight=J_BasExc, sparseness=eps_pyr, delay=delay_BasExc)
@@ -321,7 +320,7 @@ for k in range(0, data_points):
         ymax = 4000
 
     ax = fig4.add_subplot(2, 1, 1)
-    ax.scatter(rasterX, rasterY, c='blue', marker='.')
+    ax.scatter(rasterX, rasterY, c='blue', marker='.', lw=0)
     ax.set_title('Raster plot (last 100 ms)')
     ax.set_xlim([9900, 10000])
     ax.set_xlabel('Time [ms]')
@@ -362,7 +361,7 @@ for k in range(0, data_points):
         ymax = 1000
 
     ax = fig5.add_subplot(2, 1, 1)
-    ax.scatter(rasterX, rasterY, c='green', marker='.')
+    ax.scatter(rasterX, rasterY, c='green', marker='.', lw=0)
     ax.set_title('Bas. raster plot (last 100 ms)')
     ax.set_xlim([9900, 10000])
     ax.set_xlabel('Time [ms]')

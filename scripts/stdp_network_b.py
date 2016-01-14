@@ -7,13 +7,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-fIn = 'spikeTrainsR.npz'
-fOut = 'wmxR.txt'
+fIn = 'spikeTrainsC.npz'
+fOut = 'wmxC.txt'
 
 SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
 
 N = 4000  # # of neurons
-
 
 # importing spike times from file
 fName = os.path.join(SWBasePath, 'files', fIn)
@@ -60,8 +59,13 @@ def learning(spikingNeuronGroup):
 
 weightmx, sp = learning(PC)
 
+tmp = np.asarray(weightmx)
+weightmx = np.reshape(tmp, (4000, 4000))
 
-# save results to .txt and npz
+np.fill_diagonal(weightmx, 0)
+
+
+# save results
 fName = os.path.join(SWBasePath, 'files', fOut)
 np.savetxt(fName, weightmx)
 

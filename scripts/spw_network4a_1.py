@@ -9,7 +9,7 @@ import os
 from detect_oscillations import replay, ripple, gamma
 
 
-fIn = 'wmxR_mix_rows_cols.txt'
+fIn = 'wmxR_shuffled_rows_cols2.txt'
 
 SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
 
@@ -56,8 +56,6 @@ print 'J_PyrInh:', J_PyrInh
 print 'J_BasExc:', J_BasExc
 print 'J_BasInh:', J_BasInh
 
-J_PyrMF = 5.0
-
 # Synaptic reversal potentials
 E_Exc = 0.0*mV
 E_Inh = -70.0*mV
@@ -74,7 +72,9 @@ delay_PyrInh = 1.5*ms
 delay_BasExc = 3.0*ms
 delay_BasInh = 1.5*ms
 
-p_rate_mf = 5.0*Hz  #10.0*Hz
+# input parameters
+p_rate_mf = 5.0*Hz
+J_PyrMF = 5.0
 
 # Creating populations
 eqs_adexp = '''
@@ -130,8 +130,7 @@ Wee = [line.split() for line in f]
 f.close()
 
 for i in range(NE):
-    Wee[i][:] = [float(x) * 1.e9 * 2.8 for x in Wee[i]]
-    Wee[i][i] = 0.
+    Wee[i][:] = [float(x) * 1.e9 for x in Wee[i]]
 
 Cee.connect(PE, PE, Wee)
 
@@ -310,7 +309,7 @@ else:
     ymax = 4000
 
 ax = fig4.add_subplot(2, 1, 1)
-ax.scatter(rasterX, rasterY, c='blue', marker='.')
+ax.scatter(rasterX, rasterY, c='blue', marker='.', lw=0)
 ax.set_title('Pyr. raster plot (last 100 ms)')
 ax.set_xlim([9900, 10000])
 ax.set_xlabel('Time [ms]')
@@ -348,7 +347,7 @@ else:
     ymax = 1000
 
 ax = fig5.add_subplot(2, 1, 1)
-ax.scatter(rasterX, rasterY, c='green', marker='.')
+ax.scatter(rasterX, rasterY, c='green', marker='.', lw=0)
 ax.set_title('Bas. raster plot (last 100 ms)')
 ax.set_xlim([9900, 10000])
 ax.set_xlabel('Time [ms]')

@@ -80,7 +80,7 @@ def ripple(rate):
         Nchoosei = misc.comb(N, i)
         I.append(np.power(-1, i-1) * Nchoosei * np.power((1-i*fisherG), N-1))
     pVal = np.sum(I)
-    print 'ripple pVal', pVal
+    # print 'ripple pVal', pVal
 
     if pVal < 0.01:
         avgRippleF = f[PxxRipple.argmax() + rippleS]
@@ -121,7 +121,7 @@ def gamma(f, Pxx):
         Nchoosei = misc.comb(N, i)
         I.append(np.power(-1, i-1) * Nchoosei * np.power((1-i*fisherG), N-1))
     pVal = np.sum(I)
-    print 'gamma pVal', pVal
+    # print 'gamma pVal', pVal
 
     if pVal < 0.01:
         avgGammaF = f[PxxGamma.argmax() + gammaS]
