@@ -15,13 +15,13 @@ def generateFiringRate(nPop, pop, phase0, t, **kwargs):
     '''
 
     theta = 7.0  # theta frequence [Hz]
-    avgRateInField = 20.0  # avg. in-field firing rate [ms]
+    avgRateInField = 20.0  # avg. in-field firing rate [Hz]
     vMice = 32.43567842  # velocity of the mice [cm/s]
     lRoute = 300.0  # circumference [cm]
     lPlaceField = 30.0  # length of the place field [cm]
 
-    r = lRoute / (2 * np.pi)  #radius [cm]
-    phiPFRad = lPlaceField / r  # angle of place field [rad]
+    r = lRoute / (2 * np.pi)  # radius [cm]
+    phiPFRad = lPlaceField / r  # (angle of) place field [rad]
 
     tRoute = lRoute / vMice  # [s]
     wMice = 2 * np.pi / tRoute  # angular velocity
@@ -41,7 +41,7 @@ def generateFiringRate(nPop, pop, phase0, t, **kwargs):
 
     # phase precession
     y = phase0 + 2 * np.pi * theta * t
-    shift = phiStart + phiPFRad / 2
+    mPF = phiStart + phiPFRad / 2
     m = - (x - phiStart) * 2 * np.pi / phiPFRad  # prefered phase: f(current position within the place field)
 
     sig = 0.5  # deviation of phase-locking (von Misses distribution -> see lambda2)
@@ -49,7 +49,7 @@ def generateFiringRate(nPop, pop, phase0, t, **kwargs):
 
     if phiStart < phiEnd:
         if phiStart <= x and x < phiEnd:  # if the mice is in the place field
-            lambda1 = np.cos((2 * np.pi) / (2 * phiPFRad) * (x - shift)) * avgRateInField
+            lambda1 = np.cos((2 * np.pi) / (2 * phiPFRad) * (x - mPF)) * avgRateInField
             lambda2 = np.exp(s * np.cos(y - m)) / np.exp(s)
 
         else:
@@ -60,7 +60,7 @@ def generateFiringRate(nPop, pop, phase0, t, **kwargs):
 
     else:
         if phiStart <= x or x < phiEnd:  # if the mice is in the place field
-            lambda1 = np.cos((2 * np.pi) / (2 * phiPFRad) * (x - shift)) * avgRateInField
+            lambda1 = np.cos((2 * np.pi) / (2 * phiPFRad) * (x - mPF)) * avgRateInField
             lambda2 = np.exp(s * np.cos(y - m)) / np.exp(s)
 
         else:
@@ -85,7 +85,7 @@ def inhomPoisson(nPop, pop, phase0, seed, **kwargs):
 
     lambdaE = 20.0
     mu = 1.0 / lambdaE
-    tMax = 500.0  # [ms]
+    tMax = 500.0  # [s]
 
     homP = []  # homogeneous Poisson process
     np.random.seed(seed)
@@ -104,7 +104,7 @@ def inhomPoisson(nPop, pop, phase0, seed, **kwargs):
     inhP = []  # inhomogeneous Poisson process
     for i, t in enumerate(homP):
         np.random.seed(seed + i + 1)
-        if  generateFiringRate(nPop, pop, phase0, t, **kwargs) / lambdaE >= np.random.rand(1):
+        if generateFiringRate(nPop, pop, phase0, t, **kwargs) / lambdaE >= np.random.rand(1):
             inhP.append(t)
 
     return inhP
