@@ -14,3 +14,5 @@ stdp_network_b.py + spikeTrain.npz -> wmx.txt (learning process)
 spw_network4a_1.py + detect_oscillations - activity during sleep/rest (scaling factor = 1) (and detects replays, ripple-, gamma oscillation)
 
 spw_network4_automatized.py + detect_oscillations- checks the activity with varios scaling factors (and detects replays, ripple-, gamma oscillation)
+
+bayesian_inference.py + spikes.npz + PFstarts.npz -> decoding of the place from spikes saved from spw...
