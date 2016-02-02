@@ -14,14 +14,14 @@ fInSpikes = 'spikes.npz'
 fInPF = 'PFstarts.npz'
 fOut = 'route.npz'
 
-tempRes = 200  # [ms]
+tempRes = 0.05  # [s]
 spaRes = 2*np.pi / 360.0  # [rad] ( == 1 degree)
 N = 4000
 
 SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
 
 spatialPoints = np.linspace(0, 2*np.pi, int(2*np.pi / spaRes))
-samplingTimes = np.linspace(0, 10000, int(10000.0 / tempRes)+1)
+samplingTimes = np.linspace(0, 10, int(10.0 / tempRes)+1)
 
 # (constants from poisson_proc.py:)
 lRoute = 300  # circumference [cm]
@@ -60,12 +60,12 @@ print 'rates calculated'
 # read spike times
 fName = os.path.join(SWBasePath, 'files', fInSpikes)
 npzFile = np.load(fName)
-spikes = npzFile['spikes']
-spiketimes = npzFile['spiketimes'] * 1000  # ms scale
+spikes = npzFile['spikes']  # only for the raster plot
+spiketimes = npzFile['spiketimes']
 
 
 # log(likelihood): log(Pr(spikes|x)) = \sum_{i=1}^N n_ilog(\frac{\Delta t \tau_i(x)}{n_i!}) - \Delta t \sum_{i=1}^N \tau_i(x)
-delta_t = tempRes  # in [ms]
+delta_t = tempRes  # in s
 
 route = []
 ML = []
@@ -96,10 +96,11 @@ for t1, t2 in zip(samplingTimes[:-1], samplingTimes[1:]):
     place = spatialPoints[id]
     route.append(place)
     ML.append(maxLikelihood)
-    print 'sampling time:', str(t2), '[ms]:', str(place), '[rad] ML:', maxLikelihood
+    print 'sampling time:', str(t2 * 1000), '[ms]:', str(place), '[rad] ML:', maxLikelihood
 
 fName = os.path.join(SWBasePath, 'files', fOut)
 np.savez(fName, route=route, ML=ML)
+
 
 # raster plot
 spikingNeurons = []
