@@ -4,6 +4,7 @@
 import numpy as np
 from scipy import signal, misc
 
+
 def replay(isi):
     '''
     Decides if there is a replay or not:
@@ -36,12 +37,29 @@ def replay(isi):
     return avgReplayInterval
 
 
-def ripple(rate):
+def autocorrelation(x):
+    '''
+    Computes the autocorrelation/serial correlation of a time series (to find repeating patterns)
+    R(\tau) = \frac{E[(X_t - \mu)(X_{t+\tau} - \mu)]}{\sigma^2}
+    :param x: time series
+    :return: autocorrelation
+    '''
+
+    meanx = np.mean(x)
+    xUb = x - meanx
+    xVar = np.sum(xUb**2)
+    xAC = np.correlate(xUb, xUb, mode='same') / xVar  # cross correlation of xUb and xUb -> autocorrelation
+
+    return xAC[len(xAC)/2:]
+
+
+def ripple(rate, fs):
     '''
     Decides if there is a high freq. ripple oscillation or not
     calculates the autocorrelation and the power spectrum of the activity
     and applies a Fisher g-test (on the spectrum) and if p value is smaller than 0.01 it's ripple
     :param rate: firing rate of the neuron population
+    :param fs: sampling frequency (for the spectral analysis)
     :return: meanr, rAC: mean rate, autocorrelation of the rate
              maxAC, tMaxAC: maximum autocorrelation, time interval of maxAC
              maxACR, tMaxAC: maximum autocorrelation in ripple range, time interval of maxACR
@@ -50,10 +68,7 @@ def ripple(rate):
     '''
 
     meanr = np.mean(rate)
-    rUb = rate - meanr
-    rVar = np.sum(rUb**2)
-    rAC = np.correlate(rUb, rUb, mode='same') / rVar  # cross correlation of reub and reub -> autocorrelation
-    rAC = rAC[len(rAC)/2:]
+    rAC = autocorrelation(rate)
 
     maxAC = rAC[1:].max()
     tMaxAC = rAC[1:].argmax()+1
@@ -61,7 +76,6 @@ def ripple(rate):
     tMaxACR = rAC[3:9].argmax()+3
 
     # see more: http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.signal.welch.html
-    fs = 1000
     f, Pxx = signal.welch(rate, fs, nperseg=512, scaling='spectrum')
 
     f = np.asarray(f)
@@ -90,7 +104,6 @@ def ripple(rate):
     power = sum(Pxx)
     tmp = sum(PxxRipple)
     rippleP = (tmp / power) * 100
-
 
 
     return meanr, rAC, maxAC, tMaxAC, maxACR, tMaxACR, f, Pxx, avgRippleF, rippleP
