@@ -11,8 +11,10 @@ stdp_network_b.py + spikeTrain.npz -> wmx.txt (learning process)
 
 (showmatrix2_origin.m - shows the weight matrix)
 
-spw_network4a_1.py + detect_oscillations - activity during sleep/rest (scaling factor = 1) (and detects replays, ripple-, gamma oscillation)
+spw_network4a_1.py + detect_oscillations.py - activity during sleep/rest (scaling factor = 1) (and detects replays, ripple-, gamma oscillation)
 
-spw_network4_automatized.py + detect_oscillations- checks the activity with varios scaling factors (and detects replays, ripple-, gamma oscillation)
+spw_network4_automatized.py + detect_oscillations.py - checks the activity with varios scaling factors (and detects replays, ripple-, gamma oscillation)
+
+spw_network4_inputs.py + detect_oscillations.py - script for examination of the network dynamics to different inpust
 
 bayesian_inference.py + spikes.npz + PFstarts.npz -> decoding of the place from spikes saved from spw...
