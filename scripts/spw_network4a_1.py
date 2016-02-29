@@ -2,14 +2,12 @@
 # -*- coding: utf8 -*-
 
 from brian import *
-# from brian.library.IF import *
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 from detect_oscillations import replay, ripple, gamma
 
-
-fIn = 'wmxR_shuffled_rows_cols2.txt'
+fIn = 'wmxR.txt'
 
 SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
 
@@ -29,13 +27,11 @@ Vrest_Pyr = -70.0 * mV
 reset_Pyr = -53.0*mV
 theta_Pyr = -50.0*mV
 tref_Pyr = 5*ms
-
 # Adaptation parameters for pyr cells
 a_Pyr = -0.8*nS  # nS    Subthreshold adaptation conductance
 b_Pyr = 0.04*nA  # nA    Spike-triggered adaptation
 delta_T_Pyr = 2.0*mV  # Slope factor
 tau_w_Pyr = 300*ms  # Adaptation time constant
-
 v_spike_Pyr = theta_Pyr + 10 * delta_T_Pyr
 
 # parameters for bas cells
@@ -44,13 +40,13 @@ tauMem_Bas = 14.0*ms
 Cm_Bas = tauMem_Bas * gL_Bas
 Vrest_Bas = -70.0*mV
 reset_Bas = -64.0*mV
-theta_Bas  = -50.0*mV
+theta_Bas = -50.0*mV
 tref_Bas = 0.1*ms
 
 # synaptic weights
-J_PyrInh = 0.15  # nS
-J_BasExc = 4.5  # 5.2083
-J_BasInh = 0.25
+J_PyrInh = 0.125  # 0.15  # 0.125
+J_BasExc = 5.2083  # 4.5  # 5.2083
+J_BasInh = 0.15  # 0.25  # 0.15
 
 print 'J_PyrInh:', J_PyrInh
 print 'J_BasExc:', J_BasExc
@@ -136,7 +132,7 @@ Cee.connect(PE, PE, Wee)
 
 Cei = Connection(PE, PI, 'g_ampa', weight=J_BasExc, sparseness=eps_pyr, delay=delay_BasExc)
 Cie = Connection(PI, PE, 'g_gaba', weight=J_PyrInh, sparseness=eps_bas, delay=delay_PyrInh)
-Cii = Connection(PI, PI, 'g_gaba', weight=J_BasInh, sparseness=eps_bas, delay=delay_PyrInh)
+Cii = Connection(PI, PI, 'g_gaba', weight=J_BasInh, sparseness=eps_bas, delay=delay_BasInh)
 
 print 'Connections done'
 
@@ -145,7 +141,7 @@ sme = SpikeMonitor(PE)
 smi = SpikeMonitor(PI)
 popre = PopulationRateMonitor(PE, bin=1*ms)
 popri = PopulationRateMonitor(PI, bin=1*ms)
-poprext = PopulationRateMonitor(MF, bin=0.001)
+poprext = PopulationRateMonitor(MF, bin=1*ms)
 bins = [0*ms, 50*ms, 100*ms, 150*ms, 200*ms, 250*ms, 300*ms, 350*ms, 400*ms, 450*ms, 500*ms,
         550*ms, 600*ms, 650*ms, 700*ms, 750*ms, 800*ms, 850*ms, 900*ms, 950*ms, 1000*ms]
 isi = ISIHistogramMonitor(PE, bins)
@@ -155,9 +151,9 @@ run(10000*ms, report='text')
 
 avgReplayInterval = replay(isi.count[3:17])  # bins from 150 to 850 (range of interest)
 
-meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(popre.rate)
+meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(popre.rate, 1000)
 avgGammaFE, gammaPE = gamma(fE, PxxE)
-meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(popri.rate)
+meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(popri.rate, 1000)
 avgGammaFI, gammaPI = gamma(fI, PxxI)
 
 print 'Mean excitatory rate: ', meanEr
@@ -177,8 +173,8 @@ print 'Average inh. gamma freq:', avgGammaFI
 print 'Inh. gamma power:', gammaPI
 
 
-fName = os.path.join(SWBasePath, 'files', 'poprate.npz')
-# np.savez(fName, rate=popre.rate, rate2=popri.rate)
+fName = os.path.join(SWBasePath, 'files', 'spikes_0.8.npz')
+# np.savez(fName, spikes=sme.spikes, spiketimes=sme.spiketimes.values())
 
 
 # Plots
@@ -201,7 +197,7 @@ ax.plot(np.linspace(0, 10000, len(popre.rate)), popre.rate, 'b-')
 ax.set_title('Pyr. population rate')
 ax.set_xlabel('Time [ms]')
 
-rEACPlot = rEAC[2:201] # 500 - 5 Hz interval
+rEACPlot = rEAC[2:201]  # 500 - 5 Hz interval
 
 ax2 = fig2.add_subplot(3, 1, 2)
 ax2.plot(np.linspace(2, 200, len(rEACPlot)), rEACPlot, 'b-')

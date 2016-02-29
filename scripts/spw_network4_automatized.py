@@ -2,17 +2,16 @@
 # -*- coding: utf8 -*-
 
 from brian import *
-# from brian.library.IF import *
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 from detect_oscillations import replay, ripple, gamma
 
 
-fIn = 'wmxC.txt'
-fOut = 'baselineC.txt'
+fIn = 'wmxR.txt'
+fOut = 'resultsR43.txt'
 
-SWBasePath = '/home/bandi/workspace/KOKI/SharpWaves'  #os.path.split(os.path.split(__file__)[0])[0]
+SWBasePath = '/home/bandi/workspace/KOKI/SharpWaves'  # os.path.split(os.path.split(__file__)[0])[0]
 
 first = 0.5
 last = 2.5
@@ -34,15 +33,13 @@ Vrest_Pyr = -70.0 * mV
 reset_Pyr = -53.0*mV
 theta_Pyr = -50.0*mV
 tref_Pyr = 5*ms
-
 # Adaptation parameters for pyr cells
-a_Pyr = -0.8*nS    # nS    Subthreshold adaptation conductance
+a_Pyr = -0.8*nS    # nS subthreshold adaptation conductance
 # moves threshold up
 b_Pyr = 0.04*nA     # nA    Spike-triggered adaptation
 # -> decreases the slope of the f-I curve
 delta_T_Pyr = 2.0*mV  # 0.8    # mV    Slope factor
 tau_w_Pyr = 300*ms  # 88 # 144.0   # ms    Adaptation time constant
-
 v_spike_Pyr = theta_Pyr + 10 * delta_T_Pyr
 
 gL_Bas = 5.0e-3*uS
@@ -50,18 +47,16 @@ tauMem_Bas = 14.0*ms
 Cm_Bas = tauMem_Bas * gL_Bas
 Vrest_Bas = -70.0*mV
 reset_Bas = -64.0*mV
-theta_Bas  = -50.0*mV
+theta_Bas = -50.0*mV
 tref_Bas = 0.1*ms  # 0.1*ms
 
 J_PyrInh = 0.15
 J_BasExc = 4.5  # 5.2083
 J_BasInh = 0.25
 
-print "J_PyrInh", J_PyrInh
-print "J_BasExc", J_BasExc
-print "J_BasInh", J_BasInh
-
-J_PyrMF = 5.0
+print 'J_PyrInh', J_PyrInh
+print 'J_BasExc', J_BasExc
+print 'J_BasInh', J_BasInh
 
 # Synaptic reversal potentials
 E_Exc = 0.0*mV
@@ -79,7 +74,9 @@ delay_PyrInh = 1.5*ms
 delay_BasExc = 3.0*ms
 delay_BasInh = 1.5*ms
 
-p_rate_mf = 5.0*Hz #10.0*Hz
+# outer input
+J_PyrMF = 5.0  # synapse strength
+p_rate_mf = 5.0*Hz
 
 
 # Creating populations
@@ -122,19 +119,18 @@ for k in range(0, dataPoints):
     PE.vm = Vrest_Pyr
     PE.g_ampa = 0
     PE.g_gaba = 0
-    PI.vm  = Vrest_Bas
+    PI.vm = Vrest_Bas
     PI.g_ampa = 0
     PI.g_gaba = 0
 
     MF = PoissonGroup(NE, p_rate_mf)
-
 
     print 'Connecting the network'
     
     Cext = IdentityConnection(MF, PE, 'g_ampa', weight=J_PyrMF)
     Cee = Connection(PE, PE, 'g_ampa', delay=delay_PyrExc)
 
-    fName =  os.path.join(SWBasePath, 'files', fIn)
+    fName = os.path.join(SWBasePath, 'files', fIn)
     f = file(fName, 'r')
 
     Wee = [line.split() for line in f]
@@ -147,7 +143,7 @@ for k in range(0, dataPoints):
     Cee.connect(PE, PE, Wee)
     Cei = Connection(PE, PI, 'g_ampa', weight=J_BasExc, sparseness=eps_pyr, delay=delay_BasExc)
     Cie = Connection(PI, PE, 'g_gaba', weight=J_PyrInh, sparseness=eps_bas, delay=delay_PyrInh)
-    Cii = Connection(PI, PI, 'g_gaba', weight=J_BasInh, sparseness=eps_bas, delay=delay_PyrInh)
+    Cii = Connection(PI, PI, 'g_gaba', weight=J_BasInh, sparseness=eps_bas, delay=delay_BasInh)
     
     print 'Connections done'
 
@@ -157,7 +153,6 @@ for k in range(0, dataPoints):
     smi = SpikeMonitor(PI)
     popre = PopulationRateMonitor(PE, bin=0.001)
     popri = PopulationRateMonitor(PI, bin=0.001)
-    poprext = PopulationRateMonitor(MF, bin=0.001)
     bins = [0*ms, 50*ms, 100*ms, 150*ms, 200*ms, 250*ms, 300*ms, 350*ms, 400*ms, 450*ms, 500*ms,
             550*ms, 600*ms, 650*ms, 700*ms, 750*ms, 800*ms, 850*ms, 900*ms, 950*ms, 1000*ms]
     isi = ISIHistogramMonitor(PE, bins)
@@ -168,9 +163,9 @@ for k in range(0, dataPoints):
 
     avgReplayInterval = replay(isi.count[3:17])  # bins from 150 to 850 (range of interest)
 
-    meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(popre.rate)
+    meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(popre.rate, 1000)
     avgGammaFE, gammaPE = gamma(fE, PxxE)
-    meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(popri.rate)
+    meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(popri.rate, 1000)
     avgGammaFI, gammaPI = gamma(fI, PxxI)
 
     X[:, k] = [multiplier,
@@ -193,7 +188,7 @@ for k in range(0, dataPoints):
 
     fig.tight_layout()
 
-    figName =  os.path.join(SWBasePath, 'figures', str(multiplier)+'*.png')
+    figName = os.path.join(SWBasePath, 'figures', str(multiplier)+'*.png')
     fig.savefig(figName)
 
 
