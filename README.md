@@ -1,4 +1,4 @@
-# Sharp waves (Computational neuroscience, KOKI-HAS)
+## Sharp waves (Computational neuroscience, KOKI-HAS)
 
 Reference: [BSc thesis](https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view) *Modeling the network dynamics underlying hippocampal sharp waves and sequence replay.*
 
@@ -34,7 +34,7 @@ automated evaluation of the networks dynamics with differently scaled recurrent 
 
     python bayesian_inference.py  # Bayesian decoding of place from spikes saved from spw...
 
-[Bayesian decoding](https://github.com/andrisecker/KOKISharpWaves/blob/master/Bayesian_inference.pdf) of place (on the circle maze) from spike trains recorded during SWRs
+[Bayesian decoding](https://github.com/andrisecker/KOKISharpWaves/blob/master/Bayesian_inference.pdf) of place (in a circle maze) from spike trains recorded during SWRs
 
 ![](https://raw.githubusercontent.com/andrisecker/KOKISharpWaves/master/bayesian_decoding.png)
 
