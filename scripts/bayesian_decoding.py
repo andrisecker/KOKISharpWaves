@@ -10,15 +10,15 @@ from scipy.misc import factorial
 import matplotlib.pyplot as plt
 import os
 
-fInSpikes = 'spikes_SW.npz'
+fInSpikes = 'spikes.npz'
 fInPF = 'PFstarts.npz'
-fOut = 'route_0.02_SW2.npz'
+fOut = 'route_0.005.npz'
 
-tempRes = 0.02  # [s]
+tempRes = 0.005  # [s]
 spaRes = 2*np.pi / 360.0  # [rad] ( == 1 degree)
 N = 4000
 
-SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
+SWBasePath = '/home/bandi/workspace/KOKI/SharpWaves'  # os.path.split(os.path.split(__file__)[0])[0]
 
 spatialPoints = np.linspace(0, 2*np.pi, int(2*np.pi / spaRes))
 samplingTimes = np.linspace(0, 10, int(10.0 / tempRes)+1)
