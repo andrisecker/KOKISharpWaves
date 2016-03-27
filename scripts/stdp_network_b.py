@@ -6,13 +6,14 @@ from brian import *
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+from detect_oscillations import ripple, gamma
 
-fIn = 'spikeTrainsC.npz'
-fOut = 'wmxC.txt'
+fIn = 'spikeTrainsR.npz'
+fOut = 'wmxR.txt'
 
-SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
+SWBasePath = os.path.split(os.path.split(__file__)[0])[0] # '/home/bandi/workspace/KOKI/SharpWaves'
 
-N = 4000  # # of neurons
+N = 4000  # #{neurons}
 
 # importing spike times from file
 fName = os.path.join(SWBasePath, 'files', fIn)
@@ -37,7 +38,7 @@ def learning(spikingNeuronGroup):
     and learns a 'pattern' via STDP
     :param spikingNeuronGroup: Brian class of spiking neurons
     :return weightmx: numpy ndarray with the learned synaptic weights
-             sp: SpikeMonitor of the network (for plotting and further analysis)
+            sp: SpikeMonitor of the network (for plotting and further analysis)
     '''
 
     Conn = Connection(spikingNeuronGroup, spikingNeuronGroup, weight=0.1e-9, sparseness=0.16)
@@ -64,27 +65,19 @@ weightmx = np.reshape(tmp, (4000, 4000))
 
 np.fill_diagonal(weightmx, 0)
 
-
-# save results
+# save weightmatrix
 fName = os.path.join(SWBasePath, 'files', fOut)
 np.savetxt(fName, weightmx)
 
 
 # Plots
-figure()
+figure(figsize=(10, 8))
 raster_plot(sp, spacebetweengroups=1, title='Raster plot', newfigure=False)
 
-# fig2 = plt.figure(figsize=(10, 8))
-# ax = fig2.add_subplot(1, 1, 1)
-# ax.hist(sp.spiketimes[0], np.linspace(0, 0.5, 100))
-# ax.set_title('Spike times of the 1st neuron')
-# ax.set_xlabel('bins [ms]')
-# ax.set_ylabel('number of spikes')
-
-fig3 = plt.figure(figsize=(10, 8))
-ax = fig3.add_subplot(1, 1, 1)
+fig2 = plt.figure(figsize=(10, 8))
+ax = fig2.add_subplot(1, 1, 1)
 i = ax.imshow(weightmx, interpolation='None')
-fig3.colorbar(i)
-ax.set_title('Weight matrix')
+fig2.colorbar(i)
+ax.set_title('Learned weight matrix')
 
 plt.show()

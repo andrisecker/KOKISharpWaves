@@ -5,15 +5,15 @@ import numpy as np
 import os
 from poisson_proc import inhomPoisson
 
-fOut = 'spikeTrainsB.npz'
+fOut = 'spikeTrainsR.npz'
 
-nPop = 50  # of populations
-nNeuron = 80  # of neurons in one population
+nPop = 4000  # #{populations}
+nNeuron = 1  # #{neurons in one population}
 # mode = 'continuous'
 mode = 'random'
 # if nNeuron != 1 mode -> 'block'
 
-SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
+SWBasePath = os.path.split(os.path.split(__file__)[0])[0]  # '/home/bandi/workspace/KOKI/SharpWaves'
 
 seed = 0
 
@@ -47,8 +47,15 @@ elif nNeuron == 1 and mode == 'random':
     tmpArray = np.asarray(spikeTrains)
     spikeTrains = tmpArray[indexing].tolist()
 
+    # save place fields for further analysis
+    tmpArray = np.asarray(tmpList)
+    pfStarts = tmpArray[indexing].tolist()
+    fName = os.path.join(SWBasePath, 'files', 'PFstarts.npz')
+    np.savez(fName, pfStarts=pfStarts)
+
 assert len(spikeTrains) == nPop * nNeuron
 
 # save results to .npz
 fName = os.path.join(SWBasePath, 'files', fOut)
 np.savez(fName, spikeTrains=spikeTrains)
+

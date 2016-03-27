@@ -3,6 +3,7 @@
 
 import numpy as np
 
+
 def generateFiringRate(nPop, pop, phase0, t, **kwargs):
     '''
     Calculates the lambda parameter of the Poisson process, that represent the firing rate in CA3 (pyr. cells)
