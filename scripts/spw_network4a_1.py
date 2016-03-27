@@ -9,7 +9,7 @@ from detect_oscillations import replay, ripple, gamma
 
 fIn = 'wmxR.txt'
 
-SWBasePath = os.path.split(os.path.split(__file__)[0])[0]
+SWBasePath = os.path.split(os.path.split(__file__)[0])[0] # '/home/bandi/workspace/KOKI/SharpWaves'
 
 NE = 4000
 NI = 1000
