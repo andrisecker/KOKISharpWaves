@@ -1,4 +1,4 @@
-## Sharp waves (Computational neuroscience, KOKI-HAS)
+# Sharp waves (Computational neuroscience, KOKI-HAS)
 
 Reference: [BSc thesis](https://drive.google.com/drive/folders/0B089tpx89mdXdjdkbk9JSjBjMDQ) *Modeling the network dynamics underlying hippocampal sharp waves and sequence replay.*
 
@@ -22,7 +22,7 @@ To run the scripts, [install Brian (version 1)](http://brian.readthedocs.org/en/
 
 extraction of dynamic features during SWRs
 
-# Other features:
+### Other features:
 
     python spw_network4_automatized.py  # investigates into network dynamics with varios scaling factor (of the weight matrix)
 
