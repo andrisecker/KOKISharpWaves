@@ -1,10 +1,10 @@
 ## Sharp waves (Computational neuroscience, KOKI-HAS)
 
-------------------------------------------------------
-
 Reference: [BSc thesis](https://drive.google.com/drive/folders/0B089tpx89mdXdjdkbk9JSjBjMDQ) *Modeling the network dynamics underlying hippocampal sharp waves and sequence replay.*
 
-> With the sripts in the repository one can create a [CA3 network model](https://github.com/andrisecker/KOKISharpWaves/blob/master/CA3_network_model.pdf) and examine the network dynamics during hippocampal sharp waves.
+------------------------------------------------------
+
+> With the sripts in the repository one can create a [CA3 network model](https://github.com/andrisecker/KOKISharpWaves/blob/master/CA3_network_model.pdf) and examine the network dynamics during hippocampal SWRs (Sharp Wave-Ripples).
 
 To run the scripts, [install Brian (version 1)](http://brian.readthedocs.org/en/latest/installation.html) and run:
 
@@ -22,9 +22,7 @@ To run the scripts, [install Brian (version 1)](http://brian.readthedocs.org/en/
 
 extraction of dynamic features during SWRs
 
-------------------------------------------------------
-
-Other features:
+# Other features:
 
     python spw_network4_automatized.py  # investigates into network dynamics with varios scaling factor (of the weight matrix)
 
@@ -37,6 +35,12 @@ automated evaluation of the networks dynamics with differently scaled recurrent 
     python bayesian_inference.py  # Bayesian decoding of place from spikes saved from spw...
 
 [Bayesian decoding](https://github.com/andrisecker/KOKISharpWaves/blob/master/Bayesian_inference.pdf) of place (on the circle maze) from spike trains recorded during SWRs
+
+![](https://raw.githubusercontent.com/andrisecker/KOKISharpWaves/master/bayesian_decoding.png)
+
+Raster plot of the activity and infered place from spike trains + analysis of the angular velocity during SWRs
+
+------------------------------------------------------
 
 > note: (with some IDE) one has to change the PATH (SWBasePath at the top of the scripts)
 
