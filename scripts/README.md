@@ -13,7 +13,7 @@ Analyse network dynamics:
 * detect_oscillations.py *(functions used by the following scripts)*
 * spw_network4_1.py *(Brian script: runs the simulation, extracts dynamic features)*
 * spw_network4_automatized.py *(Brian script: investigates into network dynamics with varios scaling factor (of the weight matrix))*
-* spw_network4_inputs.py *(Brian script: investigates into network dynamics with different outer inputs)*
+* spw_network4_BasInputs_f.py *(Brian script: investigates into network dynamics with different outer inputs)*
 
 ------------------------------------------------------
 
