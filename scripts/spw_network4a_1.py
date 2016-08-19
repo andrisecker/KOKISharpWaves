@@ -9,7 +9,7 @@ from detect_oscillations import replay, ripple, gamma
 
 fIn = 'wmxR.txt'
 
-SWBasePath = os.path.split(os.path.split(__file__)[0])[0] # '/home/bandi/workspace/KOKI/SharpWaves'
+SWBasePath =  '/home/bandi/workspace/KOKISharpWaves'  # os.path.split(os.path.split(__file__)[0])[0]
 
 NE = 4000
 NI = 1000
@@ -44,9 +44,9 @@ theta_Bas = -50.0*mV
 tref_Bas = 0.1*ms
 
 # synaptic weights
-J_PyrInh = 0.125  # 0.15  # 0.125
-J_BasExc = 5.2083  # 4.5  # 5.2083
-J_BasInh = 0.15  # 0.25  # 0.15
+J_PyrInh = 0.15  # 0.125
+J_BasExc = 4.5  # 5.2083
+J_BasInh = 0.25  # 0.15
 
 print 'J_PyrInh:', J_PyrInh
 print 'J_BasExc:', J_BasExc
