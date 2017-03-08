@@ -113,7 +113,7 @@ plt.yscale('log')
 
 ax2 = fig3.add_subplot(2, 1, 2)
 ax2.hist(log10wmx, bins=150, color='red')
-ax2.set_title('Distriboution of synaptic weights')
+ax2.set_title('Distribution of synaptic weights')
 ax2.set_xlabel('log10(pyr-pyr synaptic weight strength) [nS]')
 ax2.set_ylabel('# of synapses (on logarithmic scale)')
 #ax2.set_xlim(-200, 2)
