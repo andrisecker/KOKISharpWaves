@@ -5,17 +5,18 @@ from brian import *
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import gc
 from detect_oscillations import replay, ripple, gamma
 
 
-fIn = 'wmxR.txt'
-fOut = 'resultsR43.txt'
+fIn = 'wmxR_sym.txt'
+fOut = 'resultsR01_asym.txt'
 
-SWBasePath = os.path.split(os.path.split(__file__)[0])[0]  # '/home/bandi/workspace/KOKI/SharpWaves'
+SWBasePath = '/home/bandi/workspace/KOKISharpWaves'  # os.path.split(os.path.split(__file__)[0])[0]  
 
 first = 0.5
-last = 2.5
-dataPoints = 21
+last = 1.5
+dataPoints = 11
 
 multipliers = np.linspace(first, last, dataPoints)
 
@@ -103,6 +104,16 @@ def myresetfunc(P, spikes):
     P.vm_[spikes] = reset_Pyr   # reset voltage
     P.w_[spikes] += b_Pyr  # low pass filter of spikes (adaptation mechanism)
 
+# load in Wee only once ...
+def load_Wee(fName):  # this way the file will closed
+	Wee = np.genfromtxt(fName) * 1e9
+	np.fill_diagonal(Wee, 0)  # just to make sure
+
+	print "weight matrix loded"
+	return Wee
+
+fName = os.path.join(SWBasePath, 'files', fIn)
+Wee = load_Wee(fName)
 
 X = np.zeros((20, dataPoints))
 
@@ -128,26 +139,17 @@ for k in range(0, dataPoints):
     print 'Connecting the network'
     
     Cext = IdentityConnection(MF, PE, 'g_ampa', weight=J_PyrMF)
-    Cee = Connection(PE, PE, 'g_ampa', delay=delay_PyrExc)
-
-    fName = os.path.join(SWBasePath, 'files', fIn)
-    f = file(fName, 'r')
-
-    Wee = [line.split() for line in f]
-
-    f.close()
     
-    for i in range(NE):
-        Wee[i][:] = [float(x) * 1.e9 * multiplier for x in Wee[i]]
-        
-    Cee.connect(PE, PE, Wee)
+    Cee = Connection(PE, PE, 'g_ampa', delay=delay_PyrExc)        
+    Wee_tmp = Wee * multiplier  # Wee matrix loaded before the for loop
+    Cee.connect(PE, PE, Wee_tmp)
+    del Wee_tmp  # cleary memory
+	
     Cei = Connection(PE, PI, 'g_ampa', weight=J_BasExc, sparseness=eps_pyr, delay=delay_BasExc)
     Cie = Connection(PI, PE, 'g_gaba', weight=J_PyrInh, sparseness=eps_bas, delay=delay_PyrInh)
     Cii = Connection(PI, PI, 'g_gaba', weight=J_BasInh, sparseness=eps_bas, delay=delay_BasInh)
     
     print 'Connections done'
-
-    Wee = []
 
     sme = SpikeMonitor(PE)
     smi = SpikeMonitor(PI)
@@ -377,6 +379,9 @@ for k in range(0, dataPoints):
 
     # Reinitialize variables
     reinit(states=True)
+    reinit_default_clock()
+    clear(True)
+    gc.collect()
 
 
 # Plots

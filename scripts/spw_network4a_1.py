@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt
 import os
 from detect_oscillations import replay, ripple, gamma
 
-fIn = 'wmxR.txt'
+fIn = 'wmxR_sym.txt'
 
-SWBasePath =  '/home/bandi/workspace/KOKISharpWaves'  # os.path.split(os.path.split(__file__)[0])[0]
+SWBasePath = '/home/bandi/workspace/KOKISharpWaves'  # os.path.split(os.path.split(__file__)[0])[0]
 
 NE = 4000
 NI = 1000
@@ -91,15 +91,25 @@ dg_ampa/dt = -g_ampa/tauSyn_BasExc : 1
 dg_gaba/dt = -g_gaba/tauSyn_BasInh : 1
 '''
 
+
 def myresetfunc(P, spikes):
     P.vm[spikes] = reset_Pyr   # reset voltage
     P.w[spikes] += b_Pyr  # low pass filter of spikes (adaptation mechanism)
 
-
 SCR = SimpleCustomRefractoriness(myresetfunc, tref_Pyr, state='vm')
 
-PE = NeuronGroup(NE, model=eqs_adexp, threshold=v_spike_Pyr, reset=SCR)
+def load_Wee(fName):  # this way the file will closed
+	Wee = np.genfromtxt(fName) * 1e9
+	np.fill_diagonal(Wee, 0)  # just to make sure
 
+	print "weight matrix loded"
+	return Wee
+	
+fName = os.path.join(SWBasePath, 'files', fIn)
+Wee = load_Wee(fName)
+
+
+PE = NeuronGroup(NE, model=eqs_adexp, threshold=v_spike_Pyr, reset=SCR)
 PI = NeuronGroup(NI, model=eqs_bas, threshold=theta_Bas, reset=reset_Bas, refractory=tref_Bas)
 
 PE.vm = Vrest_Pyr
@@ -117,17 +127,6 @@ print 'Connecting the network'
 Cext = IdentityConnection(MF, PE, 'g_ampa', weight=J_PyrMF)
 
 Cee = Connection(PE, PE, 'g_ampa', delay=delay_PyrExc)
-
-fName = os.path.join(SWBasePath, 'files', fIn)
-f = file(fName, 'r')
-
-Wee = [line.split() for line in f]
-
-f.close()
-
-for i in range(NE):
-    Wee[i][:] = [float(x) * 1.e9 for x in Wee[i]]
-
 Cee.connect(PE, PE, Wee)
 
 Cei = Connection(PE, PI, 'g_ampa', weight=J_BasExc, sparseness=eps_pyr, delay=delay_BasExc)
