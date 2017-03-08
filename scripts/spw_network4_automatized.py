@@ -10,7 +10,7 @@ from detect_oscillations import replay, ripple, gamma
 
 
 fIn = 'wmxR_sym.txt'
-fOut = 'resultsR01_asym.txt'
+fOut = 'resultsR01_sym.txt'
 
 SWBasePath = '/home/bandi/workspace/KOKISharpWaves'  # os.path.split(os.path.split(__file__)[0])[0]  
 
