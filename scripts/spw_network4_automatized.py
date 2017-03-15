@@ -1,22 +1,29 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
+'''
+looped version of spw_network4a_1.py -> checks the dynamics for different multipliers of the learned weight matrix
+see more: https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view
+author: András Ecker, last update: 11.2016 (+ some minor checks for symmetric STDP in 03.2017)
+'''
 
+
+import os
+import gc
 from brian import *
 import numpy as np
 import matplotlib.pyplot as plt
-import os
-import gc
 from detect_oscillations import replay, ripple, gamma
+from plots import plot_PSD, plot_zoomed
 
 
 fIn = 'wmxR_sym.txt'
-fOut = 'resultsR01_sym.txt'
+fOut = 'resultsR02_sym.txt'
 
-SWBasePath = '/home/bandi/workspace/KOKISharpWaves'  # os.path.split(os.path.split(__file__)[0])[0]  
+SWBasePath = '/'.join(os.path.abspath(__file__).split('/')[:-2]) 
 
 first = 0.5
-last = 1.5
-dataPoints = 11
+last = 2.5
+dataPoints = 21
 
 multipliers = np.linspace(first, last, dataPoints)
 
@@ -104,6 +111,8 @@ def myresetfunc(P, spikes):
     P.vm_[spikes] = reset_Pyr   # reset voltage
     P.w_[spikes] += b_Pyr  # low pass filter of spikes (adaptation mechanism)
 
+# ====================================== end of parameters ======================================
+
 # load in Wee only once ...
 def load_Wee(fName):  # this way the file will closed
 	Wee = np.genfromtxt(fName) * 1e9
@@ -115,16 +124,17 @@ def load_Wee(fName):  # this way the file will closed
 fName = os.path.join(SWBasePath, 'files', fIn)
 Wee = load_Wee(fName)
 
-X = np.zeros((20, dataPoints))
+X = np.zeros((20, dataPoints))  # init. container to store results
 
+# ====================================== iterates over diff. multipliers ======================================
 
 for k in range(0, dataPoints):
 
     multiplier = multipliers[k]
-    print 'multiplier=', multiplier
+    print "multiplier=%s"%multiplier
 
-    SCR = SimpleCustomRefractoriness(myresetfunc, tref_Pyr, state='vm')
-    
+    # recreate the neurons in every iteration (just to make sure!)
+    SCR = SimpleCustomRefractoriness(myresetfunc, tref_Pyr, state='vm')   
     PE = NeuronGroup(NE, model=eqs_adexp, threshold=v_spike_Pyr, reset=SCR)
     PI = NeuronGroup(NI, model=eqs_bas, threshold=theta_Bas, reset=reset_Bas, refractory=tref_Bas)
     PE.vm = Vrest_Pyr
@@ -136,21 +146,20 @@ for k in range(0, dataPoints):
 
     MF = PoissonGroup(NE, p_rate_mf)
 
-    print 'Connecting the network'
+    print "Connecting the network"
     
-    Cext = IdentityConnection(MF, PE, 'g_ampa', weight=J_PyrMF)
-    
+    Cext = IdentityConnection(MF, PE, 'g_ampa', weight=J_PyrMF)    
     Cee = Connection(PE, PE, 'g_ampa', delay=delay_PyrExc)        
     Wee_tmp = Wee * multiplier  # Wee matrix loaded before the for loop
     Cee.connect(PE, PE, Wee_tmp)
-    del Wee_tmp  # cleary memory
-	
+    del Wee_tmp  # cleary memory	
     Cei = Connection(PE, PI, 'g_ampa', weight=J_BasExc, sparseness=eps_pyr, delay=delay_BasExc)
     Cie = Connection(PI, PE, 'g_gaba', weight=J_PyrInh, sparseness=eps_bas, delay=delay_PyrInh)
     Cii = Connection(PI, PI, 'g_gaba', weight=J_BasInh, sparseness=eps_bas, delay=delay_BasInh)
     
-    print 'Connections done'
+    print "Connections done"
 
+    # init monitors
     sme = SpikeMonitor(PE)
     smi = SpikeMonitor(PI)
     popre = PopulationRateMonitor(PE, bin=0.001)
@@ -160,223 +169,63 @@ for k in range(0, dataPoints):
     isi = ISIHistogramMonitor(PE, bins)
 
 
-    run(10000*ms, report='text')
-
-
-    avgReplayInterval = replay(isi.count[3:17])  # bins from 150 to 850 (range of interest)
-
-    meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(popre.rate, 1000)
-    avgGammaFE, gammaPE = gamma(fE, PxxE)
-    meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(popri.rate, 1000)
-    avgGammaFI, gammaPI = gamma(fI, PxxI)
-
-    X[:, k] = [multiplier,
-               meanEr, maxEAC, tMaxEAC, maxEACR, tMaxEACR,
-               meanIr, maxIAC, tMaxIAC, maxIACR, tMaxIACR,
-               avgReplayInterval,
-               avgRippleFE, ripplePE, avgGammaFE, gammaPE,
-               avgRippleFI, ripplePI, avgGammaFI, gammaPI]
-
-
-    # Saved figures
+    run(10000*ms, report='text')  # run the simulation! 
+    
+    
+    # Brian's raster + ISI plot
     fig = plt.figure(figsize=(10, 8))
 
     subplot(2, 1, 1)
-    raster_plot(sme, spacebetweengroups=1, title='Raster plot', newfigure=False)
+    raster_plot(sme, spacebetweengroups=1, title="Raster plot", newfigure=False)
 
     subplot(2, 1, 2)
-    hist_plot(isi, title='ISI histogram', newfigure=False)
+    hist_plot(isi, title="ISI histogram", newfigure=False)
     xlim([0, 1000])
 
     fig.tight_layout()
 
-    figName = os.path.join(SWBasePath, 'figures', str(multiplier)+'*.png')
+    figName = os.path.join(SWBasePath, "figures", "%s.png"%multiplier)
     fig.savefig(figName)
 
+    if np.max(popre.rate > 0):  # check if there is any activity
 
-    # Pyr population
-    fig2 = plt.figure(figsize=(10, 8))
+        # calling detect_oscillation functions:
+        avgReplayInterval = replay(isi.count[3:17])  # bins from 150 to 850 (range of interest)
 
-    ax = fig2.add_subplot(3, 1, 1)
-    ax.plot(np.linspace(0, 10000, len(popre.rate)), popre.rate, 'b-')
-    ax.set_title('Pyr. population rate')
-    ax.set_xlabel('Time [ms]')
+        meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(popre.rate, 1000)
+        avgGammaFE, gammaPE = gamma(fE, PxxE)
+        meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(popri.rate, 1000)
+        avgGammaFI, gammaPI = gamma(fI, PxxI)
 
-    rEACPlot = rEAC[2:201] # 500 - 5 Hz interval
+        print "Avg. exc. ripple freq:%s, Avg. inh. ripple freq:%s"%(avgRippleFE, avgRippleFI)
+        print "--------------------------------------------------"
+        
+        # store results for this multiplier
+        X[:, k] = [multiplier,
+                   meanEr, maxEAC, tMaxEAC, maxEACR, tMaxEACR,
+                   meanIr, maxIAC, tMaxIAC, maxIACR, tMaxIACR,
+                   avgReplayInterval,
+                   avgRippleFE, ripplePE, avgGammaFE, gammaPE,
+                   avgRippleFI, ripplePI, avgGammaFI, gammaPI]
 
-    ax2 = fig2.add_subplot(3, 1, 2)
-    ax2.plot(np.linspace(2, 200, len(rEACPlot)), rEACPlot, 'b-')
-    ax2.set_title('Autocorrelogram 2-200 ms')
-    ax2.set_xlabel('Time [ms]')
-    ax2.set_xlim([2, 200])
-    ax2.set_ylabel('AutoCorrelation')
+        # Plots
+        plot_PSD(popre.rate, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier)
+        plot_PSD(popri.rate, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier)
 
-    PxxEPlot = 10 * np.log10(PxxE / max(PxxE))
-
-    fE = np.asarray(fE)
-    rippleS = np.where(145 < fE)[0][0]
-    rippleE = np.where(fE < 250)[0][-1]
-    gammaS = np.where(30 < fE)[0][0]
-    gammaE = np.where(fE < 80)[0][-1]
-    fE.tolist()
-
-    PxxRipple = PxxE[rippleS:rippleE]
-    PxxGamma = PxxE[gammaS:gammaE]
-
-    fRipple = fE[rippleS:rippleE]
-    fGamma = fE[gammaS:gammaE]
-
-    PxxRipplePlot = 10 * np.log10(PxxRipple / max(PxxE))
-    PxxGammaPlot = 10 * np.log10(PxxGamma / max(PxxE))
-
-    ax3 = fig2.add_subplot(3, 1, 3)
-    ax3.plot(fE, PxxEPlot, 'b-', marker='o', linewidth=1.5)
-    ax3.plot(fRipple, PxxRipplePlot, 'r-', marker='o', linewidth=2)
-    ax3.plot(fGamma, PxxGammaPlot, 'k-', marker='o', linewidth=2)
-    ax3.set_title('Power Spectrum Density')
-    ax3.set_xlim([0, 500])
-    ax3.set_xlabel('Frequency [Hz]')
-    ax3.set_ylabel('PSD [dB]')
-
-    fig2.tight_layout()
-
-    figName = os.path.join(SWBasePath, 'figures', str(multiplier)+'*pyr.png')
-    fig2.savefig(figName)
-
-
-    # Bas population
-    fig3 = plt.figure(figsize=(10, 8))
-
-    ax = fig3.add_subplot(3, 1, 1)
-    ax.plot(np.linspace(0, 10000, len(popri.rate)), popri.rate, 'g-')
-    ax.set_title('Bas. population rate')
-    ax.set_xlabel('Time [ms]')
-
-    rIACPlot = rIAC[2:201] # 500 - 5 Hz interval
-
-    ax2 = fig3.add_subplot(3, 1, 2)
-    ax2.plot(np.linspace(2, 200, len(rIACPlot)), rIACPlot, 'g-')
-    ax2.set_title('Autocorrelogram 2-200 ms')
-    ax2.set_xlabel('Time [ms]')
-    ax2.set_xlim([2, 200])
-    ax2.set_ylabel('AutoCorrelation')
-
-    PxxIPlot = 10 * np.log10(PxxI / max(PxxI))
-
-    fI = np.asarray(fI)
-    rippleS = np.where(145 < fI)[0][0]
-    rippleE = np.where(fI < 250)[0][-1]
-    gammaS = np.where(30 < fI)[0][0]
-    gammaE = np.where(fI < 80)[0][-1]
-    fI.tolist()
-
-    PxxRipple = PxxI[rippleS:rippleE]
-    PxxGamma = PxxI[gammaS:gammaE]
-
-    fRipple = fI[rippleS:rippleE]
-    fGamma = fI[gammaS:gammaE]
-
-    PxxRipplePlot = 10 * np.log10(PxxRipple / max(PxxI))
-    PxxGammaPlot = 10 * np.log10(PxxGamma / max(PxxI))
-
-    ax3 = fig3.add_subplot(3, 1, 3)
-    ax3.plot(fI, PxxIPlot, 'g-', marker='o', linewidth=1.5)
-    ax3.plot(fRipple, PxxRipplePlot, 'r-', marker='o', linewidth=2)
-    ax3.plot(fGamma, PxxGammaPlot, 'k-', marker='o', linewidth=2)
-    ax3.set_title('Power Spectrum Density')
-    ax3.set_xlim([0, 500])
-    ax3.set_xlabel('Frequency [Hz]')
-    ax3.set_ylabel('PSD [dB]')
-
-    fig3.tight_layout()
-
-    figName = os.path.join(SWBasePath, 'figures', str(multiplier)+'*bas.png')
-    fig3.savefig(figName)
-
-    # raster plot and rate pyr (higher resolution)
-    fig4 = plt.figure(figsize=(10, 8))
-
-    spikes = sme.spikes
-    spikingNeurons = [i[0] for i in spikes]
-    spikeTimes = [i[1] for i in spikes]
-
-    tmp = np.asarray(spikeTimes)
-    ROI = np.where(tmp > 9.9)[0].tolist()
-
-    rasterX = np.asarray(spikeTimes)[ROI] * 1000
-    rasterY = np.asarray(spikingNeurons)[ROI]
-
-    if rasterY.min()-50 > 0:
-        ymin = rasterY.min()-50
-    else:
-        ymin = 0
-
-    if rasterY.max()+50 < 4000:
-        ymax = rasterY.max()+50
-    else:
-        ymax = 4000
-
-    ax = fig4.add_subplot(2, 1, 1)
-    ax.scatter(rasterX, rasterY, c='blue', marker='.', lw=0)
-    ax.set_title('Raster plot (last 100 ms)')
-    ax.set_xlim([9900, 10000])
-    ax.set_xlabel('Time [ms]')
-    ax.set_ylim([ymin, ymax])
-    ax.set_ylabel('Neuron number')
-
-    ax2 = fig4.add_subplot(2, 1, 2)
-    ax2.plot(np.linspace(9900, 10000, len(popre.rate[9900:10000])), popre.rate[9900:10000], 'b-', linewidth=1.5)
-    ax2.set_title('Pyr. population rate (last 100 ms)')
-    ax2.set_xlabel('Time [ms]')
-
-    fig4.tight_layout()
-
-    figName = os.path.join(SWBasePath, 'figures', str(multiplier)+'*pyr_rate.png')
-    fig4.savefig(figName)
-
-    # raster plot and rate bas (higher resolution)
-    fig5 = plt.figure(figsize=(10, 8))
-
-    spikes = smi.spikes
-    spikingNeurons = [i[0] for i in spikes]
-    spikeTimes = [i[1] for i in spikes]
-
-    tmp = np.asarray(spikeTimes)
-    ROI = np.where(tmp > 9.9)[0].tolist()
-
-    rasterX = np.asarray(spikeTimes)[ROI] * 1000
-    rasterY = np.asarray(spikingNeurons)[ROI]
-
-    if rasterY.min()-50 > 0:
-        ymin = rasterY.min()-50
-    else:
-        ymin = 0
-
-    if rasterY.max()+50 < 1000:
-        ymax = rasterY.max()+50
-    else:
-        ymax = 1000
-
-    ax = fig5.add_subplot(2, 1, 1)
-    ax.scatter(rasterX, rasterY, c='green', marker='.', lw=0)
-    ax.set_title('Bas. raster plot (last 100 ms)')
-    ax.set_xlim([9900, 10000])
-    ax.set_xlabel('Time [ms]')
-    ax.set_ylim([ymin, ymax])
-    ax.set_ylabel('Neuron number')
-
-    ax2 = fig5.add_subplot(2, 1, 2)
-    ax2.plot(np.linspace(9900, 10000, len(popri.rate[9900:10000])), popri.rate[9900:10000], 'g-', linewidth=1.5)
-    ax2.set_title('Bas. population rate (last 100 ms)')
-    ax2.set_xlabel('Time [ms]')
-
-    fig5.tight_layout()
-
-    figName = os.path.join(SWBasePath, 'figures', str(multiplier)+'*bas_rate.png')
-    fig5.savefig(figName)
-
-    plt.close('all')
-
+        plot_zoomed(popre.rate, sme.spikes, "Pyr_population", "blue", 'b-', multiplier)
+        plot_zoomed(popri.rate, smi.spikes, "Bas_population", "green", 'g-', multiplier)
+    
+        plt.close('all')
+        
+    else:  # if there is no activity the auto-correlation function will throw an error!
+    
+        print "No activity !"
+        print "--------------------------------------------------"
+		
+        # store results for this multiplier
+        X[:, k] = [multiplier, 0, np.nan, np.nan, np.nan, np.nan, 0, np.nan, np.nan, np.nan, np.nan,
+		           np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
+		
     # Reinitialize variables
     reinit(states=True)
     reinit_default_clock()
@@ -384,7 +233,7 @@ for k in range(0, dataPoints):
     gc.collect()
 
 
-# Plots
+# Summary plots
 fig = plt.figure(figsize=(10, 8))
 
 ax = fig.add_subplot(2, 1, 1)
@@ -404,7 +253,6 @@ ax2.set_xlim(first, last)
 ax2.set_title('Mean firing rates')
 
 fig.tight_layout()
-
 fig.savefig(os.path.join(SWBasePath, 'figures', 'replay_and_firing_rates.png'))
 
 
@@ -426,8 +274,8 @@ ax2.set_xlabel('scale factors')
 ax2.legend()
 
 fig2.tight_layout()
-
 fig2.savefig(os.path.join(SWBasePath, 'figures', 'autocorrelations.png'))
+
 
 fig3 = plt.figure(figsize=(10, 8))
 
@@ -458,8 +306,8 @@ ax3.legend(loc=2)
 ax4.legend()
 
 fig3.tight_layout()
-
 fig3.savefig(os.path.join(SWBasePath, 'figures', 'ripple.png'))
+
 
 fig4 = plt.figure(figsize=(10, 8))
 
@@ -490,12 +338,11 @@ ax3.legend(loc=2)
 ax4.legend()
 
 fig4.tight_layout()
-
 fig4.savefig(os.path.join(SWBasePath, 'figures', 'gamma.png'))
 
 plt.close('all')
 
-if len(fIn) > 8:
+if len(fIn) > 8:  # if not the original matrix is used saved the figure of the matrix...
 
     fName = os.path.join(SWBasePath, 'files', fIn)
     wmxM = np.loadtxt(fName)
