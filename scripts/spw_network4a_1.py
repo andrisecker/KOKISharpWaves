@@ -1,15 +1,21 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
+'''
+crates PC (adExp IF) and BC (IF) population in Brian, loads in recurrent connection matrix for PC population 
+runs simulation and checks the dynamics
+see more: https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view
+author: András Ecker, last update: 11.2015 (+ some minor checks for symmetric STDP in 03.2017)
+'''
 
+import os
 from brian import *
 import numpy as np
 import matplotlib.pyplot as plt
-import os
 from detect_oscillations import replay, ripple, gamma
 
 fIn = 'wmxR_sym.txt'
 
-SWBasePath = '/home/bandi/workspace/KOKISharpWaves'  # os.path.split(os.path.split(__file__)[0])[0]
+SWBasePath = '/'.join(os.path.abspath(__file__).split('/')[:-2])
 
 NE = 4000
 NI = 1000

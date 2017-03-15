@@ -1,17 +1,23 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
+'''
+loads in hippocampal like spike train (produced by generate_spike_train.py) and runs STDP learning rule in a recurrent spiking neuron population
+-> creates learned weight matrix for PC population, used by spw_network* scripts
+see more: https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view
+author: András Ecker, last update: 09.2015 (+ some minor checks for symmetric STDP in 03.2017)
+'''
 
 import brian_no_units
 from brian import *
+import os
 import numpy as np
 import matplotlib.pyplot as plt
-import os
 from detect_oscillations import ripple, gamma
 
 fIn = 'spikeTrainsR.npz'
 fOut = 'wmxR_asym.txt'
 
-SWBasePath =  '/home/bandi/workspace/KOKISharpWaves'  # os.path.split(os.path.split(__file__)[0])[0]
+SWBasePath =  '/'.join(os.path.abspath(__file__).split('/')[:-2])
 
 N = 4000  # #{neurons}
 

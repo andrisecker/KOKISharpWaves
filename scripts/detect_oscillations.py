@@ -1,5 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
+'''
+helper file to extract dynamic features: checking replay interval by ISI, computing AC and PSD of population rate
+author: András Ecker, last update: 10.2015
+'''
 
 import numpy as np
 from scipy import signal, misc
