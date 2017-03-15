@@ -3,7 +3,7 @@
 '''
 looped version of spw_network4a_1.py -> checks the dynamics for different multipliers of the learned weight matrix
 see more: https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view
-author: András Ecker, last update: 11.2016 (+ some minor checks for symmetric STDP in 03.2017)
+authors: András Ecker, Szabolcs Káli last update: 11.2016 (+ some minor checks for symmetric STDP in 03.2017)
 '''
 
 

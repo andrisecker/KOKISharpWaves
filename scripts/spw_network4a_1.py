@@ -4,7 +4,7 @@
 crates PC (adExp IF) and BC (IF) population in Brian, loads in recurrent connection matrix for PC population 
 runs simulation and checks the dynamics
 see more: https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view
-author: András Ecker, last update: 11.2015 (+ some minor checks for symmetric STDP in 03.2017)
+authors: András Ecker, Eszter Vértes, Szabolcs Káli last update: 11.2015 (+ some minor checks for symmetric STDP in 03.2017)
 '''
 
 import os
