@@ -12,6 +12,7 @@ from brian import *
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from plots import plot_wmx, plot_wmx_avg, plot_w_distr, plot_STDP_rule
 
 fIn = 'spikeTrainsR.npz'
 fOut = 'wmxR_asym.txt'
@@ -37,29 +38,39 @@ print "spike times loaded"
 
 PC = SpikeGeneratorGroup(N, spiketimes)
 
+# STDP parameters
+taup = taum = 20  # ms
+#Ap = 0.01
+#Am = -Ap  # asymmetric STDP rule
+Ap = Am = 0.01  # : 1
+wmax = 7.5  # nS
 
-def learning(spikingNeuronGroup):
-    '''
+
+def learning(spikingNeuronGroup, taup, taum, Ap, Am, wmax):
+    """
     Takes a spiking group of neurons, connects the neurons sparsely with each other,
-    and learns the weight 'pattern' via STDP
+    and learns the weight 'pattern' via STDP:
+    exponential STDP: f(s) = A_p * exp(-s/tau_p) (if s > 0), where s=tpost_{spike}-tpre_{spike}
+    see more: https://brian.readthedocs.org/en/1.4.1/reference-plasticity.html#brian.ExponentialSTDP
     :param spikingNeuronGroup: Brian class of spiking neurons
+    :param taup, taum: time constant of weight change
+    :param Ap, Am: max amplitude of weight change
+    :param wmax: maximum weight
     :return weightmx: numpy ndarray with the learned synaptic weights
-            sp: SpikeMonitor of the network (for plotting and further analysis)
-    '''
+            spikeM: SpikeMonitor of the network (for plotting and further analysis)
+    """
+    
+    plot_STDP_rule(taup, taum, Ap*wmax, Am*wmax, "STDP_rule_Brian1")
 
     Conn = Connection(spikingNeuronGroup, spikingNeuronGroup, weight=0.1e-9, sparseness=0.16)
-
-    # f(s) = A_p * exp(-s/tau_p) (if s > 0)
-    # A_p = 0.01, tau_p = 20e-3
-    # see more: https://brian.readthedocs.org/en/1.4.1/reference-plasticity.html#brian.ExponentialSTDP
     
-    # stdp = ExponentialSTDP(Conn, 20e-3, 20e-3, 0.01, -0.01, wmax=40e-9, interactions='all', update='additive')  # asymmetric STDP
-    
-    # symmetric STDP rule (see: Mishra et al. 2016 - 10.1038/ncomms11552)
-    stdp = ExponentialSTDP(Conn, 20e-3, 20e-3, 0.01, 0.01, wmax=7.5e-9, interactions='all', update='additive')
+    # symmetric STDP rule Ap = Am (see: Mishra et al. 2016 - 10.1038/ncomms11552)
+    STDP = ExponentialSTDP(Conn, taup=taup*0.001, taum=taum*0.001,
+                           Ap=Ap, Am=Am, wmax=wmax*1e-9,
+                           interactions='all', update='additive')
 
     # run simulation
-    sp = SpikeMonitor(spikingNeuronGroup, record=True)
+    spikeM = SpikeMonitor(spikingNeuronGroup, record=True)
     run(400, report='text')  # the generated spike train is 500 sec long...
 
     # weight matrix
@@ -68,68 +79,23 @@ def learning(spikingNeuronGroup):
     weightmx = np.reshape(tmp, (4000, 4000))
     np.fill_diagonal(weightmx, 0)
 
-    return weightmx, sp
+    return weightmx, spikeM
 
 
-weightmx, sp = learning(PC)
+weightmx, spikeM = learning(PC, taup, taum, Ap, Am, wmax)
 
 
-
+# Plots: raster
 figure(figsize=(10, 8))
-raster_plot(sp, spacebetweengroups=1, title='Raster plot', newfigure=False)
+raster_plot(spikeM, spacebetweengroups=1, title='Raster plot', newfigure=False)
 
-fig = plt.figure(figsize=(10, 8))
-ax = fig.add_subplot(1, 1, 1)
-i = ax.imshow(weightmx, interpolation='None')
-fig.colorbar(i)
-ax.set_title('Learned weight matrix')
+#plt.show()
 
+plot_wmx(weightmx, "wmx_Brian1")
+plot_wmx_avg(weightmx, 100, "wmx_avg_Brian1")
+plot_w_distr(weightmx, "w_distr_Brian1")
 
-# averaged figure! (better view as a whole...)
-nPop = 100
-popSize = 4000.0 / nPop
-wmxM = np.zeros((100, 100))
-for i in range(nPop):
-    for j in range(nPop):
-        tmp = weightmx[i*popSize:(i+1)*popSize, j*popSize:(j+1)*popSize]
-        wmxM[i, j] = np.mean(tmp)
-        
-fig2 = plt.figure(figsize=(10, 8))
-ax = fig2.add_subplot(1, 1, 1)
-i = ax.imshow(wmxM, interpolation='None')
-fig2.colorbar(i)
-ax.set_title('Learned weight matrix (averaged)')
-
-# deleting nulls from wmx to plot the distribution of the weights
-wmx = weightmx.tolist()
-wmx = [val for sublist in wmx for val in sublist]
-wmx = filter(lambda i: i != 0, wmx)
-wmx = np.array(wmx)
-log10wmx = np.log10(wmx)
-print("mean:", np.mean(wmx))
-
-
-fig3 = plt.figure(figsize=(10, 8))
-
-ax = fig3.add_subplot(2, 1, 1)
-ax.hist(wmx, bins=150)
-ax.set_title('Distriboution of synaptic weights')
-ax.set_xlabel('pyr-pyr synaptic weight strength [nS]')
-#ax.set_xlim([0, 28])
-ax.set_ylabel('# of synapses (on logarithmic scale)')
-plt.yscale('log')
-
-ax2 = fig3.add_subplot(2, 1, 2)
-ax2.hist(log10wmx, bins=150, color='red')
-ax2.set_title('Distribution of synaptic weights')
-ax2.set_xlabel('log10(pyr-pyr synaptic weight strength) [nS]')
-ax2.set_ylabel('# of synapses (on logarithmic scale)')
-#ax2.set_xlim(-200, 2)
-plt.yscale('log')
-
-fig3.tight_layout()
-plt.show()
 
 # save weightmatrix
 fName = os.path.join(SWBasePath, 'files', fOut)
-np.savetxt(fName, weightmx)
+#np.savetxt(fName, weightmx)
