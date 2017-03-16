@@ -345,16 +345,9 @@ plt.close('all')
 if len(fIn) > 8:  # if not the original matrix is used saved the figure of the matrix...
 
     fName = os.path.join(SWBasePath, 'files', fIn)
-    wmxM = np.loadtxt(fName)
-
-    fig5 = plt.figure(figsize=(10, 8))
-
-    ax = fig5.add_subplot(1, 1, 1)
-    i = ax.imshow(wmxM, interpolation='None')
-    fig5.colorbar(i)
-    ax.set_title('Modified weight matrix')
-
-    fig5.savefig(os.path.join(SWBasePath, 'figures', 'wmx.png'))
+    wmxM = load_Wee(fName)
+    
+    plot_wmx_avg(wmxM, 100, "wmx.png")
     plt.close()
 
 
