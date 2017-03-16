@@ -114,7 +114,8 @@ def myresetfunc(P, spikes):
 # ====================================== end of parameters ======================================
 
 # load in Wee only once ...
-def load_Wee(fName):  # this way the file will closed
+def load_Wee(fName):  # this way the file will closed and memory will cleaned
+    """dummy function, just to make python clear the memory"""
 	Wee = np.genfromtxt(fName) * 1e9
 	np.fill_diagonal(Wee, 0)  # just to make sure
 
@@ -233,7 +234,9 @@ for k in range(0, dataPoints):
     gc.collect()
 
 
-# Summary plots
+# ====================================== summary plots and saving ======================================
+
+
 fig = plt.figure(figsize=(10, 8))
 
 ax = fig.add_subplot(2, 1, 1)
