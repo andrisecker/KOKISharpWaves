@@ -6,14 +6,13 @@ see more: https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view
 authors: András Ecker, Szabolcs Káli last update: 11.2016 (+ some minor checks for symmetric STDP in 03.2017)
 '''
 
-
 import os
 import gc
 from brian import *
 import numpy as np
 import matplotlib.pyplot as plt
 from detect_oscillations import replay, ripple, gamma
-from plots import plot_PSD, plot_zoomed
+from plots import plot_PSD, plot_zoomed, plot_wmx_avg
 
 
 fIn = 'wmxR_sym.txt'
