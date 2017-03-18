@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 '''
-loads in hippocampal like spike train (produced by generate_spike_train.py) and runs STDP learning rule in a recurrent spiking neuron population
+loads in hippocampal like spike train (produced by generate_spike_train.py) and runs STD learning rule in a recurrent spiking neuron population
 -> creates learned weight matrix for PC population, used by spw_network* scripts
 see more: https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view
 !!! updated to produce sym stdp curve as reported in Mishra et al. 2016 - 10.1038/ncomms11552
@@ -16,17 +16,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 from plots import plot_wmx, plot_wmx_avg, plot_w_distr, plot_STDP_rule
 
-fIn = 'spikeTrainsR.npz'
-fOut = 'wmxR_sym.txt'
+fIn = "spikeTrainsR.npz"
+fOut = "wmxR_sym.txt"
 
 SWBasePath =  '/'.join(os.path.abspath(__file__).split('/')[:-2])
 
 N = 4000  # #{neurons}
 
 # importing spike times from file
-fName = os.path.join(SWBasePath, 'files', fIn)
+fName = os.path.join(SWBasePath, "files", fIn)
 npzFile = np.load(fName)
-spikeTrains = npzFile['spikeTrains']
+spikeTrains = npzFile["spikeTrains"]
 
 # create 2 numpy arrays for Brian2's SpikeGeneratorGroup
 spikingNrns = 0 * np.ones(len(spikeTrains[0]))
@@ -39,13 +39,16 @@ for neuron in range(1, N):
 
 print "spike times loaded"
 
+
 # with default dt=100*us there are neurons whose emit more then 1 spike per timestep
-PC = SpikeGeneratorGroup(N, spikingNrns, spikeTimes*second, dt=10*us)  
+#TODO: check why! (generated spikes are is sec...)
+PC = SpikeGeneratorGroup(N, spikingNrns, spikeTimes*second, dt=35*us)  
+
 
 # STDP parameters
-taup = taum = 20  # ms
+taup = taum = 20*ms
 Ap = Am = 0.01  # : 1
-wmax = 7.5  # nS
+wmax = 7.5e-9 # S (w is dimensionless in the equations)
 Ap *= wmax
 Am *= wmax
 
@@ -63,19 +66,15 @@ def learning(spikingNeuronGroup, taup, taum, Ap, Am, wmax):
             spikeM: SpikeMonitor of the network (for plotting and further analysis)
     """
 
-    plot_STDP_rule(taup, taum, Ap, Am, "STDP_rule_Brian2")
-    
-    # plot above needs dimensionless arguments
-    taup *= ms
-    taum *= ms
+    plot_STDP_rule(taup/ms, taum/ms, Ap/1e-9, Am/1e-9, "STDP_rule_sym")
 
     # mimics Brian1's exponentialSTPD class, with interactions='all', update='additive'
     # see more on conversion: http://brian2.readthedocs.io/en/stable/introduction/brian1_to_2/synapses.html
     STDP = Synapses(spikingNeuronGroup, spikingNeuronGroup,
              """
              w : 1
-             dA_pre/dt = -Ap/taup : 1 (event-driven)
-             dA_post/dt = -Am/taum : 1 (event-driven)
+             dA_pre/dt = -A_pre/taup : 1 (event-driven)
+             dA_post/dt = -A_post/taum : 1 (event-driven)
              """,
              on_pre="""
              A_pre += Ap
@@ -85,10 +84,10 @@ def learning(spikingNeuronGroup, taup, taum, Ap, Am, wmax):
              A_post += Am
              w = clip(w + A_pre, 0, wmax)
              """)#,
-             #dt=10*us)  # small dt is only to match the dt of SpikeGeneratorGroup
+             #dt=35*us)  # small dt is only to match the dt of SpikeGeneratorGroup
              
     STDP.connect(condition="i!=j", p=0.16)
-    STDP.w = 0.1 # nS
+    STDP.w = 0.1e-9 # S
 
 
     # run simulation
@@ -109,23 +108,22 @@ fig = plt.figure(figsize=(10, 8))
 ax = fig.add_subplot(1, 1, 1)
 brian_plot(spikeM, axes=ax)
 ax.set_title("Raster plot")
-
 #plt.show()
 
-plot_wmx(weightmx, "wmx_Brian2")
-plot_wmx_avg(weightmx, 100, "wmx_avg_Brian2")
-plot_w_distr(weightmx, "w_distr_Brian2")
+plot_wmx(weightmx, "wmx_sym")
+plot_wmx_avg(weightmx, 100, "wmx_avg_sym")
+plot_w_distr(weightmx, "w_distr_sym")
 
 
 """
-# check if Brian2 figure is the same:
+# check if Brian2's weight figure is the same: -> it's mirrored, and kind of useless...
 fig = plt.figure(figsize=(10, 8))
-ax = plot_synapses(STDP.i, STDP.j, STDP.w, var_name='synaptic weights', plot_type='scatter', cmap='hot')
+ax = plot_synapses(STDP.i, STDP.j, STDP.w, var_name="synaptic weights", plot_type="scatter", cmap="jet")
 add_background_pattern(ax)
-ax.set_title('Learned weight matrix')
+ax.set_title("Learned weight matrix")
+plt.show()
 """
-
 
 # save weightmatrix
 fName = os.path.join(SWBasePath, 'files', fOut)
-#np.savetxt(fName, weightmx)
+np.savetxt(fName, weightmx)
