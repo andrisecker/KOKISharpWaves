@@ -27,17 +27,17 @@ def plot_PSD(rate, rippleAC, f, Pxx, title_, linespec_, multiplier_):
     ax = fig.add_subplot(3, 1, 1)
     ax.plot(np.linspace(0, 10000, len(rate)), rate, linespec_)
     ax.set_title("%s rate"%title_)
-    ax.set_xlabel('Time [ms]')
+    ax.set_xlabel("Time (ms)")
 
 
     rEACPlot = rippleAC[2:201] # 500 - 5 Hz interval
 
     ax2 = fig.add_subplot(3, 1, 2)
     ax2.plot(np.linspace(2, 200, len(rEACPlot)), rEACPlot, linespec_)
-    ax2.set_title('Autocorrelogram 2-200 ms')
-    ax2.set_xlabel('Time [ms]')
+    ax2.set_title("Autocorrelogram 2-200 ms")
+    ax2.set_xlabel("Time (ms)")
     ax2.set_xlim([2, 200])
-    ax2.set_ylabel('AutoCorrelation')
+    ax2.set_ylabel("AutoCorrelation")
 
 
     f = np.asarray(f)
@@ -61,10 +61,10 @@ def plot_PSD(rate, rippleAC, f, Pxx, title_, linespec_, multiplier_):
     ax3.plot(f, PxxPlot, linespec_, marker='o', linewidth=1.5)
     ax3.plot(fRipple, PxxRipplePlot, 'r-', marker='o', linewidth=2)
     ax3.plot(fGamma, PxxGammaPlot, 'k-', marker='o', linewidth=2)
-    ax3.set_title('Power Spectrum Density')
+    ax3.set_title("Power Spectrum Density")
     ax3.set_xlim([0, 500])
-    ax3.set_xlabel('Frequency [Hz]')
-    ax3.set_ylabel('PSD [dB]')
+    ax3.set_xlabel("Frequency (Hz)")
+    ax3.set_ylabel("PSD (dB)")
 
     fig.tight_layout()
 
@@ -104,14 +104,14 @@ def plot_zoomed(rate, spikes, title_, color_, linespec_, multiplier_):
     ax.scatter(rasterX, rasterY, c=color_, marker='.', lw=0)
     ax.set_title("%s raster (last 100 ms)"%title_)
     ax.set_xlim([9900, 10000])
-    ax.set_xlabel("Time [ms]")
+    ax.set_xlabel("Time (ms)")
     ax.set_ylim([ymin, ymax])
     ax.set_ylabel("Neuron number")
 
     ax2 = fig.add_subplot(2, 1, 2)
     ax2.plot(np.linspace(9900, 10000, len(rate[9900:10000])), rate[9900:10000], linespec_, linewidth=1.5)
     ax2.set_title("Rate (last 100 ms)")
-    ax2.set_xlabel("Time [ms]")
+    ax2.set_xlabel("Time (ms)")
 
     fig.tight_layout()
 
@@ -128,7 +128,8 @@ def plot_wmx(wmx, saveName_):
     
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(1, 1, 1)
-    i = ax.imshow(wmx, interpolation='None')
+    i = ax.imshow(wmx, cmap=plt.get_cmap("jet"))
+    i.set_interpolation("nearest")  # set to "None" to less pixels and smooth, nicer figure
     fig.colorbar(i)
     ax.set_title("Learned synaptic weights")
     
@@ -155,7 +156,8 @@ def plot_wmx_avg(wmx, nPop, saveName_):
 
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(1, 1, 1)
-    i = ax.imshow(wmxM, interpolation='None')
+    i = ax.imshow(wmxM, cmap=plt.get_cmap("jet"))
+    i.set_interpolation("nearest")  # set to "None" to less pixels and smooth, nicer figure
     fig.colorbar(i)
     ax.set_title("Learned synaptic weights (avg.)")
     
@@ -176,7 +178,7 @@ def plot_w_distr(wmx, saveName_):
     wmx = filter(lambda i: i != 0, wmx)
     wmx = np.array(wmx)
     log10wmx = np.log10(wmx)
-    # print("mean:", np.mean(wmx))
+    print "mean(nonzero weights):", np.mean(wmx)
 
     fig = plt.figure(figsize=(10, 8))
 
@@ -215,9 +217,10 @@ def plot_STDP_rule(taup, taum, Ap, Am, saveName_):
 
     ax = fig.add_subplot(1, 1, 1)
     ax.plot(delta_t, delta_w)
-    ax.set_xlabel("delta_t [ms]")
-    ax.set_ylabel("delta_w")
-    ax.set_ylim(-Am*1.05, Ap*1.05)
+    ax.set_title("STDP curve")
+    ax.set_xlabel("delta_t (ms)")
+    ax.set_ylabel("delta_w (nS)")
+    ax.set_ylim(-Ap*1.05, Ap*1.05)
     ax.set_xlim([-70, 70])
     ax.axhline(0, ls='-', c='k')
     
