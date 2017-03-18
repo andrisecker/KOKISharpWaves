@@ -211,14 +211,14 @@ def plot_STDP_rule(taup, taum, Ap, Am, saveName_):
     """
 
     delta_t = np.linspace(-100, 100, 1000)
-    delta_w = np.where(delta_t<0, Ap*np.exp(delta_t/taup), Am*np.exp(-delta_t/taum))
+    delta_w = np.where(delta_t>0, Ap*np.exp(-delta_t/taup), Am*np.exp(delta_t/taum))
     
     fig = plt.figure(figsize=(10, 8))
 
     ax = fig.add_subplot(1, 1, 1)
     ax.plot(delta_t, delta_w)
     ax.set_title("STDP curve")
-    ax.set_xlabel("delta_t (ms)")
+    ax.set_xlabel("delta_t /post-pre/ (ms)")
     ax.set_ylabel("delta_w (nS)")
     ax.set_ylim(-Ap*1.05, Ap*1.05)
     ax.set_xlim([-70, 70])
