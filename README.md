@@ -10,7 +10,7 @@ To run the scripts, [install Brian (version 1)](http://brian.readthedocs.org/en/
 
     git clone https://github.com/andrisecker/KOKISharpWaves.git  # Clone this GitHub repository
     cd KOKISharpWaves/scripts
-    python generate_spike_train.py  # generate spike trains (as exploration of a maze) -> files/spikeTrainR.npz
+    python generate_spike_train.py  # generate CA3 like spike trains (as exploration of a maze) -> files/spikeTrainR.npz
     python stdp_network_b.py  # learns the recurrent weight (via STDP, based on the spiketrain) -> files/wmx.txt
     python spw_network4a_1.py  # creates the network, runs the simulation, extracts dynamic features
 
@@ -30,7 +30,7 @@ extraction of dynamic features during SWRs
 
 automated evaluation of the networks dynamics with differently scaled recurrent weightmatrix
 
-    python spw_network4_inputs.py  # investigates into network dynamics with different outer inputs
+    python spw_network4_BasInputs_f.py  # investigates into network dynamics with different outer inputs to the Basket cell population
 
     python bayesian_inference.py  # Bayesian decoding of place from spikes saved from spw...
 
