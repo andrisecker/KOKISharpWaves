@@ -9,7 +9,9 @@ Reference: [BSc thesis](https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5
 To run the scripts, [install Brian (version 1)](http://brian.readthedocs.org/en/latest/installation.html) and run:
 
     git clone https://github.com/andrisecker/KOKISharpWaves.git  # Clone this GitHub repository
-    cd KOKISharpWaves/scripts
+    cd KOKISharpWaves
+    mkdir figures  # creates directory for the saved figures
+    cd scripts
     python generate_spike_train.py  # generate CA3 like spike trains (as exploration of a maze) -> files/spikeTrainR.npz
     python stdp_network_b.py  # learns the recurrent weight (via STDP, based on the spiketrain) -> files/wmx.txt
     python spw_network4a_1.py  # creates the network, runs the simulation, extracts dynamic features
