@@ -1,7 +1,20 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
+'''
+helper functions used for weight matrix modifications
+author: András Ecker last update: 10.2015
+'''
 
 import numpy as np
+
+
+def load_Wee(fName):  # this way the file will closed and memory will cleaned
+    """dummy function, just to make python clear the memory"""
+    Wee = np.genfromtxt(fName)
+    np.fill_diagonal(Wee, 0)  # just to make sure
+
+    print "weight matrix loded"
+    return Wee
 
 
 def gauss(wmxO):
@@ -263,8 +276,3 @@ def shuffle_blocks(wmxO, popSize):
 
     return wmxM
 
-def mirror(wmxO):
-
-    wmxM = np.fliplr(wmxO)
-
-    return wmxM
