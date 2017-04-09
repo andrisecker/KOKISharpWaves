@@ -10,14 +10,24 @@ import numpy as np
 
 def load_Wee(fName):  # this way the file will closed and memory will cleaned
     """dummy function, just to make python clear the memory"""
-    Wee = np.genfromtxt(fName)
-    np.fill_diagonal(Wee, 0)  # just to make sure
+    wmx = np.genfromtxt(fName)
+    np.fill_diagonal(wmx, 0)  # just to make sure
 
     print "weight matrix loded"
-    return Wee
+    return wmx
 
 
-def gauss(wmxO):
+def calc_mean(wmx):  # use to check if the distribution is changed
+    """calculates the mean of nonzero weights"""
+    tmp = wmx.tolist()
+    wmx = [val for sublist in tmp for val in sublist]
+    wmx = filter(lambda i: i != 0, wmx)
+    
+    print "mean(nonzero weights): %s (S)"%np.mean(wmx)
+    return np.mean(wmx)
+
+
+def gauss(wmxO):  # TODO: check if there are negative weights! ...
     '''
     Replace the whole weight matrix with random numbers (gaussian distribution, same mean and deviation)
     :param wmxO: original weight matrix (4000 * 4000 ndarray)
@@ -25,9 +35,9 @@ def gauss(wmxO):
     '''
 
     mu = np.mean(wmxO)
-    print 'mu:', mu
+    print "mu: %s (S)"%mu
     sigma = np.std(wmxO)
-    print 'sigma:', sigma
+    print "sigma: %s"%sigma
 
     np.random.seed(0)
     wmxM = np.random.normal(mu, sigma, (4000, 4000))
@@ -35,13 +45,15 @@ def gauss(wmxO):
     return wmxM
 
 
-def gauss_rectangle(wmxO):
+def gauss_rectangle(wmxO):  # negative weights fixed (04.2017!)
     '''
     Replace to weights of neurons 3500 - 4000, with random numbers
     (gaussian distribution, same mean and deviation as the original 15/64 of the matrix)
     :param wmxO: original weight matrix (4000 * 4000 ndarray)
     :return: wmxM: modified weight matrix (4000 * 4000 ndarray)
-    '''
+    '''   
+    _ = calc_mean(wmxO)
+    # this could be done better...
     x1, x2, x3, x4, x5, x6, x7, wmxDown = np.vsplit(wmxO, 8)
     wmx_tmp = np.concatenate((x1, x2, x3, x4, x5, x6, x7), axis=0)
     y1, y2, y3, y4, y5, y6, y7, wmxRight = np.hsplit(wmx_tmp, 8)
@@ -51,9 +63,9 @@ def gauss_rectangle(wmxO):
     muD = np.mean(wmxDown)
     sigmaD = np.std(wmxDown)
     mu = (muR + muD) / 2.0
-    print 'mu:', mu
+    print "mu: %s (S)"%mu
     sigma = (sigmaR + sigmaD) / 2.0
-    print 'sigma:', sigma
+    print "sigma: %s"%sigma
 
     np.random.seed(0)
     wmxRGauss = np.random.normal(mu, sigma, (3500, 500))
@@ -62,9 +74,12 @@ def gauss_rectangle(wmxO):
 
     wmx_tmp = np.concatenate((y1, y2, y3, y4, y5, y6, y7), axis=1)
     wmxUp = np.concatenate((wmx_tmp, wmxRGauss), axis=1)
-    wmxM = np.concatenate((wmxUp, wmxDGauss), axis=0)
+    wmxM_neg = np.concatenate((wmxUp, wmxDGauss), axis=0)
+    wmxM = np.absolute(wmxM_neg)  # bugfix on 08.04.2017. - get rid of negative weights !!!
+    _ = calc_mean(wmxM)
 
     return wmxM
+
 
 def mean_rectangle(wmxO):
     '''

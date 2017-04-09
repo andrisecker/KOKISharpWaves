@@ -17,7 +17,6 @@ SWBasePath = '/'.join(os.path.abspath(__file__).split('/')[:-3])
 
 wmxO = load_Wee(os.path.join(SWBasePath, "files", fIn))
 
-
 # wmxM = gauss(wmxO)
 wmxM = gauss_rectangle(wmxO)
 # wmxM = mean_rectangle(wmxO)
@@ -29,18 +28,18 @@ wmxM = gauss_rectangle(wmxO)
 # wmxM = binary_weights(wmxO, 0.5)
 # wmxM = shuffle_blocks(wmxO, 200)
 
-
 print "modification done"
-np.fill_diagonal(wmxM, 0)  # just to make sure
 
-assert np.shape(wmxM) == (4000, 4000)
+np.fill_diagonal(wmxM, 0)  # just to make sure
+assert np.shape(wmxM) == (4000, 4000), "output shape is not 4000*4000"
+assert wmxM == np.absolute(wmxM), "there are negative values in the modified matrix"
 
 fName = os.path.join(SWBasePath, "files", fOut)
 np.savetxt(fName, wmxM)
 
 
 # Plot matrices:
-fig = plt.figure(figsize=(10, 8))
+fig = plt.figure(figsize=(12, 6))
 
 ax = fig.add_subplot(1, 2, 1)
 i = ax.imshow(wmxO, interpolation='None')
