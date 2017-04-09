@@ -12,13 +12,13 @@ from brian import *
 import numpy as np
 import matplotlib.pyplot as plt
 from detect_oscillations import replay, ripple, gamma
-from plots import plot_PSD, plot_zoomed, plot_wmx_avg
+from plots import *
 
 
 fIn = 'wmxR_sym.txt'
-fOut = 'resultsR02_sym.txt'
+fOut = 'results_sym_v01.txt'
 
-SWBasePath = '/'.join(os.path.abspath(__file__).split('/')[:-2]) 
+SWBasePath = '/'.join(os.path.abspath(__file__).split('/')[:-2])
 
 first = 0.5
 last = 2.5
@@ -94,10 +94,9 @@ dg_ampa/dt = -g_ampa/tauSyn_PyrExc : 1
 dg_gaba/dt = -g_gaba/tauSyn_PyrInh : 1
 '''
 
-reset_adexp = '''
-vm = reset_Pyr
-w += b_Pyr
-'''
+def myresetfunc(P, spikes):
+    P.vm_[spikes] = reset_Pyr   # reset voltage
+    P.w_[spikes] += b_Pyr  # low pass filter of spikes (adaptation mechanism)
 
 eqs_bas = '''
 dvm/dt = (-gL_Bas*(vm-Vrest_Bas)-(g_ampa*z*(vm-E_Exc)+g_gaba*z*(vm-E_Inh)))/Cm_Bas :volt
@@ -106,20 +105,16 @@ dg_gaba/dt = -g_gaba/tauSyn_BasInh : 1
 '''
 
 
-def myresetfunc(P, spikes):
-    P.vm_[spikes] = reset_Pyr   # reset voltage
-    P.w_[spikes] += b_Pyr  # low pass filter of spikes (adaptation mechanism)
-
 # ====================================== end of parameters ======================================
 
 # load in Wee only once ...
 def load_Wee(fName):  # this way the file will closed and memory will cleaned
     """dummy function, just to make python clear the memory"""
-	Wee = np.genfromtxt(fName) * 1e9
-	np.fill_diagonal(Wee, 0)  # just to make sure
+    Wee = np.genfromtxt(fName) * 1e9
+    np.fill_diagonal(Wee, 0)  # just to make sure
 
-	print "weight matrix loded"
-	return Wee
+    print "weight matrix loded"
+    return Wee
 
 fName = os.path.join(SWBasePath, 'files', fIn)
 Wee = load_Wee(fName)
@@ -128,10 +123,13 @@ X = np.zeros((20, dataPoints))  # init. container to store results
 
 # ====================================== iterates over diff. multipliers ======================================
 
+seed = 12345
 for k in range(0, dataPoints):
 
     multiplier = multipliers[k]
     print "multiplier=%s"%multiplier
+    
+    np.random.seed(seed)
 
     # recreate the neurons in every iteration (just to make sure!)
     SCR = SimpleCustomRefractoriness(myresetfunc, tref_Pyr, state='vm')   
@@ -152,7 +150,6 @@ for k in range(0, dataPoints):
     Cee = Connection(PE, PE, 'g_ampa', delay=delay_PyrExc)        
     Wee_tmp = Wee * multiplier  # Wee matrix loaded before the for loop
     Cee.connect(PE, PE, Wee_tmp)
-    del Wee_tmp  # cleary memory	
     Cei = Connection(PE, PI, 'g_ampa', weight=J_BasExc, sparseness=eps_pyr, delay=delay_BasExc)
     Cie = Connection(PI, PE, 'g_gaba', weight=J_PyrInh, sparseness=eps_bas, delay=delay_PyrInh)
     Cii = Connection(PI, PI, 'g_gaba', weight=J_BasInh, sparseness=eps_bas, delay=delay_BasInh)
@@ -164,9 +161,14 @@ for k in range(0, dataPoints):
     smi = SpikeMonitor(PI)
     popre = PopulationRateMonitor(PE, bin=0.001)
     popri = PopulationRateMonitor(PI, bin=0.001)
+    selection = np.arange(0, 4000, 100) # subset of neurons for recoring variables
+    msMe = MultiStateMonitor(PE, vars=['vm', 'w', 'g_ampa'], record=selection.tolist())  # comment this out later (takes a lot of memory!)
     bins = [0*ms, 50*ms, 100*ms, 150*ms, 200*ms, 250*ms, 300*ms, 350*ms, 400*ms, 450*ms, 500*ms,
             550*ms, 600*ms, 650*ms, 700*ms, 750*ms, 800*ms, 850*ms, 900*ms, 950*ms, 1000*ms]
     isi = ISIHistogramMonitor(PE, bins)
+    
+    dWee = save_selected_w(Wee_tmp, selection)
+    del Wee_tmp  # cleary memory
 
 
     run(10000*ms, report='text')  # run the simulation! 
@@ -177,6 +179,8 @@ for k in range(0, dataPoints):
 
     subplot(2, 1, 1)
     raster_plot(sme, spacebetweengroups=1, title="Raster plot", newfigure=False)
+    xlim([0, 10000])
+    ylim([0, 4000])
 
     subplot(2, 1, 2)
     hist_plot(isi, title="ISI histogram", newfigure=False)
@@ -211,9 +215,12 @@ for k in range(0, dataPoints):
         # Plots
         plot_PSD(popre.rate, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier)
         plot_PSD(popri.rate, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier)
-
-        plot_zoomed(popre.rate, sme.spikes, "Pyr_population", "blue", 'b-', multiplier)
-        plot_zoomed(popri.rate, smi.spikes, "Bas_population", "green", 'g-', multiplier)
+        
+        ymin, ymax = plot_zoomed(popre.rate, sme.spikes, "Pyr_population", "blue", 'b-', multiplier)
+        _, _ = plot_zoomed(popri.rate, smi.spikes, "Bas_population", "green", 'g-', multiplier)
+        subset = select_subset(selection, ymin, ymax)
+        plot_detailed(msMe, subset, dWee, multiplier)
+        plot_adaptation(msMe, selection, multiplier)
     
         plt.close('all')
         
@@ -231,6 +238,7 @@ for k in range(0, dataPoints):
     reinit_default_clock()
     clear(True)
     gc.collect()
+    seed += 1
 
 
 # ====================================== summary plots and saving ======================================
@@ -344,12 +352,12 @@ fig4.savefig(os.path.join(SWBasePath, 'figures', 'gamma.png'))
 
 plt.close('all')
 
-if len(fIn) > 8:  # if not the original matrix is used saved the figure of the matrix...
+if len(fIn) > 8:  # if not the original matrix (wmxR.txt) is used - save the figure of the matrix...
 
     fName = os.path.join(SWBasePath, 'files', fIn)
     wmxM = load_Wee(fName)
     
-    plot_wmx_avg(wmxM, 100, "wmx.png")
+    plot_wmx_avg(wmxM, 100, "wmx")
     plt.close()
 
 
