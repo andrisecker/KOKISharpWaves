@@ -19,6 +19,8 @@ fOut = "wmxR_asym.txt"
 
 SWBasePath =  '/'.join(os.path.abspath(__file__).split('/')[:-2])
 
+np.random.seed(12345)
+
 N = 4000  # #{neurons}
 
 # importing spike times from file
@@ -41,12 +43,13 @@ PC = SpikeGeneratorGroup(N, spiketimes)
 
 
 # STDP parameters
-taup = taum = 20  # ms
+taup = taum = 20  # ms  # 20 - baseline
 Ap = 0.01  # : 1 # asymmetric STDP rule
 Am = -Ap  # : 1 # asymmetric STDP rule
 #Ap = Am = 0.01  # : 1 # symmetric STDP rule
 wmax = 40e-9  # S # asymmetric STDP rule
-#wmax=7.5e-9  # S # symmetric STDP rule
+#wmax=7.5e-9  # S # symmetric STDP rule (orig taus)
+#wmax = 15e-9  # S # symmetric STDP rule (thinner time window)
 
 
 def learning(spikingNeuronGroup, taup, taum, Ap, Am, wmax):
@@ -63,7 +66,7 @@ def learning(spikingNeuronGroup, taup, taum, Ap, Am, wmax):
             spikeM: SpikeMonitor of the network (for plotting and further analysis)
     """
     
-    plot_STDP_rule(taup, taum, Ap*wmax*1e9, Am*wmax*1e9, "STDP_rule_asym")
+    plot_STDP_rule(taup, taum, Ap*wmax*1e9, Am*wmax*1e9, "STDP_rule_sym")
 
     Conn = Connection(spikingNeuronGroup, spikingNeuronGroup, weight=0.1e-9, sparseness=0.16)
     
@@ -93,9 +96,9 @@ figure(figsize=(10, 8))
 raster_plot(spikeM, spacebetweengroups=1, title='Raster plot', newfigure=False)
 #plt.show()
 
-plot_wmx(weightmx, "wmx_asym")
-plot_wmx_avg(weightmx, 100, "wmx_avg_asym")
-plot_w_distr(weightmx, "w_distr_asym")
+plot_wmx(weightmx, "wmx_sym")
+plot_wmx_avg(weightmx, 100, "wmx_avg_sym")
+plot_w_distr(weightmx, "w_distr_sym")
 
 
 # save weightmatrix

@@ -13,5 +13,4 @@ as well as files for [Bayesian decoding](https://github.com/andrisecker/KOKIShar
 * PFstarts.npz *(starting point of random place fields used in spikeTrainsR2)*
 * spikes.npz *(recorded spikes during activity (which is used by [bayesian_decoding.py](https://github.com/andrisecker/KOKISharpWaves/blob/master/scripts/bayesian_decoding.py)))*
 
-> note: almost every random number generation works with fixed seed, but nor the randomly place field positioning neither the Brian simulator 
-
+> note: almost every random number generation works with fixed seed, but not the random place field positioning
