@@ -112,12 +112,10 @@ def load_Wee(fName):  # this way the file will closed and memory will cleaned
 fName = os.path.join(SWBasePath, 'files', fIn)
 Wee = load_Wee(fName)
 
-dt_ = 0.05*ms  # without specifying num. int. method and dt it crashes!!! (gives NANs for voltage..)
-
 PE = NeuronGroup(NE, model=eqs_adexp, threshold="vm>v_spike_Pyr",
-                 reset="vm=reset_Pyr; w+=b_Pyr", refractory=tref_Pyr, method="exponential_euler", dt=dt_)
+                 reset="vm=reset_Pyr; w+=b_Pyr", refractory=tref_Pyr, method="exponential_euler")
 PI = NeuronGroup(NI, model=eqs_bas, threshold="vm>theta_Bas",
-                 reset="vm=reset_Bas", refractory=tref_Bas, method="exponential_euler", dt=dt_)
+                 reset="vm=reset_Bas", refractory=tref_Bas, method="exponential_euler")
 
 PE.vm = Vrest_Pyr
 PE.g_ampa = 0
@@ -127,28 +125,28 @@ PI.vm  = Vrest_Bas
 PI.g_ampa = 0
 PI.g_gaba = 0
 
-MF = PoissonGroup(NE, p_rate_mf, dt=dt_)
+MF = PoissonGroup(NE, p_rate_mf)
 
 print 'Connecting the network'
 
-Cext = Synapses(MF, PE, on_pre="g_ampa+=J_PyrMF", dt=dt_)
+Cext = Synapses(MF, PE, on_pre="g_ampa+=J_PyrMF")
 Cext.connect(j='i')
 
 # weight matrix used here:
-Cee = Synapses(PE, PE, 'w_exc:1', on_pre='g_ampa+=w_exc', dt=dt_)
+Cee = Synapses(PE, PE, 'w_exc:1', on_pre='g_ampa+=w_exc')
 Cee.connect()
 Cee.w_exc = Wee.flatten()
 Cee.delay = delay_PyrExc
 
-Cei = Synapses(PE, PI, on_pre='g_ampa+=J_BasExc', dt=dt_)
+Cei = Synapses(PE, PI, on_pre='g_ampa+=J_BasExc')
 Cei.connect(p=eps_pyr)
 Cei.delay = delay_BasExc
 
-Cie = Synapses(PI, PE, on_pre='g_gaba+=J_PyrInh', dt=dt_)
+Cie = Synapses(PI, PE, on_pre='g_gaba+=J_PyrInh')
 Cie.connect(p=eps_bas)
 Cie.delay = delay_PyrInh
 
-Cii = Synapses(PI, PI, on_pre='g_gaba+=J_BasInh', dt=dt_)
+Cii = Synapses(PI, PI, on_pre='g_gaba+=J_BasInh')
 Cii.connect(p=eps_bas)
 Cii.delay = delay_BasInh
 
