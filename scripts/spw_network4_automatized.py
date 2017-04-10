@@ -174,27 +174,13 @@ for k in range(0, dataPoints):
     run(10000*ms, report='text')  # run the simulation! 
     
     
-    # Brian's raster + ISI plot
-    fig = plt.figure(figsize=(10, 8))
-
-    subplot(2, 1, 1)
-    raster_plot(sme, spacebetweengroups=1, title="Raster plot", newfigure=False)
-    xlim([0, 10000])
-    ylim([0, 4000])
-
-    subplot(2, 1, 2)
-    hist_plot(isi, title="ISI histogram", newfigure=False)
-    xlim([0, 1000])
-
-    fig.tight_layout()
-
-    figName = os.path.join(SWBasePath, "figures", "%s.png"%multiplier)
-    fig.savefig(figName)
+    # Raster + ISI plot
+    ISI = plot_raster_ISI(sme.spiketimes, "blue", multiplier_=1)
 
     if np.max(popre.rate > 0):  # check if there is any activity
 
         # calling detect_oscillation functions:
-        avgReplayInterval = replay(isi.count[3:17])  # bins from 150 to 850 (range of interest)
+        avgReplayInterval = replay(ISI[3:16])  # bins from 150 to 850 (range of interest)
 
         meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(popre.rate, 1000)
         avgGammaFE, gammaPE = gamma(fE, PxxE)
@@ -216,8 +202,8 @@ for k in range(0, dataPoints):
         plot_PSD(popre.rate, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier)
         plot_PSD(popri.rate, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier)
         
-        ymin, ymax = plot_zoomed(popre.rate, sme.spikes, "Pyr_population", "blue", 'b-', multiplier)
-        _, _ = plot_zoomed(popri.rate, smi.spikes, "Bas_population", "green", 'g-', multiplier)
+        ymin, ymax = plot_zoomed(popre.rate, sme.spiketimes, "Pyr_population", "blue", multiplier)
+        _, _ = plot_zoomed(popri.rate, smi.spiketimes, "Bas_population", "green", multiplier)
         subset = select_subset(selection, ymin, ymax)
         plot_detailed(msMe, subset, dWee, multiplier)
         plot_adaptation(msMe, selection, multiplier)

@@ -13,6 +13,56 @@ SWBasePath = '/'.join(os.path.abspath(__file__).split('/')[:-2])
 figFolder = os.path.join(SWBasePath, "figures")
 
 
+def plot_raster_ISI(spiketimes, color_, multiplier_):
+    """
+    saves figure with raster plot and ISI distribution
+    (note: the main reason of this function is that Brian2 doesn't have ISIHistogramMonitor)
+    :param spiketimes: dictionary with keys as neuron IDs and spike time arrays (produced by Brian spike monitor)
+    :param color_, multiplier_: outline and naming parameters
+    :return n: number of spikes in each bin (used by replay())
+    """
+    
+    ISIs = []
+    spikeTimes = []
+    spikingNeurons = []
+    for i, spikes_i in spiketimes.items():  # the order doesn't really matter...
+        # create arrays for plotting
+        nrn = i * np.ones_like(spikes_i)
+        spikingNeurons = np.hstack([spikingNeurons, nrn])
+        spikeTimes = np.hstack([spikeTimes, spikes_i*1000])  # *1000 ms conversion
+        # calculate ISI
+        if len(spikes_i) >= 2:
+            isi = np.diff(spikes_i*1000) # *1000 ms conversion
+            ISIs = np.hstack([ISIs, isi])
+    
+    fig = plt.figure(figsize=(10, 8))
+
+    ax = fig.add_subplot(2, 1, 1)
+    ax.scatter(spikeTimes, spikingNeurons, c=color_, marker='.', lw=0)
+    ax.set_title("Pyr_population raster")
+    ax.set_xlim([0, 10000])
+    ax.set_xlabel("Time (ms)")
+    ax.set_ylim([0, 4000])
+    ax.set_ylabel("Neuron number")
+    
+    ax2 = fig.add_subplot(2, 1, 2)
+    n, _, _ = ax2.hist(ISIs, bins=20, range=(0, 1000), color=color_, edgecolor='black', lw=0.5, alpha=0.9)
+    ax2.axvline(150, ls='--', c="gray", label="ROI for replay analysis")
+    ax2.axvline(850, ls='--', c="gray")
+    ax2.set_title("Pyr_population ISI distribution")
+    ax2.set_xlabel("Delta_t (ms)")
+    ax2.set_xlim([0, 1000])
+    ax2.set_ylabel("Count")
+    ax2.legend()
+    
+    fig.tight_layout()
+    
+    figName = os.path.join(figFolder, "%s.png"%(multiplier_))
+    fig.savefig(figName)
+
+    return n
+    
+
 def plot_PSD(rate, rippleAC, f, Pxx, title_, linespec_, multiplier_):
     """
     saves figure with rate, auto-correlation plot, and PSD
@@ -21,26 +71,9 @@ def plot_PSD(rate, rippleAC, f, Pxx, title_, linespec_, multiplier_):
     :param f, Pxx (returned by PSD analysis) see more: http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.signal.welch.html
     :param title_, linespec_, multiplier: outline and naming parameters
     """
-
-    fig = plt.figure(figsize=(10, 8))
-
-    ax = fig.add_subplot(3, 1, 1)
-    ax.plot(np.linspace(0, 10000, len(rate)), rate, linespec_)
-    ax.set_title("%s rate"%title_)
-    ax.set_xlabel("Time (ms)")
-    ax.set_xlim([0, 10000])
-
-
+    
     rEACPlot = rippleAC[2:201] # 500 - 5 Hz interval
-
-    ax2 = fig.add_subplot(3, 1, 2)
-    ax2.plot(np.linspace(2, 200, len(rEACPlot)), rEACPlot, linespec_)
-    ax2.set_title("Autocorrelogram 2-200 ms")
-    ax2.set_xlabel("Time (ms)")
-    ax2.set_xlim([2, 200])
-    ax2.set_ylabel("AutoCorrelation")
-
-
+    
     f = np.asarray(f)
     rippleS = np.where(145 < f)[0][0]
     rippleE = np.where(f < 250)[0][-1]
@@ -58,14 +91,30 @@ def plot_PSD(rate, rippleAC, f, Pxx, title_, linespec_, multiplier_):
     PxxRipplePlot = 10 * np.log10(PxxRipple / max(Pxx))
     PxxGammaPlot = 10 * np.log10(PxxGamma / max(Pxx))
 
+    fig = plt.figure(figsize=(10, 8))
+
+    ax = fig.add_subplot(3, 1, 1)
+    ax.plot(np.linspace(0, 10000, len(rate)), rate, linespec_)
+    ax.set_title("%s rate"%title_)
+    ax.set_xlabel("Time (ms)")
+    ax.set_xlim([0, 10000])
+
+    ax2 = fig.add_subplot(3, 1, 2)
+    ax2.plot(np.linspace(2, 200, len(rEACPlot)), rEACPlot, linespec_)
+    ax2.set_title("Autocorrelogram 2-200 ms")
+    ax2.set_xlabel("Time (ms)")
+    ax2.set_xlim([2, 200])
+    ax2.set_ylabel("AutoCorrelation")
+
     ax3 = fig.add_subplot(3, 1, 3)
     ax3.plot(f, PxxPlot, linespec_, marker='o', linewidth=1.5)
-    ax3.plot(fRipple, PxxRipplePlot, 'r-', marker='o', linewidth=2)
-    ax3.plot(fGamma, PxxGammaPlot, 'k-', marker='o', linewidth=2)
+    ax3.plot(fRipple, PxxRipplePlot, 'r-', marker='o', linewidth=2, label="ripple")
+    ax3.plot(fGamma, PxxGammaPlot, 'k-', marker='o', linewidth=2, label="gamma")
     ax3.set_title("Power Spectrum Density")
     ax3.set_xlim([0, 500])
     ax3.set_xlabel("Frequency (Hz)")
     ax3.set_ylabel("PSD (dB)")
+    ax3.legend()
 
     fig.tight_layout()
 
@@ -73,24 +122,25 @@ def plot_PSD(rate, rippleAC, f, Pxx, title_, linespec_, multiplier_):
     fig.savefig(figName)
     
     
-def plot_zoomed(rate, spikes, title_, color_, linespec_, multiplier_):
+def plot_zoomed(rate, spiketimes, title_, color_, multiplier_):
     """
     saves figure with zoomed in raster and rate (last 100ms)
     :param rate: population rate (produced by Brian population rate monitor)
-    :param spikes: tuple with neuron IDs and spike times (produced by Brian spike monitor)
+    :param spiketimes: dictionary with keys as neuron IDs and spike time arrays (produced by Brian spike monitor)
     :param title_, color_, linespec_, multiplier_: outline and naming parameters
     :return ymin, ymax for further plotting (see plot_variables)
     """
     
-    fig = plt.figure(figsize=(10, 8))
+    spikeTimes = []
+    spikingNeurons = []
+    for i, spikes_i in spiketimes.items():  # the order doesn't really matter...
+        nrn = i * np.ones_like(spikes_i)
+        spikingNeurons = np.hstack([spikingNeurons, nrn])
+        spikeTimes = np.hstack([spikeTimes, spikes_i*1000])  # *1000 ms conversion
 
-    spikingNeurons = [i[0] for i in spikes]
-    spikeTimes = [i[1] for i in spikes]
-
-    tmp = np.asarray(spikeTimes)
-    ROI = np.where(tmp > 9.9)[0].tolist()
-    rasterX = np.asarray(spikeTimes)[ROI] * 1000
-    rasterY = np.asarray(spikingNeurons)[ROI]
+    ROI = np.where(spikeTimes > 9900)[0].tolist()
+    rasterX = spikeTimes[ROI]
+    rasterY = spikingNeurons[ROI]
 
     # boundaries 
     if rasterY.min()-50 > 0:
@@ -101,6 +151,8 @@ def plot_zoomed(rate, spikes, title_, color_, linespec_, multiplier_):
         ymax = rasterY.max()+50
     else:
         ymax = 4000
+        
+    fig = plt.figure(figsize=(10, 8))
 
     ax = fig.add_subplot(2, 1, 1)
     ax.scatter(rasterX, rasterY, c=color_, marker='.', lw=0)
@@ -111,7 +163,7 @@ def plot_zoomed(rate, spikes, title_, color_, linespec_, multiplier_):
     ax.set_ylabel("Neuron number")
 
     ax2 = fig.add_subplot(2, 1, 2)
-    ax2.plot(np.linspace(9900, 10000, len(rate[9900:10000])), rate[9900:10000], linespec_, linewidth=1.5)
+    ax2.plot(np.linspace(9900, 10000, len(rate[9900:10000])), rate[9900:10000], c=color_, linewidth=1.5)
     ax2.set_title("Rate (last 100 ms)")
     ax2.set_xlabel("Time (ms)")
     ax2.set_xlim([9900, 10000])
@@ -302,6 +354,7 @@ def plot_wmx_avg(wmx, nPop, saveName_):
             wmxM[i, j] = np.mean(tmp)
 
     fig = plt.figure(figsize=(10, 8))
+    
     ax = fig.add_subplot(1, 1, 1)
     i = ax.imshow(wmxM, cmap=plt.get_cmap("jet"))
     i.set_interpolation("nearest")  # set to "None" to less pixels and smooth, nicer figure

@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from detect_oscillations import replay, ripple, gamma
 from plots import *
 
-fIn = 'wmxR_asym_gauss.txt'
+fIn = 'wmxR_asym.txt'
 
 SWBasePath = '/'.join(os.path.abspath(__file__).split('/')[:-2])
 
@@ -150,12 +150,8 @@ sme = SpikeMonitor(PE)
 smi = SpikeMonitor(PI)
 popre = PopulationRateMonitor(PE, bin=1*ms)
 popri = PopulationRateMonitor(PI, bin=1*ms)
-#poprext = PopulationRateMonitor(MF, bin=1*ms)
 selection = np.arange(0, 4000, 100) # subset of neurons for recoring variables
 msMe = MultiStateMonitor(PE, vars=['vm', 'w', 'g_ampa'], record=selection.tolist())  # comment this out later (takes a lot of memory!)
-bins = [0*ms, 50*ms, 100*ms, 150*ms, 200*ms, 250*ms, 300*ms, 350*ms, 400*ms, 450*ms, 500*ms,
-        550*ms, 600*ms, 650*ms, 700*ms, 750*ms, 800*ms, 850*ms, 900*ms, 950*ms, 1000*ms]
-isi = ISIHistogramMonitor(PE, bins)
 dWee = save_selected_w(Wee, selection)
 del Wee  # cleary memory
 
@@ -163,25 +159,12 @@ del Wee  # cleary memory
 run(10000*ms, report='text')
 
 
-# Brian's raster + ISI plot
-fig = plt.figure(figsize=(10, 8))
-
-subplot(2, 1, 1)
-raster_plot(sme, spacebetweengroups=1, title="Raster plot", newfigure=False)
-xlim([0, 10000])
-ylim([0, 4000])
-
-subplot(2, 1, 2)
-hist_plot(isi, title="ISI histogram", newfigure=False)
-xlim([0, 1000])
-
-fig.tight_layout()
-figName = os.path.join(SWBasePath, "figures", "1.png")
-fig.savefig(figName)
+# Raster + ISI plot
+ISI = plot_raster_ISI(sme.spiketimes, "blue", multiplier_=1)
 
 if np.max(popre.rate > 0):  # check if there is any activity
 
-    avgReplayInterval = replay(isi.count[3:17])  # bins from 150 to 850 (range of interest)
+    avgReplayInterval = replay(ISI[3:16])  # bins from 150 to 850 (range of interest)
 
     meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(popre.rate, 1000)
     avgGammaFE, gammaPE = gamma(fE, PxxE)
@@ -211,8 +194,8 @@ if np.max(popre.rate > 0):  # check if there is any activity
     plot_PSD(popre.rate, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier_=1)
     plot_PSD(popri.rate, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier_=1)
 
-    ymin, ymax = plot_zoomed(popre.rate, sme.spikes, "Pyr_population", "blue", 'b-', multiplier_=1)
-    _, _ = plot_zoomed(popri.rate, smi.spikes, "Bas_population", "green", 'g-', multiplier_=1)
+    ymin, ymax = plot_zoomed(popre.rate, sme.spiketimes, "Pyr_population", "blue", multiplier_=1)
+    _, _ = plot_zoomed(popri.rate, smi.spiketimes, "Bas_population", "green", multiplier_=1)
     subset = select_subset(selection, ymin, ymax)
     plot_detailed(msMe, subset, dWee, multiplier_=1)
     plot_adaptation(msMe, selection, multiplier_=1)
