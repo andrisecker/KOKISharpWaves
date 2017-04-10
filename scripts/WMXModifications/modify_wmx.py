@@ -10,8 +10,8 @@ import matplotlib.pyplot as plt
 from wmx_modifications import *
 
 
-fIn = 'wmxR_sym.txt'
-fOut = 'wmxR_sym_gauss.txt'
+fIn = 'wmxR_asym.txt'
+fOut = 'wmxR_asym_gauss.txt'
 
 SWBasePath = '/'.join(os.path.abspath(__file__).split('/')[:-3]) 
 
@@ -32,7 +32,6 @@ print "modification done"
 
 np.fill_diagonal(wmxM, 0)  # just to make sure
 assert np.shape(wmxM) == (4000, 4000), "output shape is not 4000*4000"
-assert wmxM == np.absolute(wmxM), "there are negative values in the modified matrix"
 
 fName = os.path.join(SWBasePath, "files", fOut)
 np.savetxt(fName, wmxM)
