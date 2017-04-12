@@ -12,7 +12,7 @@ from brian2 import *
 set_device('cpp_standalone')  # speed up the simulation with generated C++ code
 import numpy as np
 import matplotlib.pyplot as plt
-from detect_oscillations import replay, ripple, gamma
+from detect_oscillations import *
 from plots import *
 
 fIn = 'wmxR_asym.txt'
@@ -156,16 +156,63 @@ print 'Connections done'
 # Monitors
 sme = SpikeMonitor(PE)
 smi = SpikeMonitor(PI)
-popre = PopulationRateMonitor(PE)
-popri = PopulationRateMonitor(PI)
 #selection = np.arange(0, 4000, 100) # subset of neurons for recoring variables
 del Wee  # cleary memory
 
 
 run(10000*ms, report='text')
 
+
 # Raster + ISI plot
-ISI = plot_raster_ISI(sme.spike_trains(), "blue", multiplier_=1)
+spikeTimesE, spikingNeuronsE, poprE, ISI = preprocess_spikes(sme.spike_trains(), NE)
+ISI = plot_raster_ISI(spikeTimesE, spikingNeuronsE, ISI, "blue", multiplier_=1)
+
+if np.max(poprE > 0):  # check if there is any activity
+   
+    spikeTimesI, spikingNeuronsI, poprI = preprocess_spikes(smi.spike_trains(), NI, calc_ISI=False)
+
+    # calling detect_oscillation functions:
+    avgReplayInterval = replay(ISI[3:16])  # bins from 150 to 850 (range of interest)
+
+    meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE, 1000)
+    avgGammaFE, gammaPE = gamma(fE, PxxE)
+    meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI, 1000)
+    avgGammaFI, gammaPI = gamma(fI, PxxI)
+
+    # Print out some info
+    print 'Mean excitatory rate: ', meanEr
+    print 'Maximum exc. autocorrelation:', maxEAC, 'at', tMaxEAC, '[ms]'
+    print 'Maximum exc. AC in ripple range:', maxEACR, 'at', tMaxEACR, '[ms]'
+    print 'Mean inhibitory rate: ', meanIr
+    print 'Maximum inh. autocorrelation:', maxIAC, 'at', tMaxIAC, '[ms]'
+    print 'Maximum inh. AC in ripple range:', maxIACR, 'at', tMaxIACR, '[ms]'
+    print ''
+    print 'Average exc. ripple freq:', avgRippleFE
+    print 'Exc. ripple power:', ripplePE
+    print 'Average exc. gamma freq:', avgGammaFE
+    print 'Exc. gamma power:', gammaPE
+    print 'Average inh. ripple freq:', avgRippleFI
+    print 'Inh. ripple power:', ripplePI
+    print 'Average inh. gamma freq:', avgGammaFI
+    print 'Inh. gamma power:', gammaPI
+    print "--------------------------------------------------"
+
+
+    # Plots
+    plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier_=1)
+    plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier_=1)
+
+    ymin, ymax = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
+    plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1, Pyr_pop=False)
+    #subset = select_subset(selection, ymin, ymax)
+    #plot_detailed(msMe, subset, dWee, multiplier_=1)
+    #plot_adaptation(msMe, selection, multiplier_=1)
+
+else:  # if there is no activity the auto-correlation function will throw an error!
+    
+    print "No activity !"
+    print "--------------------------------------------------"
+
 plt.show()
 
 
