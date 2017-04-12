@@ -13,27 +13,15 @@ SWBasePath = '/'.join(os.path.abspath(__file__).split('/')[:-2])
 figFolder = os.path.join(SWBasePath, "figures")
 
 
-def plot_raster_ISI(spiketimes, color_, multiplier_):
+def plot_raster_ISI(spikeTimes, spikingNeurons, ISIs, color_, multiplier_):
     """
     saves figure with raster plot and ISI distribution
-    (note: the main reason of this function is that Brian2 doesn't have ISIHistogramMonitor)
-    :param spiketimes: dictionary with keys as neuron IDs and spike time arrays (produced by Brian spike monitor)
+    (note: the main reason of this function is that Brian2 doesn't have ISIHistogramMonitor and the corresponding plot)
+    :param spikeTimes, spikingNeurons: used for raster plot - precalculated by detect_oscillation.py/preprocess_spikes
+    :param ISIs: used for plotting InterSpikeInterval histogram - precalculated by detect_oscillation.py/preprocess_spikes
     :param color_, multiplier_: outline and naming parameters
-    :return n: number of spikes in each bin (used by replay())
+    :return n: number of spikes in each bin (used by detect_oscillation.py/replay)
     """
-    
-    ISIs = []
-    spikeTimes = []
-    spikingNeurons = []
-    for i, spikes_i in spiketimes.items():  # the order doesn't really matter...
-        # create arrays for plotting
-        nrn = i * np.ones_like(spikes_i)
-        spikingNeurons = np.hstack([spikingNeurons, nrn])
-        spikeTimes = np.hstack([spikeTimes, spikes_i*1000])  # *1000 ms conversion
-        # calculate ISI
-        if len(spikes_i) >= 2:
-            isi = np.diff(spikes_i*1000) # *1000 ms conversion
-            ISIs = np.hstack([ISIs, isi])
     
     fig = plt.figure(figsize=(10, 8))
 
@@ -66,8 +54,8 @@ def plot_raster_ISI(spiketimes, color_, multiplier_):
 def plot_PSD(rate, rippleAC, f, Pxx, title_, linespec_, multiplier_):
     """
     saves figure with rate, auto-correlation plot, and PSD
-    :param rate: population rate (produced by Brian population rate monitor)
-    :param rippleAC: auto-correlation function of the rate (returned by ripple())
+    :param rate: firing rate - precalculated by detect_oscillation.py/preprocess_spikes
+    :param rippleAC: auto-correlation function of the rate (returned by detect_oscillation.py/ripple)
     :param f, Pxx (returned by PSD analysis) see more: http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.signal.welch.html
     :param title_, linespec_, multiplier: outline and naming parameters
     """
@@ -122,35 +110,34 @@ def plot_PSD(rate, rippleAC, f, Pxx, title_, linespec_, multiplier_):
     fig.savefig(figName)
     
     
-def plot_zoomed(rate, spiketimes, title_, color_, multiplier_):
+def plot_zoomed(spikeTimes, spikingNeurons, rate, title_, color_, multiplier_, Pyr_pop=True):
     """
     saves figure with zoomed in raster and rate (last 100ms)
-    :param rate: population rate (produced by Brian population rate monitor)
-    :param spiketimes: dictionary with keys as neuron IDs and spike time arrays (produced by Brian spike monitor)
+    :param spikeTimes, spikingNeurons: used for raster plot - precalculated by detect_oscillation.py/preprocess_spikes
+    :param rate: firing rate - precalculated by detect_oscillation.py/preprocess_spikes
     :param title_, color_, linespec_, multiplier_: outline and naming parameters
+    :param Pyr_pop: flag for calculating and returning ymin and ymax (and zooming in the plot)
     :return ymin, ymax for further plotting (see plot_variables)
     """
-    
-    spikeTimes = []
-    spikingNeurons = []
-    for i, spikes_i in spiketimes.items():  # the order doesn't really matter...
-        nrn = i * np.ones_like(spikes_i)
-        spikingNeurons = np.hstack([spikingNeurons, nrn])
-        spikeTimes = np.hstack([spikeTimes, spikes_i*1000])  # *1000 ms conversion
 
-    ROI = np.where(spikeTimes > 9900)[0].tolist()
+    # get last 100ms
+    ROI = np.where(spikeTimes > 9900)[0].tolist()  # hard coded for 10000ms...
     rasterX = spikeTimes[ROI]
     rasterY = spikingNeurons[ROI]
 
-    # boundaries 
-    if rasterY.min()-50 > 0:
-        ymin = rasterY.min()-50
+    if Pyr_pop:
+        # boundaries 
+        if rasterY.min()-50 > 0:
+            ymin = rasterY.min()-50
+        else:
+            ymin = 0
+        if rasterY.max()+50 < 4000:
+            ymax = rasterY.max()+50
+        else:
+            ymax = 4000
     else:
         ymin = 0
-    if rasterY.max()+50 < 4000:
-        ymax = rasterY.max()+50
-    else:
-        ymax = 4000
+        ymax = 1000
         
     fig = plt.figure(figsize=(10, 8))
 
@@ -173,7 +160,8 @@ def plot_zoomed(rate, spiketimes, title_, color_, multiplier_):
     figName = os.path.join(figFolder, "%s_%s_zoomed.png"%(multiplier_, title_))
     fig.savefig(figName)
     
-    return ymin, ymax
+    if Pyr_pop:
+        return ymin, ymax
 
 
 def save_selected_w(Wee, selection):

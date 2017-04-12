@@ -11,12 +11,12 @@ import gc
 from brian import *
 import numpy as np
 import matplotlib.pyplot as plt
-from detect_oscillations import replay, ripple, gamma
+from detect_oscillations import *
 from plots import *
 
 
-fIn = 'wmxR_sym.txt'
-fOut = 'results_sym_v01.txt'
+fIn = 'wmxR_asym.txt'
+fOut = 'results_asym_v02.txt'
 
 SWBasePath = '/'.join(os.path.abspath(__file__).split('/')[:-2])
 
@@ -159,13 +159,9 @@ for k in range(0, dataPoints):
     # init monitors
     sme = SpikeMonitor(PE)
     smi = SpikeMonitor(PI)
-    popre = PopulationRateMonitor(PE, bin=0.001)
-    popri = PopulationRateMonitor(PI, bin=0.001)
+    # other monitors factored out to speed up simulation and make the process compatible with Brian2
     selection = np.arange(0, 4000, 100) # subset of neurons for recoring variables
     msMe = MultiStateMonitor(PE, vars=['vm', 'w', 'g_ampa'], record=selection.tolist())  # comment this out later (takes a lot of memory!)
-    bins = [0*ms, 50*ms, 100*ms, 150*ms, 200*ms, 250*ms, 300*ms, 350*ms, 400*ms, 450*ms, 500*ms,
-            550*ms, 600*ms, 650*ms, 700*ms, 750*ms, 800*ms, 850*ms, 900*ms, 950*ms, 1000*ms]
-    isi = ISIHistogramMonitor(PE, bins)
     
     dWee = save_selected_w(Wee_tmp, selection)
     del Wee_tmp  # cleary memory
@@ -175,16 +171,19 @@ for k in range(0, dataPoints):
     
     
     # Raster + ISI plot
-    ISI = plot_raster_ISI(sme.spiketimes, "blue", multiplier_=1)
+    spikeTimesE, spikingNeuronsE, poprE, ISI = preprocess_spikes(sme.spiketimes, NE)
+    ISI = plot_raster_ISI(spikeTimesE, spikingNeuronsE, ISI, "blue", multiplier)
 
-    if np.max(popre.rate > 0):  # check if there is any activity
+    if np.max(poprE > 0):  # check if there is any activity
+    
+        spikeTimesI, spikingNeuronsI, poprI = preprocess_spikes(smi.spiketimes, NI, calc_ISI=False)
 
         # calling detect_oscillation functions:
         avgReplayInterval = replay(ISI[3:16])  # bins from 150 to 850 (range of interest)
 
-        meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(popre.rate, 1000)
+        meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE, 1000)
         avgGammaFE, gammaPE = gamma(fE, PxxE)
-        meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(popri.rate, 1000)
+        meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI, 1000)
         avgGammaFI, gammaPI = gamma(fI, PxxI)
 
         print "Avg. exc. ripple freq:%s, Avg. inh. ripple freq:%s"%(avgRippleFE, avgRippleFI)
@@ -199,11 +198,11 @@ for k in range(0, dataPoints):
                    avgRippleFI, ripplePI, avgGammaFI, gammaPI]
 
         # Plots
-        plot_PSD(popre.rate, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier)
-        plot_PSD(popri.rate, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier)
-        
-        ymin, ymax = plot_zoomed(popre.rate, sme.spiketimes, "Pyr_population", "blue", multiplier)
-        _, _ = plot_zoomed(popri.rate, smi.spiketimes, "Bas_population", "green", multiplier)
+        plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier)
+        plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier)
+
+        ymin, ymax = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier)
+        plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier, Pyr_pop=False)
         subset = select_subset(selection, ymin, ymax)
         plot_detailed(msMe, subset, dWee, multiplier)
         plot_adaptation(msMe, selection, multiplier)
@@ -220,8 +219,8 @@ for k in range(0, dataPoints):
 		           np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
 		
     # Reinitialize variables
-    reinit(states=True)
-    reinit_default_clock()
+    reinit(states=True)  # population is recreated so this might be useless
+    reinit_default_clock()  # population is recreated so this might be useless
     clear(True)
     gc.collect()
     seed += 1

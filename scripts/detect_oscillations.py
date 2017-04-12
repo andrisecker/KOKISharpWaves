@@ -9,6 +9,42 @@ import numpy as np
 from scipy import signal, misc
 
 
+def preprocess_spikes(spiketimes, N_norm, calc_ISI=True):
+    """
+    preprocess Brian's SpikeMonitor data for further analysis and plotting
+    -> no need for many monitors (saves RAM); or iterating over spiketimes dictionary many times in the plotting functions
+    (note: more reason for this function: Brian2 lacks ISIHistogramMonitor and bins= specification in PopulationRateMonitor)
+    :param spiketimes: dictionary with keys as neuron IDs and spike time arrays (produced by Brian(1&2) SpikeMonitor)
+    :return spikeTimes, spikingNeurons: used for raster plots
+            rate: firing rate of the population (hard coded to use 1*ms bins!)
+            ISIs: inter spike intervals (used for replay detection and plotting)
+    """
+    
+    spikeTimes = []
+    spikingNeurons = []
+    rate = np.zeros((10000)) # hard coded for 10000ms and 1ms bins
+    if calc_ISI:
+        ISIs = []
+    for i, spikes_i in spiketimes.items():  # the order doesn't really matter...
+        # create arrays for plotting
+        nrn = i * np.ones_like(spikes_i)
+        spikingNeurons = np.hstack([spikingNeurons, nrn])
+        spikeTimes = np.hstack([spikeTimes, spikes_i*1000])  # *1000 ms conversion
+        # calculate InterSpikeIntervals
+        if calc_ISI:
+            if len(spikes_i) >= 2:
+                isi = np.diff(spikes_i*1000) # *1000 ms conversion
+                ISIs = np.hstack([ISIs, isi])
+        # calculate firing rate
+        for j in spikes_i*1000:  # iterates over spike times array for 1 selected neuron  # *1000 ms conversion
+            rate[int(np.floor(j))] += 1
+            
+    if calc_ISI:
+        return spikeTimes, spikingNeurons, rate/(N_norm*0.001), ISIs  # *0.001 is 1ms bin delta_t normalization...
+    else:
+        return spikeTimes, spikingNeurons, rate/(N_norm*0.001)  # # *0.001 is 1ms bin delta_t normalization...
+
+
 def replay(isi):
     '''
     Decides if there is a replay or not:
