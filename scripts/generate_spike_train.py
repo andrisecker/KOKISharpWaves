@@ -13,7 +13,7 @@ nNeuron = 1  # #{neurons in one population}
 mode = 'random'
 # if nNeuron != 1 mode -> 'block'
 
-SWBasePath = os.path.split(os.path.split(__file__)[0])[0]  # '/home/bandi/workspace/KOKI/SharpWaves'
+SWBasePath = '/'.join(os.path.abspath(__file__).split('/')[:-2])
 
 seed = 0
 
