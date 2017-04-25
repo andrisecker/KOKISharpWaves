@@ -35,15 +35,15 @@ def preprocess_spikes(spiketimes, N_norm, calc_ISI=True):
             if len(spikes_i) >= 2:
                 isi = np.diff(spikes_i*1000) # *1000 ms conversion
                 ISIs = np.hstack([ISIs, isi])
-        # calculate firing rate
-        for j in spikes_i*1000:  # iterates over spike times array for 1 selected neuron  # *1000 ms conversion
-            rate[int(np.floor(j))] += 1
+        # updating firing rate (based on spikes from 1 neuron)
+        spike_ids = (spikes_i*1000).astype(int)  # create indexing array (*1000 ms conversion)
+        rate[spike_ids] += 1
             
     if calc_ISI:
         return spikeTimes, spikingNeurons, rate/(N_norm*0.001), ISIs  # *0.001 is 1ms bin delta_t normalization...
     else:
         return spikeTimes, spikingNeurons, rate/(N_norm*0.001)  # # *0.001 is 1ms bin delta_t normalization...
-
+        
 
 def replay(isi):
     '''
