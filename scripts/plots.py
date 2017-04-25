@@ -354,7 +354,7 @@ def plot_wmx(wmx, saveName_):
     i.set_interpolation("nearest")  # set to "None" to less pixels and smooth, nicer figure
     fig.colorbar(i)
     ax.set_title("Learned synaptic weights")
-    ax.set_xlable("target neuron")
+    ax.set_xlabel("target neuron")
     ax.set_ylabel("source neuron")
     
     figName = os.path.join(figFolder, "%s.png"%saveName_)
@@ -385,7 +385,7 @@ def plot_wmx_avg(wmx, nPop, saveName_):
     i.set_interpolation("nearest")  # set to "None" to less pixels and smooth, nicer figure
     fig.colorbar(i)
     ax.set_title("Learned synaptic weights (avg.)")
-    ax.set_xlable("target neuron")
+    ax.set_xlabel("target neuron")
     ax.set_ylabel("source neuron")
     
     figName = os.path.join(figFolder, "%s.png"%saveName_)
