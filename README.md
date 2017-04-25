@@ -4,7 +4,7 @@ Reference: [BSc thesis](https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5
 
 ------------------------------------------------------
 
-> With the sripts in the repository one can create a [CA3 network model](https://github.com/andrisecker/KOKISharpWaves/blob/master/CA3_network_model.pdf) and examine the network dynamics during hippocampal SWRs (Sharp Wave-Ripples).
+> With the scripts in the repository one can create a [CA3 network model](https://github.com/andrisecker/KOKISharpWaves/blob/master/CA3_network_model.pdf) and examine the network dynamics during hippocampal SWRs (Sharp Wave-Ripples).
 
 To run the scripts, [install Brian (version 1)](http://brian.readthedocs.org/en/latest/installation.html) and run:
 
@@ -26,7 +26,7 @@ extraction of dynamic features during SWRs
 
 ### Other features:
 
-    python spw_network4_automatized.py  # investigates into network dynamics with varios scaling factor (of the weight matrix)
+    python spw_network4_automatized.py  # investigates into network dynamics with various scaling factor (of the weight matrix)
 
 ![](https://raw.githubusercontent.com/andrisecker/KOKISharpWaves/master/autamated_evaluation.png)
 
@@ -40,7 +40,7 @@ automated evaluation of the networks dynamics with differently scaled recurrent 
 
 ![](https://raw.githubusercontent.com/andrisecker/KOKISharpWaves/master/bayesian_decoding.png)
 
-Raster plot of the activity and infered place from spike trains + analysis of the angular velocity during SWRs
+Raster plot of the activity and inferred place from spike trains + analysis of the angular velocity during SWRs
 
 ------------------------------------------------------
 
