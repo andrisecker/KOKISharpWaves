@@ -4,12 +4,12 @@
 crates PC (adExp IF) and BC (IF) population in Brian, loads in recurrent connection matrix for PC population 
 runs simulation and checks the dynamics
 see more: https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view
-authors: András Ecker, Eszter Vértes, Szabolcs Káli last update: 11.2015 (+ some minor checks for symmetric STDP in 03.2017)
+authors: András Ecker, Eszter Vértes, Szabolcs Káli last update: 04.2017
 '''
 
 import os
 from brian import *
-import numpy as 
+import numpy as np
 import matplotlib.pyplot as plt
 from detect_oscillations import *
 from plots import *
@@ -96,7 +96,7 @@ def myresetfunc(P, spikes):
 SCR = SimpleCustomRefractoriness(myresetfunc, tref_Pyr, state='vm')
 
 eqs_bas = '''
-dvm/dt = (-gL_Bas*(vm-Vrest_Bas) - (g_ampa*z*(vm-E_Exc) + g_gaba*z*(vm-E_Inh)))/Cm_Bas :volt
+dvm/dt = (-gL_Bas*(vm-Vrest_Bas) - (g_ampa*z*(vm-E_Exc) + g_gaba*z*(vm-E_Inh)))/Cm_Bas : volt
 dg_ampa/dt = -g_ampa/tauSyn_BasExc : 1
 dg_gaba/dt = -g_gaba/tauSyn_BasInh : 1
 '''
@@ -143,16 +143,14 @@ Cie = Connection(PI, PE, 'g_gaba', weight=J_PyrInh, sparseness=eps_bas, delay=de
 Cii = Connection(PI, PI, 'g_gaba', weight=J_BasInh, sparseness=eps_bas, delay=delay_BasInh)
 
 print 'Connections done'
-
+del Wee  # cleary memory
 
 # Monitors
 sme = SpikeMonitor(PE)
 smi = SpikeMonitor(PI)
 # other monitors factored out to speed up simulation and make the process compatible with Brian2
 selection = np.arange(0, 4000, 100) # subset of neurons for recoring variables
-msMe = MultiStateMonitor(PE, vars=['vm', 'w', 'g_ampa'], record=selection.tolist())  # comment this out later (takes a lot of memory!)
-dWee = save_selected_w(Wee, selection)
-del Wee  # cleary memory
+msMe = MultiStateMonitor(PE, vars=['vm', 'w', 'g_ampa', 'g_gaba'], record=selection.tolist())  # comment this out later (takes a lot of memory!)
 
 
 run(10000*ms, report='text')
@@ -200,8 +198,8 @@ if np.max(poprE > 0):  # check if there is any activity
     ymin, ymax = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
     plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1, Pyr_pop=False)
     subset = select_subset(selection, ymin, ymax)
-    plot_detailed(msMe, subset, dWee, multiplier_=1)
-    plot_adaptation(msMe, selection, multiplier_=1)
+    plot_detailed(msMe, subset, multiplier_=1)
+    #plot_adaptation(msMe, selection, multiplier_=1)
 
 else:  # if there is no activity the auto-correlation function will throw an error!
     

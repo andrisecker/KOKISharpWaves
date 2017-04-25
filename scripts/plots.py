@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 '''
 helper file to plot dynamics (and the weight matrix)
-author: András Ecker, last update: 03.2017
+author: András Ecker, last update: 04.2017
 '''
 
 import os
@@ -95,9 +95,9 @@ def plot_PSD(rate, rippleAC, f, Pxx, title_, linespec_, multiplier_):
     ax2.set_ylabel("AutoCorrelation")
 
     ax3 = fig.add_subplot(3, 1, 3)
-    ax3.plot(f, PxxPlot, linespec_, marker='o', linewidth=1.5)
-    ax3.plot(fRipple, PxxRipplePlot, 'r-', marker='o', linewidth=2, label="ripple")
-    ax3.plot(fGamma, PxxGammaPlot, 'k-', marker='o', linewidth=2, label="gamma")
+    ax3.plot(f, PxxPlot, linespec_, marker='o')
+    ax3.plot(fRipple, PxxRipplePlot, 'r-', marker='o', linewidth=1.5, label="ripple")
+    ax3.plot(fGamma, PxxGammaPlot, 'k-', marker='o', linewidth=1.5, label="gamma")
     ax3.set_title("Power Spectrum Density")
     ax3.set_xlim([0, 500])
     ax3.set_xlabel("Frequency (Hz)")
@@ -162,15 +162,7 @@ def plot_zoomed(spikeTimes, spikingNeurons, rate, title_, color_, multiplier_, P
     
     if Pyr_pop:
         return ymin, ymax
-
-
-def save_selected_w(Wee, selection):
-    """saves the incomming weights of some selected neurons (used with the ones which are monitored by MultiStateMonitor)"""   
-    w = {}
-    for i in selection:
-        w[i] = Wee[:, i]        
-    return w
-
+        
 
 def select_subset(selection, ymin, ymax):
     """
@@ -192,14 +184,13 @@ def select_subset(selection, ymin, ymax):
     except:  # if there isn't any cell firing
         subset = [400, 1000, 1500, 2300, 3600]        
     return subset
-        
+       
 
-def plot_detailed(msM, subset, dW, multiplier_, plot_adaptation=True):
+def plot_detailed(msM, subset, multiplier_, plot_adaptation=True):
     """
     saves figure with more detailes about some selected neurons
     :param msM: Brian MultiStateMonitor object (could be more elegant...)
     :param subset: selected neurons to plot (max 5)
-    :param dW: dictionary storing the input weights of some neurons (see save_selected_w())
     :param multiplier_: naming parameter
     :param plot_adaptation: boolean flag for plotting adaptation var.
     """
@@ -215,10 +206,10 @@ def plot_detailed(msM, subset, dW, multiplier_, plot_adaptation=True):
     
     for i in subset:
         ax.plot(t, msM['vm', i]*1000, linewidth=1.5, label="%i"%i)  # *1000 mV conversion
-        ax2.plot(dW[i], alpha=0.5, label="%i"%i)
-        ax3.plot(t, msM['g_ampa', i], linewidth=1.5, label="%i"%i)
         if plot_adaptation:
-            ax4.plot(t, msM['w', i]*1e12, linewidth=1.5, label="%i"%i)  # *1e12 pA conversion
+            ax2.plot(t, msM['w', i]*1e12, linewidth=1.5, label="%i"%i)  # *1e12 pA conversion
+        ax3.plot(t, msM['g_ampa', i], linewidth=1.5, label="%i"%i)
+        ax4.plot(t, msM['g_gaba', i], linewidth=1.5, label="%i"%i)
 
     
     ax.set_title("Membrane potential (last 100 ms)")
@@ -227,11 +218,12 @@ def plot_detailed(msM, subset, dW, multiplier_, plot_adaptation=True):
     ax.set_xlim([9900, 10000])
     ax.legend()
     
-    ax2.set_title("Incomming exc. weights")
-    ax2.set_xlabel("#Neuron")
-    ax2.set_ylabel("Weight (nS)")
-    ax2.set_xlim([0, 4000])
-    ax2.legend()
+    ax2.set_title("Adaptation variable (last 100 ms)")
+    ax2.set_xlabel("Time (ms)")
+    ax2.set_ylabel("w (pA)")
+    ax2.set_xlim([9900, 10000])
+    if plot_adaptation:
+        ax2.legend()
     
     ax3.set_title("Exc. inputs (last 100 ms)")
     ax3.set_xlabel("Time (ms)")
@@ -239,12 +231,13 @@ def plot_detailed(msM, subset, dW, multiplier_, plot_adaptation=True):
     ax3.set_xlim([9900, 10000])
     ax3.legend()
     
-    ax4.set_title("Adaptation variable (last 100 ms)")
+    ax4.set_title("Inh. inputs (last 100 ms)")
     ax4.set_xlabel("Time (ms)")
-    ax4.set_ylabel("w (pA)")
+    ax4.set_ylabel("g_gaba (nS)")
     ax4.set_xlim([9900, 10000])
-    if plot_adaptation:
-        ax4.legend()
+    ax4.legend()
+    
+
     
     fig.tight_layout()
     
@@ -306,9 +299,51 @@ def plot_adaptation(msM, subset, multiplier_):  # quick and dirty solution (4 su
     fig.savefig(figName)
 
 
+def plot_STDP_rule(taup, taum, Ap, Am, saveName_):
+    """
+    Plots the STDP rule used for learning
+    exponential STDP: f(s) = A_p * exp(-s/tau_p) (if s > 0), where s=tpost_{spike}-tpre_{spike}
+    :param taup, taum: time constant of weight change
+    :param Ap, Am: max amplitude of weight change
+    :return mode: just for saving conventions (see other wmx figures) 
+    """
+    
+    if Ap == Am:
+        mode = "sym"
+    elif Ap == Am*-1:
+        mode = "asym"
+    elif np.abs(Ap) != np.abs(Am):
+        print "naming conventions won't work!"
+        mode = "tmp"
+
+    delta_t = np.linspace(-120, 120, 1000)
+    delta_w = np.where(delta_t>0, Ap*np.exp(-delta_t/taup), Am*np.exp(delta_t/taum))
+    
+    fig = plt.figure(figsize=(10, 8))
+
+    ax = fig.add_subplot(1, 1, 1)
+    ax.plot(delta_t, delta_w, label="STDP rule taup:%s(ms), Ap:%s"%(taup, Ap))
+    ax.set_title("STDP curve")
+    ax.set_xlabel("delta_t /post-pre/ (ms)")
+    ax.set_ylabel("delta_w (nS)")
+    if mode == "asym":
+        ax.set_ylim([-Ap*1.05, Ap*1.05])
+    elif mode == "sym":
+        ax.set_ylim([-Ap*0.05, Ap*1.05])
+    ax.set_xlim([-100, 100])
+    ax.axhline(0, ls='-', c='k')
+    ax.legend()
+    
+    figName = os.path.join(figFolder, "%s_%s.png"%(saveName_, mode))
+    fig.savefig(figName)
+    plt.close()
+    
+    return mode
+
+
 def plot_wmx(wmx, saveName_):
     """
-    Plots the weight matrix
+    saves figure with the weight matrix
     :param wmx: ndarray representing the weight matrix
     :param saveName_: name of saved img
     """
@@ -319,6 +354,8 @@ def plot_wmx(wmx, saveName_):
     i.set_interpolation("nearest")  # set to "None" to less pixels and smooth, nicer figure
     fig.colorbar(i)
     ax.set_title("Learned synaptic weights")
+    ax.set_xlable("target neuron")
+    ax.set_ylabel("source neuron")
     
     figName = os.path.join(figFolder, "%s.png"%saveName_)
     fig.savefig(figName)
@@ -326,7 +363,7 @@ def plot_wmx(wmx, saveName_):
   
 def plot_wmx_avg(wmx, nPop, saveName_):
     """
-    Plots the averaged weight matrix (better view as a whole)
+    saves figure with the averaged weight matrix (better view as a whole)
     :param wmx: ndarray representing the weight matrix
     :param nPop: number of populations
     :param saveName_: name of saved img
@@ -348,6 +385,8 @@ def plot_wmx_avg(wmx, nPop, saveName_):
     i.set_interpolation("nearest")  # set to "None" to less pixels and smooth, nicer figure
     fig.colorbar(i)
     ax.set_title("Learned synaptic weights (avg.)")
+    ax.set_xlable("target neuron")
+    ax.set_ylabel("source neuron")
     
     figName = os.path.join(figFolder, "%s.png"%saveName_)
     fig.savefig(figName)
@@ -355,7 +394,7 @@ def plot_wmx_avg(wmx, nPop, saveName_):
 
 def plot_w_distr(wmx, saveName_):
     """
-    Plots the distribution of the weights
+    saves figure with the distribution of the weights
     :param wmx: ndarray representing the weight matrix
     :param saveName_: name of saved img
     """  
@@ -388,31 +427,32 @@ def plot_w_distr(wmx, saveName_):
     
     figName = os.path.join(figFolder, "%s.png"%saveName_)
     fig.savefig(figName)
-    
-    
-def plot_STDP_rule(taup, taum, Ap, Am, saveName_):
-    """
-    Plots the STDP rule used for learning
-    exponential STDP: f(s) = A_p * exp(-s/tau_p) (if s > 0), where s=tpost_{spike}-tpre_{spike}
-    :param taup, taum: time constant of weight change
-    :param Ap, Am: max amplitude of weight change
-    """
 
-    delta_t = np.linspace(-100, 100, 1000)
-    delta_w = np.where(delta_t>0, Ap*np.exp(-delta_t/taup), Am*np.exp(delta_t/taum))
+def save_selected_w(Wee, selection):
+    """saves the incomming weights of some selected neurons"""  
+    w = {}
+    for i in selection:
+        w[i] = Wee[:, i]        
+    return w
+
+def plot_weights(dWee, saveName_):
+    """
+    saves figure with some selected weights
+    :param dW: dictionary storing the input weights of some neurons (see save_selected_w())
+    :param saveName_: name of saved img
+    """  
     
     fig = plt.figure(figsize=(10, 8))
-
     ax = fig.add_subplot(1, 1, 1)
-    ax.plot(delta_t, delta_w)
-    ax.set_title("STDP curve")
-    ax.set_xlabel("delta_t /post-pre/ (ms)")
-    ax.set_ylabel("delta_w (nS)")
-    ax.set_ylim([-Ap*1.05, Ap*1.05])
-    ax.set_xlim([-70, 70])
-    ax.axhline(0, ls='-', c='k')
+    for _, val in dWee.items():
+        ax.plot(val, alpha=0.5, label="%i"%i)
+        
+    ax.set_title("Incomming exc. weights")
+    ax.set_xlabel("#Neuron")
+    ax.set_ylabel("Weight (nS)")
+    ax.set_xlim([0, 4000])
+    ax.legend()
     
     figName = os.path.join(figFolder, "%s.png"%saveName_)
     fig.savefig(figName)
-    plt.close()
      

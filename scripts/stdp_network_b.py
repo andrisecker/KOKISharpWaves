@@ -31,7 +31,8 @@ spikeTrains = npzFile["spikeTrains"]
 spiketimes = []
 
 for neuron in range(N):
-    nrn = neuron * np.ones(len(spikeTrains[neuron]))
+    nrn = neuron * np.ones_like(spikeTrains[neuron])
+    #nrn = neuron * np.ones(len(spikeTrains[neuron]))
     z = zip(nrn, spikeTrains[neuron])
     spiketimes.append(z)
 
@@ -45,11 +46,10 @@ PC = SpikeGeneratorGroup(N, spiketimes)
 # STDP parameters
 taup = taum = 20  # ms  # 20 - baseline
 Ap = 0.01  # : 1 # asymmetric STDP rule
-Am = -Ap  # : 1 # asymmetric STDP rule
-#Ap = Am = 0.01  # : 1 # symmetric STDP rule
-wmax = 40e-9  # S # asymmetric STDP rule
-#wmax=7.5e-9  # S # symmetric STDP rule (orig taus)
-#wmax = 15e-9  # S # symmetric STDP rule (thinner time window)
+#Am = -Ap  # : 1 # asymmetric STDP rule
+Ap = Am = 0.01  # : 1 # symmetric STDP rule
+#wmax = 40e-9  # S # asymmetric STDP rule
+wmax=7.5e-9  # S # symmetric STDP rule (orig taus)
 
 
 def learning(spikingNeuronGroup, taup, taum, Ap, Am, wmax):
@@ -64,9 +64,10 @@ def learning(spikingNeuronGroup, taup, taum, Ap, Am, wmax):
     :param wmax: maximum weight
     :return weightmx: numpy ndarray with the learned synaptic weights
             spikeM: SpikeMonitor of the network (for plotting and further analysis)
+            mode_: ['asym', 'sym'] just for saving conventions (see saved wmx figures) 
     """
     
-    plot_STDP_rule(taup, taum, Ap*wmax*1e9, Am*wmax*1e9, "STDP_rule_sym")
+    mode_ = plot_STDP_rule(taup, taum, Ap*wmax*1e9, Am*wmax*1e9, "STDP_rule")
 
     Conn = Connection(spikingNeuronGroup, spikingNeuronGroup, weight=0.1e-9, sparseness=0.16)
     
@@ -85,10 +86,10 @@ def learning(spikingNeuronGroup, taup, taum, Ap, Am, wmax):
     weightmx = np.reshape(tmp, (4000, 4000))
     np.fill_diagonal(weightmx, 0)
 
-    return weightmx, spikeM
+    return weightmx, spikeM, mode_
 
 
-weightmx, spikeM = learning(PC, taup, taum, Ap, Am, wmax)
+weightmx, spikeM, mode_ = learning(PC, taup, taum, Ap, Am, wmax)
 
 
 # Plots: raster
@@ -96,9 +97,13 @@ figure(figsize=(10, 8))
 raster_plot(spikeM, spacebetweengroups=1, title='Raster plot', newfigure=False)
 #plt.show()
 
-plot_wmx(weightmx, "wmx_sym")
-plot_wmx_avg(weightmx, 100, "wmx_avg_sym")
-plot_w_distr(weightmx, "w_distr_sym")
+plot_wmx(weightmx, "wmx_%s"%mode_)
+plot_wmx_avg(weightmx, 100, "wmx_avg_%s"%mode_)
+plot_w_distr(weightmx, "w_distr_%s"%mode_)
+
+selection = np.array([500, 1500, 2500, 3500])  # some random neuron IDs to save weigths
+dWee = save_selected_w(Wee, selection)
+plot_weights(dWee, "sel_weights_%s"%mode_)
 
 
 # save weightmatrix

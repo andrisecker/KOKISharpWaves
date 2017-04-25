@@ -151,13 +151,12 @@ Cii.connect(p=eps_bas)
 Cii.delay = delay_BasInh
 
 print 'Connections done'
-
+del Wee  # cleary memory
 
 # Monitors
 sme = SpikeMonitor(PE)
 smi = SpikeMonitor(PI)
 #selection = np.arange(0, 4000, 100) # subset of neurons for recoring variables
-del Wee  # cleary memory
 
 
 run(10000*ms, report='text')

@@ -64,9 +64,10 @@ def learning(spikingNeuronGroup, taup, taum, Ap, Am, wmax):
     :param wmax: maximum weight
     :return weightmx: numpy ndarray with the learned synaptic weights
             spikeM: SpikeMonitor of the network (for plotting and further analysis)
+            mode_: ['asym', 'sym'] just for saving conventions (see saved wmx figures) 
     """
 
-    plot_STDP_rule(taup/ms, taum/ms, Ap/1e-9, Am/1e-9, "STDP_rule_sym")
+    mode_ = plot_STDP_rule(taup/ms, taum/ms, Ap/1e-9, Am/1e-9, "STDP_rule")
 
     # mimics Brian1's exponentialSTPD class, with interactions='all', update='additive'
     # see more on conversion: http://brian2.readthedocs.io/en/stable/introduction/brian1_to_2/synapses.html
@@ -98,10 +99,10 @@ def learning(spikingNeuronGroup, taup, taum, Ap, Am, wmax):
     weightmx = np.zeros((4000, 4000))
     weightmx[STDP.i[:], STDP.j[:]] = STDP.w[:]
 
-    return weightmx, spikeM, STDP
+    return weightmx, spikeM, mode_
 
 
-weightmx, spikeM, STDP = learning(PC, taup, taum, Ap, Am, wmax)
+weightmx, spikeM, mode_ = learning(PC, taup, taum, Ap, Am, wmax)
 
 # Plots: raster
 fig = plt.figure(figsize=(10, 8))
@@ -110,19 +111,14 @@ brian_plot(spikeM, axes=ax)
 ax.set_title("Raster plot")
 #plt.show()
 
-plot_wmx(weightmx, "wmx_sym")
-plot_wmx_avg(weightmx, 100, "wmx_avg_sym")
-plot_w_distr(weightmx, "w_distr_sym")
+plot_wmx(weightmx, "wmx_%s"%mode_)
+plot_wmx_avg(weightmx, 100, "wmx_avg_%s"%mode_)
+plot_w_distr(weightmx, "w_distr_%s"%mode_)
 
+selection = np.array([500, 1500, 2500, 3500])  # some random neuron IDs to save weigths
+dWee = save_selected_w(Wee, selection)
+plot_weights(dWee, "sel_weights_%s"%mode_)
 
-"""
-# check if Brian2's weight figure is the same: -> it's mirrored, and kind of useless...
-fig = plt.figure(figsize=(10, 8))
-ax = plot_synapses(STDP.i, STDP.j, STDP.w, var_name="synaptic weights", plot_type="scatter", cmap="jet")
-add_background_pattern(ax)
-ax.set_title("Learned weight matrix")
-plt.show()
-"""
 
 # save weightmatrix
 fName = os.path.join(SWBasePath, 'files', fOut)

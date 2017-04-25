@@ -3,7 +3,7 @@
 '''
 looped version of spw_network4a_1.py -> checks the dynamics for different multipliers of the learned weight matrix
 see more: https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view
-authors: András Ecker, Szabolcs Káli last update: 11.2016 (+ some minor checks for symmetric STDP in 03.2017)
+authors: András Ecker, Szabolcs Káli last update: 04.2017
 '''
 
 import os
@@ -99,7 +99,7 @@ def myresetfunc(P, spikes):
     P.w_[spikes] += b_Pyr  # low pass filter of spikes (adaptation mechanism)
 
 eqs_bas = '''
-dvm/dt = (-gL_Bas*(vm-Vrest_Bas)-(g_ampa*z*(vm-E_Exc)+g_gaba*z*(vm-E_Inh)))/Cm_Bas :volt
+dvm/dt = (-gL_Bas*(vm-Vrest_Bas)-(g_ampa*z*(vm-E_Exc)+g_gaba*z*(vm-E_Inh)))/Cm_Bas : volt
 dg_ampa/dt = -g_ampa/tauSyn_BasExc : 1
 dg_gaba/dt = -g_gaba/tauSyn_BasInh : 1
 '''
@@ -110,7 +110,7 @@ dg_gaba/dt = -g_gaba/tauSyn_BasInh : 1
 # load in Wee only once ...
 def load_Wee(fName):  # this way the file will closed and memory will cleaned
     """dummy function, just to make python clear the memory"""
-    Wee = np.genfromtxt(fName) * 1e9
+    Wee = np.genfromtxt(fName) * 1e9 
     np.fill_diagonal(Wee, 0)  # just to make sure
 
     print "weight matrix loded"
@@ -155,18 +155,16 @@ for k in range(0, dataPoints):
     Cii = Connection(PI, PI, 'g_gaba', weight=J_BasInh, sparseness=eps_bas, delay=delay_BasInh)
     
     print "Connections done"
+    del Wee_tmp  # cleary memory
 
     # init monitors
     sme = SpikeMonitor(PE)
     smi = SpikeMonitor(PI)
     # other monitors factored out to speed up simulation and make the process compatible with Brian2
     selection = np.arange(0, 4000, 100) # subset of neurons for recoring variables
-    msMe = MultiStateMonitor(PE, vars=['vm', 'w', 'g_ampa'], record=selection.tolist())  # comment this out later (takes a lot of memory!)
+    msMe = MultiStateMonitor(PE, vars=['vm', 'w', 'g_ampa', 'g_gaba'], record=selection.tolist())  # comment this out later (takes a lot of memory!)
     
-    dWee = save_selected_w(Wee_tmp, selection)
-    del Wee_tmp  # cleary memory
-
-
+    
     run(10000*ms, report='text')  # run the simulation! 
     
     
@@ -204,8 +202,8 @@ for k in range(0, dataPoints):
         ymin, ymax = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier)
         plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier, Pyr_pop=False)
         subset = select_subset(selection, ymin, ymax)
-        plot_detailed(msMe, subset, dWee, multiplier)
-        plot_adaptation(msMe, selection, multiplier)
+        plot_detailed(msMe, subset, multiplier)
+        #plot_adaptation(msMe, selection, multiplier)
     
         plt.close('all')
         
