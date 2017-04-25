@@ -12,7 +12,7 @@ from brian import *
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from plots import plot_wmx, plot_wmx_avg, plot_w_distr, plot_STDP_rule
+from plots import *
 
 fIn = "spikeTrainsR.npz"
 fOut = "wmxR_asym.txt"
@@ -32,7 +32,6 @@ spiketimes = []
 
 for neuron in range(N):
     nrn = neuron * np.ones_like(spikeTrains[neuron])
-    #nrn = neuron * np.ones(len(spikeTrains[neuron]))
     z = zip(nrn, spikeTrains[neuron])
     spiketimes.append(z)
 
@@ -46,10 +45,10 @@ PC = SpikeGeneratorGroup(N, spiketimes)
 # STDP parameters
 taup = taum = 20  # ms  # 20 - baseline
 Ap = 0.01  # : 1 # asymmetric STDP rule
-#Am = -Ap  # : 1 # asymmetric STDP rule
-Ap = Am = 0.01  # : 1 # symmetric STDP rule
-#wmax = 40e-9  # S # asymmetric STDP rule
-wmax=7.5e-9  # S # symmetric STDP rule (orig taus)
+Am = -Ap  # : 1 # asymmetric STDP rule
+#Ap = Am = 0.01  # : 1 # symmetric STDP rule
+wmax = 40e-9  # S # asymmetric STDP rule
+#wmax=7.5e-9  # S # symmetric STDP rule (orig taus)
 
 
 def learning(spikingNeuronGroup, taup, taum, Ap, Am, wmax):
@@ -101,8 +100,8 @@ plot_wmx(weightmx, "wmx_%s"%mode_)
 plot_wmx_avg(weightmx, 100, "wmx_avg_%s"%mode_)
 plot_w_distr(weightmx, "w_distr_%s"%mode_)
 
-selection = np.array([500, 1500, 2500, 3500])  # some random neuron IDs to save weigths
-dWee = save_selected_w(Wee, selection)
+selection = np.array([500, 1500, 2500, 3500])  # some random neuron IDs to save weigths (eg. select the strongest weights)
+dWee = save_selected_w(weightmx, selection)
 plot_weights(dWee, "sel_weights_%s"%mode_)
 
 

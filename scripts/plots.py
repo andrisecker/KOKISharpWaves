@@ -211,7 +211,6 @@ def plot_detailed(msM, subset, multiplier_, plot_adaptation=True):
         ax3.plot(t, msM['g_ampa', i], linewidth=1.5, label="%i"%i)
         ax4.plot(t, msM['g_gaba', i], linewidth=1.5, label="%i"%i)
 
-    
     ax.set_title("Membrane potential (last 100 ms)")
     ax.set_xlabel("Time (ms)")
     ax.set_ylabel("V (mV)")
@@ -236,9 +235,7 @@ def plot_detailed(msM, subset, multiplier_, plot_adaptation=True):
     ax4.set_ylabel("g_gaba (nS)")
     ax4.set_xlim([9900, 10000])
     ax4.legend()
-    
 
-    
     fig.tight_layout()
     
     figName = os.path.join(figFolder, "%s_Pyr_population_zoomed_detailed.png"%(multiplier_))
@@ -308,6 +305,7 @@ def plot_STDP_rule(taup, taum, Ap, Am, saveName_):
     :return mode: just for saving conventions (see other wmx figures) 
     """
     
+    # automate naming
     if Ap == Am:
         mode = "sym"
     elif Ap == Am*-1:
@@ -315,6 +313,7 @@ def plot_STDP_rule(taup, taum, Ap, Am, saveName_):
     elif np.abs(Ap) != np.abs(Am):
         print "naming conventions won't work!"
         mode = "tmp"
+    print "========== STDP rule: %s =========="%mode
 
     delta_t = np.linspace(-120, 120, 1000)
     delta_w = np.where(delta_t>0, Ap*np.exp(-delta_t/taup), Am*np.exp(delta_t/taum))
@@ -428,12 +427,14 @@ def plot_w_distr(wmx, saveName_):
     figName = os.path.join(figFolder, "%s.png"%saveName_)
     fig.savefig(figName)
 
+
 def save_selected_w(Wee, selection):
     """saves the incomming weights of some selected neurons"""  
     w = {}
     for i in selection:
         w[i] = Wee[:, i]        
     return w
+
 
 def plot_weights(dWee, saveName_):
     """
@@ -444,7 +445,7 @@ def plot_weights(dWee, saveName_):
     
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(1, 1, 1)
-    for _, val in dWee.items():
+    for i, val in dWee.items():
         ax.plot(val, alpha=0.5, label="%i"%i)
         
     ax.set_title("Incomming exc. weights")

@@ -14,7 +14,7 @@ from brian2tools import *  # just for spec. plotting
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from plots import plot_wmx, plot_wmx_avg, plot_w_distr, plot_STDP_rule
+from plots import *
 
 fIn = "spikeTrainsR.npz"
 fOut = "wmxR_sym.txt"
@@ -29,10 +29,10 @@ npzFile = np.load(fName)
 spikeTrains = npzFile["spikeTrains"]
 
 # create 2 numpy arrays for Brian2's SpikeGeneratorGroup
-spikingNrns = 0 * np.ones(len(spikeTrains[0]))
+spikingNrns = 0 * np.ones_like(spikeTrains[0])
 spikeTimes = np.asarray(spikeTrains[0])
 for neuron in range(1, N):
-    nrn = neuron * np.ones(len(spikeTrains[neuron]))
+    nrn = neuron * np.ones_like(spikeTrains[neuron])
     spikingNrns = np.concatenate((spikingNrns, nrn), axis=0)
     tmp = np.asarray(spikeTrains[neuron])
     spikeTimes = np.concatenate((spikeTimes, tmp), axis=0)
@@ -115,8 +115,8 @@ plot_wmx(weightmx, "wmx_%s"%mode_)
 plot_wmx_avg(weightmx, 100, "wmx_avg_%s"%mode_)
 plot_w_distr(weightmx, "w_distr_%s"%mode_)
 
-selection = np.array([500, 1500, 2500, 3500])  # some random neuron IDs to save weigths
-dWee = save_selected_w(Wee, selection)
+selection = np.array([500, 1500, 2500, 3500])  # some random neuron IDs to save weigths (eg. select the strongest weights)
+dWee = save_selected_w(weightmx, selection)
 plot_weights(dWee, "sel_weights_%s"%mode_)
 
 
