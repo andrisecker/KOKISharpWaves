@@ -19,7 +19,7 @@ def preprocess_spikes(spiketimes, N_norm, calc_ISI=True):
             rate: firing rate of the population (hard coded to use 1*ms bins!)
             ISIs: inter spike intervals (used for replay detection and plotting)
     """
-    
+
     spikeTimes = []
     spikingNeurons = []
     rate = np.zeros((10000)) # hard coded for 10000ms and 1ms bins
@@ -38,12 +38,12 @@ def preprocess_spikes(spiketimes, N_norm, calc_ISI=True):
         # updating firing rate (based on spikes from 1 neuron)
         spike_ids = (spikes_i*1000).astype(int)  # create indexing array (*1000 ms conversion)
         rate[spike_ids] += 1
-            
+
     if calc_ISI:
         return spikeTimes, spikingNeurons, rate/(N_norm*0.001), ISIs  # *0.001 is 1ms bin delta_t normalization...
     else:
         return spikeTimes, spikingNeurons, rate/(N_norm*0.001)  # # *0.001 is 1ms bin delta_t normalization...
-        
+
 
 def replay(isi):
     '''
