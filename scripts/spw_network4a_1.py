@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 '''
-crates PC (adExp IF) and BC (IF) population in Brian, loads in recurrent connection matrix for PC population 
+crates PC (adExp IF) and BC (IF) population in Brian, loads in recurrent connection matrix for PC population
 runs simulation and checks the dynamics
 see more: https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view
 authors: András Ecker, Eszter Vértes, Szabolcs Káli last update: 04.2017
@@ -136,14 +136,14 @@ print 'Connecting the network'
 Cext = IdentityConnection(MF, PE, 'g_ampa', weight=J_PyrMF)
 
 Cee = Connection(PE, PE, 'g_ampa', delay=delay_PyrExc)
-Cee.connect(PE, PE, Wee)	
+Cee.connect(PE, PE, Wee)
 
 Cei = Connection(PE, PI, 'g_ampa', weight=J_BasExc, sparseness=eps_pyr, delay=delay_BasExc)
 Cie = Connection(PI, PE, 'g_gaba', weight=J_PyrInh, sparseness=eps_bas, delay=delay_PyrInh)
 Cii = Connection(PI, PI, 'g_gaba', weight=J_BasInh, sparseness=eps_bas, delay=delay_BasInh)
 
 print 'Connections done'
-del Wee  # cleary memory
+del Wee  # clear memory
 
 # Monitors
 sme = SpikeMonitor(PE)
@@ -155,13 +155,11 @@ msMe = MultiStateMonitor(PE, vars=['vm', 'w', 'g_ampa', 'g_gaba'], record=select
 
 run(10000*ms, report='text')
 
+if sme.nspikes > 0:  # check if there is any activity
+    # Raster + ISI plot
+    spikeTimesE, spikingNeuronsE, poprE, ISI = preprocess_spikes(sme.spiketimes, NE)
+    ISI = plot_raster_ISI(spikeTimesE, spikingNeuronsE, ISI, "blue", multiplier_=1)
 
-# Raster + ISI plot
-spikeTimesE, spikingNeuronsE, poprE, ISI = preprocess_spikes(sme.spiketimes, NE)
-ISI = plot_raster_ISI(spikeTimesE, spikingNeuronsE, ISI, "blue", multiplier_=1)
-
-if np.max(poprE > 0):  # check if there is any activity
-   
     spikeTimesI, spikingNeuronsI, poprI = preprocess_spikes(smi.spiketimes, NI, calc_ISI=False)
 
     # calling detect_oscillation functions:
@@ -202,11 +200,8 @@ if np.max(poprE > 0):  # check if there is any activity
     #plot_adaptation(msMe, selection, multiplier_=1)
 
 else:  # if there is no activity the auto-correlation function will throw an error!
-    
+
     print "No activity !"
     print "--------------------------------------------------"
 
 plt.show()
-
-
-
