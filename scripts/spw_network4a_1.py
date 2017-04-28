@@ -151,13 +151,13 @@ smi = SpikeMonitor(PI)
 popre = PopulationRateMonitor(PE)
 popri = PopulationRateMonitor(PI)
 # other monitors factored out to speed up simulation and make the process compatible with Brian2
-selection = np.arange(0, 4000, 100) # subset of neurons for recoring variables
-msMe = MultiStateMonitor(PE, vars=['vm', 'w', 'g_ampa', 'g_gaba'], record=selection.tolist())  # comment this out later (takes a lot of memory!)
+#selection = np.arange(0, 4000, 100) # subset of neurons for recoring variables
+#msMe = MultiStateMonitor(PE, vars=['vm', 'w', 'g_ampa', 'g_gaba'], record=selection.tolist())  # comment this out later (takes a lot of memory!)
 
 
 run(10000*ms, report='text')
 
-if sme.numspikes > 0:  # check if there is any activity
+if sme.numspikes > 0 and smi.numspikes > 0:  # check if there is any activity
     spikeTimesE        = np.array(sme.spikes)[:,1]*1000.
     spikingNeuronsE    = np.array(sme.spikes)[:,0]
     poprE              = popre.rate_.reshape(-1, 10).mean(axis=1)
@@ -202,8 +202,8 @@ if sme.numspikes > 0:  # check if there is any activity
 
     ymin, ymax = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
     plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1, Pyr_pop=False)
-    subset = select_subset(selection, ymin, ymax)
-    plot_detailed(msMe, subset, multiplier_=1)
+    #subset = select_subset(selection, ymin, ymax)
+    #plot_detailed(msMe, subset, multiplier_=1)
     #plot_adaptation(msMe, selection, multiplier_=1)
 
 else:  # if there is no activity the auto-correlation function will throw an error!

@@ -166,7 +166,7 @@ popri = PopulationRateMonitor(PI)
 run(10000*ms, report='text')
 
 
-if sme.num_spikes > 0:  # check if there is any activity
+if sme.num_spikes > 0 and smi.num_spikes > 0:  # check if there is any activity
     spikeTimesE        = np.array(sme.it)[:,1]*1000.
     spikingNeuronsE    = np.array(sme.it)[:,0]
     poprE              = popre.rate_.reshape(-1, 10).mean(axis=1)
