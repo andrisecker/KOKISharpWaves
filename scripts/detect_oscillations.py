@@ -8,6 +8,48 @@ authors: András Ecker, Szabolcs Káli last update: 10.2015
 import numpy as np
 from scipy import signal, misc
 
+def preprocess_monitors(sm, prm, calc_ISI=True):
+    """
+    preprocess Brian's SpikeMonitor and PopulationRateMonitor data for further analysis and plotting
+    :param sm: SpikeMonitor
+    :param prm: PopulationRateMonitor
+    :param calc_ISI: calculate ISIs or not
+    :return spikeTimes, spikingNeurons: used for raster plots
+            rate: firing rate of the population (hard coded to use 1*ms bins!)
+            ISIhist and ISI_bin_edges: bin heights and edges of the histogram of the ISI of the population
+
+    Assume "from brian import *" or "from brian2 import *" is already done
+    If not, use the preprocess_spikes method.
+    """
+    
+    import brian.monitor
+    if type(sm) is brian.monitor.SpikeMonitor:
+        spikeTimes         = np.array(sm.spikes)[:,1]*1000.
+        spikingNeurons     = np.array(sm.spikes)[:,0]
+        rate               = prm.rate_.reshape(-1, 10).mean(axis=1)
+
+        if calc_ISI:
+            ISIs               = np.hstack([np.diff(spikes_i*1000) for i, spikes_i in sm.spiketimes.items()])
+            ISIhist, bin_edges = np.histogram(ISIs, bins=20, range=(0,1000))
+
+            return spikeTimes, spikingNeurons, rate, ISIhist, bin_edges
+
+        return spikeTimes, spikingNeurons, rate
+
+    import brian2.monitors.spikemonitor
+    if type(sm) is brian2.monitors.spikemonitor.SpikeMonitor:
+        spikeTimes        = np.array(sm.it)[:,1]*1000.
+        spikingNeurons    = np.array(sm.it)[:,0]
+        rate              = prm.rate_.reshape(-1, 10).mean(axis=1)
+
+        if calc_ISI:
+            ISIs               = np.hstack([np.diff(spikes_i*1000) for i, spikes_i in sme.spike_trains().items()])
+            ISIhist, bin_edges = np.histogram(ISIs, bins=20, range=(0,1000))
+
+            return spikeTimes, spikingNeurons, rate, ISIhist, bin_edges
+
+        return spikeTimes, spikingNeurons, rate
+
 
 def preprocess_spikes(spiketimes, N_norm, calc_ISI=True):
     """
