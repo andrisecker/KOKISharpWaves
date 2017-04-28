@@ -21,7 +21,7 @@ def preprocess_monitors(sm, prm, calc_ISI=True):
     Assume "from brian import *" or "from brian2 import *" is already done
     If not, use the preprocess_spikes method.
     """
-    
+
     import brian.monitor
     if type(sm) is brian.monitor.SpikeMonitor:
         spikeTimes         = np.array(sm.spikes)[:,1]*1000.
@@ -40,10 +40,10 @@ def preprocess_monitors(sm, prm, calc_ISI=True):
     if type(sm) is brian2.monitors.spikemonitor.SpikeMonitor:
         spikeTimes        = np.array(sm.it)[:,1]*1000.
         spikingNeurons    = np.array(sm.it)[:,0]
-        rate              = prm.rate_.reshape(-1, 10).mean(axis=1)
+        rate              = np.array(prm.rate_).reshape(-1, 10).mean(axis=1)
 
         if calc_ISI:
-            ISIs               = np.hstack([np.diff(spikes_i*1000) for i, spikes_i in sme.spike_trains().items()])
+            ISIs               = np.hstack([np.diff(spikes_i*1000) for i, spikes_i in sm.spike_trains().items()])
             ISIhist, bin_edges = np.histogram(ISIs, bins=20, range=(0,1000))
 
             return spikeTimes, spikingNeurons, rate, ISIhist, bin_edges
