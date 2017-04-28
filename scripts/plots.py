@@ -9,22 +9,22 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-SWBasePath = '/'.join(os.path.abspath(__file__).split('/')[:-2])
+SWBasePath = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2])
 figFolder = os.path.join(SWBasePath, "figures")
 
 
-def plot_raster_ISI(spikeTimes, spikingNeurons, ISIs, color_, multiplier_):
+def plot_raster_ISI(spikeTimes, spikingNeurons, hist, color_, multiplier_):
     """
     saves figure with raster plot and ISI distribution
     (note: the main reason of this function is that Brian2 doesn't have ISIHistogramMonitor and the corresponding plot)
     :param spikeTimes, spikingNeurons: used for raster plot - precalculated by detect_oscillation.py/preprocess_spikes
-    :param ISIs: used for plotting InterSpikeInterval histogram - precalculated by detect_oscillation.py/preprocess_spikes
+    :param hist: used for plotting InterSpikeInterval histogram - result of a numpy.histogram call
     :param color_, multiplier_: outline and naming parameters
-    :return n: number of spikes in each bin (used by detect_oscillation.py/replay)
     """
-    
+
     fig = plt.figure(figsize=(10, 8))
 
+    fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(2, 1, 1)
     ax.scatter(spikeTimes, spikingNeurons, c=color_, marker='.', lw=0)
     ax.set_title("Pyr_population raster")
@@ -32,9 +32,9 @@ def plot_raster_ISI(spikeTimes, spikingNeurons, ISIs, color_, multiplier_):
     ax.set_xlabel("Time (ms)")
     ax.set_ylim([0, 4000])
     ax.set_ylabel("Neuron number")
-    
+
     ax2 = fig.add_subplot(2, 1, 2)
-    n, _, _ = ax2.hist(ISIs, bins=20, range=(0, 1000), color=color_, edgecolor='black', lw=0.5, alpha=0.9)
+    ax2.bar(hist[1][:-1], hist[0], width=50, color=color_, edgecolor='black', lw=0.5, alpha=0.9)
     ax2.axvline(150, ls='--', c="gray", label="ROI for replay analysis")
     ax2.axvline(850, ls='--', c="gray")
     ax2.set_title("Pyr_population ISI distribution")
@@ -42,14 +42,12 @@ def plot_raster_ISI(spikeTimes, spikingNeurons, ISIs, color_, multiplier_):
     ax2.set_xlim([0, 1000])
     ax2.set_ylabel("Count")
     ax2.legend()
-    
+
     fig.tight_layout()
-    
-    figName = os.path.join(figFolder, "%s.png"%(multiplier_))
+
+    figName = os.path.join(figFolder, "%s_raster_ISI.png"%(multiplier_))
     fig.savefig(figName)
 
-    return n
-    
 
 def plot_PSD(rate, rippleAC, f, Pxx, title_, linespec_, multiplier_):
     """
@@ -59,9 +57,9 @@ def plot_PSD(rate, rippleAC, f, Pxx, title_, linespec_, multiplier_):
     :param f, Pxx (returned by PSD analysis) see more: http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.signal.welch.html
     :param title_, linespec_, multiplier: outline and naming parameters
     """
-    
+
     rEACPlot = rippleAC[2:201] # 500 - 5 Hz interval
-    
+
     f = np.asarray(f)
     rippleS = np.where(145 < f)[0][0]
     rippleE = np.where(f < 250)[0][-1]
@@ -74,7 +72,7 @@ def plot_PSD(rate, rippleAC, f, Pxx, title_, linespec_, multiplier_):
     # gamma range
     fRipple = f[rippleS:rippleE]
     fGamma = f[gammaS:gammaE]
-    
+
     PxxPlot = 10 * np.log10(Pxx / max(Pxx))
     PxxRipplePlot = 10 * np.log10(PxxRipple / max(Pxx))
     PxxGammaPlot = 10 * np.log10(PxxGamma / max(Pxx))
@@ -108,8 +106,8 @@ def plot_PSD(rate, rippleAC, f, Pxx, title_, linespec_, multiplier_):
 
     figName = os.path.join(figFolder, "%s_%s.png"%(multiplier_, title_))
     fig.savefig(figName)
-    
-    
+
+
 def plot_zoomed(spikeTimes, spikingNeurons, rate, title_, color_, multiplier_, Pyr_pop=True):
     """
     saves figure with zoomed in raster and rate (last 100ms)
@@ -126,7 +124,7 @@ def plot_zoomed(spikeTimes, spikingNeurons, rate, title_, color_, multiplier_, P
     rasterY = spikingNeurons[ROI]
 
     if Pyr_pop:
-        # boundaries 
+        # boundaries
         if rasterY.min()-50 > 0:
             ymin = rasterY.min()-50
         else:
@@ -138,7 +136,7 @@ def plot_zoomed(spikeTimes, spikingNeurons, rate, title_, color_, multiplier_, P
     else:
         ymin = 0
         ymax = 1000
-        
+
     fig = plt.figure(figsize=(10, 8))
 
     ax = fig.add_subplot(2, 1, 1)
@@ -159,10 +157,10 @@ def plot_zoomed(spikeTimes, spikingNeurons, rate, title_, color_, multiplier_, P
 
     figName = os.path.join(figFolder, "%s_%s_zoomed.png"%(multiplier_, title_))
     fig.savefig(figName)
-    
+
     if Pyr_pop:
         return ymin, ymax
-        
+
 
 def select_subset(selection, ymin, ymax):
     """
@@ -170,7 +168,7 @@ def select_subset(selection, ymin, ymax):
     param selection: recorded neurons (ndarray)
     param ymin, ymax: lower and upper bound for the selection
     return subset: selected subset (list)
-    """   
+    """
     try:
         np.random.shuffle(selection)
         subset = []
@@ -182,9 +180,9 @@ def select_subset(selection, ymin, ymax):
             if counter == 0:
                 break
     except:  # if there isn't any cell firing
-        subset = [400, 1000, 1500, 2300, 3600]        
+        subset = [400, 1000, 1500, 2300, 3600]
     return subset
-       
+
 
 def plot_detailed(msM, subset, multiplier_, plot_adaptation=True):
     """
@@ -194,16 +192,20 @@ def plot_detailed(msM, subset, multiplier_, plot_adaptation=True):
     :param multiplier_: naming parameter
     :param plot_adaptation: boolean flag for plotting adaptation var.
     """
-    
+
     fig = plt.figure(figsize=(15, 12))
     #fig.suptitle("Detailed plots of selected vars. (Pyr. pop)")
     ax = fig.add_subplot(2, 2, 1)
     ax2 = fig.add_subplot(2, 2, 2)
     ax3 = fig.add_subplot(2, 2, 3)
     ax4 = fig.add_subplot(2, 2, 4)
-    
-    t = msM.times*1000  # *1000 ms convertion
-    
+
+    import brian2.monitors.statemonitor
+    if type(msM) is brian2.monitors.statemonitor.StateMonitor:
+        t = msM.t_ * 1000.
+    else:
+        t = msM.times*1000  # *1000 ms convertion
+
     for i in subset:
         ax.plot(t, msM['vm', i]*1000, linewidth=1.5, label="%i"%i)  # *1000 mV conversion
         if plot_adaptation:
@@ -216,20 +218,20 @@ def plot_detailed(msM, subset, multiplier_, plot_adaptation=True):
     ax.set_ylabel("V (mV)")
     ax.set_xlim([9900, 10000])
     ax.legend()
-    
+
     ax2.set_title("Adaptation variable (last 100 ms)")
     ax2.set_xlabel("Time (ms)")
     ax2.set_ylabel("w (pA)")
     ax2.set_xlim([9900, 10000])
     if plot_adaptation:
         ax2.legend()
-    
+
     ax3.set_title("Exc. inputs (last 100 ms)")
     ax3.set_xlabel("Time (ms)")
     ax3.set_ylabel("g_ampa (nS)")
     ax3.set_xlim([9900, 10000])
     ax3.legend()
-    
+
     ax4.set_title("Inh. inputs (last 100 ms)")
     ax4.set_xlabel("Time (ms)")
     ax4.set_ylabel("g_gaba (nS)")
@@ -237,7 +239,7 @@ def plot_detailed(msM, subset, multiplier_, plot_adaptation=True):
     ax4.legend()
 
     fig.tight_layout()
-    
+
     figName = os.path.join(figFolder, "%s_Pyr_population_zoomed_detailed.png"%(multiplier_))
     fig.savefig(figName)
 
@@ -249,16 +251,21 @@ def plot_adaptation(msM, subset, multiplier_):  # quick and dirty solution (4 su
     :param subset: selected neurons to plot (coded for 40...)
     :param multiplier_: naming parameter
     """
-        
+
     fig = plt.figure(figsize=(15, 12))
     #fig.suptitle("adaptation variables")
     ax = fig.add_subplot(2, 2, 1)
     ax2 = fig.add_subplot(2, 2, 2)
     ax3 = fig.add_subplot(2, 2, 3)
     ax4 = fig.add_subplot(2, 2, 4)
-    
+
+    import brian2.monitors.statemonitor
     t = msM.times*1000  # *1000 ms convertion
-    
+    if type(msM) is brian2.monitors.statemonitor.StateMonitor:
+        t = msM.t_ * 1000.
+    else:
+        t = msM.times*1000  # *1000 ms convertion
+
     for i in subset:
         if i >= 0 and i < 1000:
             ax.plot(t, msM['w', i]*1e12, linewidth=1.5, label="%i"%i)  # *1e12 pA conversion
@@ -268,7 +275,7 @@ def plot_adaptation(msM, subset, multiplier_):  # quick and dirty solution (4 su
             ax3.plot(t, msM['w', i]*1e12, linewidth=1.5, label="%i"%i)  # *1e12 pA conversion
         else:
             ax4.plot(t, msM['w', i]*1e12, linewidth=1.5, label="%i"%i)  # *1e12 pA conversion
-    
+
     ax.set_title("Adaptation variables (0-1000)")
     ax.set_xlabel("Time (ms)")
     ax.set_ylabel("w (pA)")
@@ -289,9 +296,9 @@ def plot_adaptation(msM, subset, multiplier_):  # quick and dirty solution (4 su
     ax4.set_ylabel("w (pA)")
     ax4.set_xlim([0, 10000])
     ax4.legend()
-    
+
     fig.tight_layout()
-    
+
     figName = os.path.join(figFolder, "%s_adaptation.png"%(multiplier_))
     fig.savefig(figName)
 
@@ -302,9 +309,9 @@ def plot_STDP_rule(taup, taum, Ap, Am, saveName_):
     exponential STDP: f(s) = A_p * exp(-s/tau_p) (if s > 0), where s=tpost_{spike}-tpre_{spike}
     :param taup, taum: time constant of weight change
     :param Ap, Am: max amplitude of weight change
-    :return mode: just for saving conventions (see other wmx figures) 
+    :return mode: just for saving conventions (see other wmx figures)
     """
-    
+
     # automate naming
     if Ap == Am:
         mode = "sym"
@@ -317,7 +324,7 @@ def plot_STDP_rule(taup, taum, Ap, Am, saveName_):
 
     delta_t = np.linspace(-120, 120, 1000)
     delta_w = np.where(delta_t>0, Ap*np.exp(-delta_t/taup), Am*np.exp(delta_t/taum))
-    
+
     fig = plt.figure(figsize=(10, 8))
 
     ax = fig.add_subplot(1, 1, 1)
@@ -332,11 +339,11 @@ def plot_STDP_rule(taup, taum, Ap, Am, saveName_):
     ax.set_xlim([-100, 100])
     ax.axhline(0, ls='-', c='k')
     ax.legend()
-    
+
     figName = os.path.join(figFolder, "%s_%s.png"%(saveName_, mode))
     fig.savefig(figName)
     plt.close()
-    
+
     return mode
 
 
@@ -346,7 +353,7 @@ def plot_wmx(wmx, saveName_):
     :param wmx: ndarray representing the weight matrix
     :param saveName_: name of saved img
     """
-    
+
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(1, 1, 1)
     i = ax.imshow(wmx, cmap=plt.get_cmap("jet"))
@@ -355,19 +362,19 @@ def plot_wmx(wmx, saveName_):
     ax.set_title("Learned synaptic weights")
     ax.set_xlabel("target neuron")
     ax.set_ylabel("source neuron")
-    
+
     figName = os.path.join(figFolder, "%s.png"%saveName_)
     fig.savefig(figName)
-  
-  
+
+
 def plot_wmx_avg(wmx, nPop, saveName_):
     """
     saves figure with the averaged weight matrix (better view as a whole)
     :param wmx: ndarray representing the weight matrix
     :param nPop: number of populations
     :param saveName_: name of saved img
-    """ 
-    
+    """
+
     assert 4000 % nPop == 0
 
     popSize = int(4000.0 / nPop)
@@ -378,7 +385,7 @@ def plot_wmx_avg(wmx, nPop, saveName_):
             wmxM[i, j] = np.mean(tmp)
 
     fig = plt.figure(figsize=(10, 8))
-    
+
     ax = fig.add_subplot(1, 1, 1)
     i = ax.imshow(wmxM, cmap=plt.get_cmap("jet"))
     i.set_interpolation("nearest")  # set to "None" to less pixels and smooth, nicer figure
@@ -386,18 +393,18 @@ def plot_wmx_avg(wmx, nPop, saveName_):
     ax.set_title("Learned synaptic weights (avg.)")
     ax.set_xlabel("target neuron")
     ax.set_ylabel("source neuron")
-    
+
     figName = os.path.join(figFolder, "%s.png"%saveName_)
     fig.savefig(figName)
-    
+
 
 def plot_w_distr(wmx, saveName_):
     """
     saves figure with the distribution of the weights
     :param wmx: ndarray representing the weight matrix
     :param saveName_: name of saved img
-    """  
-    
+    """
+
     # deleting nulls from wmx to plot the distribution of the weights
     tmp = wmx.tolist()
     wmx = [val for sublist in tmp for val in sublist]
@@ -423,16 +430,16 @@ def plot_w_distr(wmx, saveName_):
     plt.yscale('log')
 
     fig.tight_layout()
-    
+
     figName = os.path.join(figFolder, "%s.png"%saveName_)
     fig.savefig(figName)
 
 
 def save_selected_w(Wee, selection):
-    """saves the incomming weights of some selected neurons"""  
+    """saves the incomming weights of some selected neurons"""
     w = {}
     for i in selection:
-        w[i] = Wee[:, i]        
+        w[i] = Wee[:, i]
     return w
 
 
@@ -441,19 +448,18 @@ def plot_weights(dWee, saveName_):
     saves figure with some selected weights
     :param dW: dictionary storing the input weights of some neurons (see save_selected_w())
     :param saveName_: name of saved img
-    """  
-    
+    """
+
     fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(1, 1, 1)
     for i, val in dWee.items():
         ax.plot(val, alpha=0.5, label="%i"%i)
-        
+
     ax.set_title("Incomming exc. weights")
     ax.set_xlabel("#Neuron")
     ax.set_ylabel("Weight (nS)")
     ax.set_xlim([0, 4000])
     ax.legend()
-    
+
     figName = os.path.join(figFolder, "%s.png"%saveName_)
     fig.savefig(figName)
-     

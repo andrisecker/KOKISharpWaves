@@ -16,7 +16,7 @@ from plots import *
 
 fIn = 'wmxR_asym.txt'
 
-SWBasePath = '/'.join(os.path.abspath(__file__).split('/')[:-2])
+SWBasePath = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2])
 
 np.random.seed(12345)
 
@@ -148,22 +148,28 @@ del Wee  # clear memory
 # Monitors
 sme = SpikeMonitor(PE)
 smi = SpikeMonitor(PI)
+popre = PopulationRateMonitor(PE)
+popri = PopulationRateMonitor(PI)
 # other monitors factored out to speed up simulation and make the process compatible with Brian2
-selection = np.arange(0, 4000, 100) # subset of neurons for recoring variables
-msMe = MultiStateMonitor(PE, vars=['vm', 'w', 'g_ampa', 'g_gaba'], record=selection.tolist())  # comment this out later (takes a lot of memory!)
+#selection = np.arange(0, 4000, 100) # subset of neurons for recoring variables
+#msMe = MultiStateMonitor(PE, vars=['vm', 'w', 'g_ampa', 'g_gaba'], record=selection.tolist())  # comment this out later (takes a lot of memory!)
 
 
 run(10000*ms, report='text')
 
-if sme.nspikes > 0:  # check if there is any activity
-    # Raster + ISI plot
-    spikeTimesE, spikingNeuronsE, poprE, ISI = preprocess_spikes(sme.spiketimes, NE)
-    ISI = plot_raster_ISI(spikeTimesE, spikingNeuronsE, ISI, "blue", multiplier_=1)
+if sme.numspikes > 0 and smi.numspikes > 0:  # check if there is any activity
+    spikeTimesE        = np.array(sme.spikes)[:,1]*1000.
+    spikingNeuronsE    = np.array(sme.spikes)[:,0]
+    poprE              = popre.rate_.reshape(-1, 10).mean(axis=1)
+    ISIs               = np.hstack([np.diff(spikes_i*1000) for i, spikes_i in sme.spiketimes.items()])
+    ISIhist, bin_edges = np.histogram(ISIs, bins=20, range=(0,1000))
 
-    spikeTimesI, spikingNeuronsI, poprI = preprocess_spikes(smi.spiketimes, NI, calc_ISI=False)
+    spikeTimesI        = np.array(smi.spikes)[:,1]*1000.
+    spikingNeuronsI    = np.array(smi.spikes)[:,0]
+    poprI              = popri.rate_.reshape(-1, 10).mean(axis=1)
 
     # calling detect_oscillation functions:
-    avgReplayInterval = replay(ISI[3:16])  # bins from 150 to 850 (range of interest)
+    avgReplayInterval = replay(ISIhist[3:16])  # bins from 150 to 850 (range of interest)
 
     meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE, 1000)
     avgGammaFE, gammaPE = gamma(fE, PxxE)
@@ -190,13 +196,14 @@ if sme.nspikes > 0:  # check if there is any activity
 
 
     # Plots
+    plot_raster_ISI(spikeTimesE, spikingNeuronsE, [ISIhist, bin_edges], 'blue', multiplier_=1)
     plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier_=1)
     plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier_=1)
 
     ymin, ymax = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
     plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1, Pyr_pop=False)
-    subset = select_subset(selection, ymin, ymax)
-    plot_detailed(msMe, subset, multiplier_=1)
+    #subset = select_subset(selection, ymin, ymax)
+    #plot_detailed(msMe, subset, multiplier_=1)
     #plot_adaptation(msMe, selection, multiplier_=1)
 
 else:  # if there is no activity the auto-correlation function will throw an error!
