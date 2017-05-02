@@ -23,8 +23,6 @@ def plot_raster_ISI(spikeTimes, spikingNeurons, hist, color_, multiplier_):
     """
 
     fig = plt.figure(figsize=(10, 8))
-
-    fig = plt.figure(figsize=(10, 8))
     ax = fig.add_subplot(2, 1, 1)
     ax.scatter(spikeTimes, spikingNeurons, c=color_, marker='.', lw=0)
     ax.set_title("Pyr_population raster")
