@@ -17,9 +17,6 @@ def preprocess_monitors(sm, prm, calc_ISI=True):
     :return spikeTimes, spikingNeurons: used for raster plots
             rate: firing rate of the population (hard coded to use 1*ms bins!)
             ISIhist and ISI_bin_edges: bin heights and edges of the histogram of the ISI of the population
-
-    Assume "from brian import *" or "from brian2 import *" is already done
-    If not, use the preprocess_spikes method.
     """
 
     import brian.monitor
@@ -36,10 +33,11 @@ def preprocess_monitors(sm, prm, calc_ISI=True):
 
         return spikeTimes, spikingNeurons, rate
 
+
     import brian2.monitors.spikemonitor
     if type(sm) is brian2.monitors.spikemonitor.SpikeMonitor:
-        spikeTimes        = np.array(sm.it)[:,1]*1000.
-        spikingNeurons    = np.array(sm.it)[:,0]
+        spikeTimes        = np.array(sm.t_) * 1000.
+        spikingNeurons    = np.array(sm.i_)
         rate              = np.array(prm.rate_).reshape(-1, 10).mean(axis=1)
 
         if calc_ISI:
