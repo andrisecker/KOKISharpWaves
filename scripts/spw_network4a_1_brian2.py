@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # -*- coding: utf8 -*-
 '''
 creates PC (adExp IF) and BC (IF) population in Brian2, loads in recurrent connection matrix for PC population
