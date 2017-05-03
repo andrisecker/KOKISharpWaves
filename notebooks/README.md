@@ -11,6 +11,6 @@ Improvements:
 * different recurrent weight distribution (based on a modified STDP rule)
 * simulation transfered to Brian2 (and paralellized)
 
-To run the scripts, install [Brian2](hhttp://brian2.readthedocs.io/en/stable/introduction/install.html), and [jupyter](http://jupyter.org/install.html) and run:
+To run the scripts, install [Brian2](http://brian2.readthedocs.io/en/stable/introduction/install.html), and [jupyter](http://jupyter.org/install.html) and run:
 
-	jupyter notebook
+	jupyter notebookk
