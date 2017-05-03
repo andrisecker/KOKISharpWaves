@@ -1,7 +1,6 @@
-#!/usr/bin/python
 # -*- coding: utf8 -*-
 '''
-crates PC (adExp IF) and BC (IF) population in Brian2, loads in recurrent connection matrix for PC population
+creates PC (adExp IF) and BC (IF) population in Brian2, loads in recurrent connection matrix for PC population
 runs simulation and checks the dynamics
 see more: https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view
 author: András Ecker last update: 04.2017
@@ -107,7 +106,7 @@ def load_Wee(fName):  # this way the file will closed and memory will cleaned
     Wee = np.genfromtxt(fName) * 1e9
     np.fill_diagonal(Wee, 0)  # just to make sure
 
-    print "weight matrix loded"
+    print "weight matrix loaded"
     return Wee
 
 fName = os.path.join(SWBasePath, 'files', fIn)
