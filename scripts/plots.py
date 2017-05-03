@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 '''
 helper file to plot dynamics (and the weight matrix)
-author: András Ecker, last update: 04.2017
+authors: Bence Bagi, András Ecker, last update: 05.2017
 '''
 
 import os

@@ -3,7 +3,7 @@
 '''
 looped version of spw_network4a_1.py -> checks the dynamics for different multipliers of the learned weight matrix
 see more: https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view
-authors: András Ecker, Szabolcs Káli last update: 04.2017
+authors: András Ecker, Eszter Vértes, Szabolcs Káli last update: 05.2017
 '''
 
 import os
@@ -163,14 +163,15 @@ for k in range(0, dataPoints):
     popre = PopulationRateMonitor(PE)
     popri = PopulationRateMonitor(PI)
     # other monitors factored out to speed up simulation and make the process compatible with Brian2
-    #selection = np.arange(0, 4000, 100) # subset of neurons for recoring variables
-    #msMe = MultiStateMonitor(PE, vars=['vm', 'w', 'g_ampa', 'g_gaba'], record=selection.tolist())  # comment this out later (takes a lot of memory!)
+    selection = np.arange(0, 4000, 100) # subset of neurons for recoring variables
+    msMe = MultiStateMonitor(PE, vars=['vm', 'w', 'g_ampa', 'g_gaba'], record=selection.tolist())  # comment this out later (takes a lot of memory!)
 
 
     run(10000*ms, report='text')  # run the simulation!
 
 
     if sme.nspikes > 0 and smi.nspikes > 0:  # check if there is any activity
+    
         spikeTimesE, spikingNeuronsE, poprE, ISIhist, bin_edges = preprocess_monitors(sme, popre)
         spikeTimesI, spikingNeuronsI, poprI = preprocess_monitors(smi, popri, calc_ISI=False)
 
@@ -199,8 +200,8 @@ for k in range(0, dataPoints):
 
         ymin, ymax = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier)
         plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier, Pyr_pop=False)
-        #subset = select_subset(selection, ymin, ymax)
-        #plot_detailed(msMe, subset, multiplier)
+        subset = select_subset(selection, ymin, ymax)
+        plot_detailed(msMe, subset, multiplier)
         #plot_adaptation(msMe, selection, multiplier)
 
         plt.close('all')

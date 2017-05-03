@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 '''
 helper file to extract dynamic features: checking replay interval by ISI, computing AC and PSD of population rate
-authors: András Ecker, Szabolcs Káli last update: 10.2015
+authors: András Ecker, Bence Bagi, Szabolcs Káli last update: 05.2017
 '''
 
 import numpy as np
@@ -21,12 +21,12 @@ def preprocess_monitors(sm, prm, calc_ISI=True):
 
     import brian.monitor
     if type(sm) is brian.monitor.SpikeMonitor:
-        spikeTimes         = np.array(sm.spikes)[:,1]*1000.
-        spikingNeurons     = np.array(sm.spikes)[:,0]
-        rate               = np.array(prm.rate_).reshape(-1, 10).mean(axis=1)
+        spikeTimes = np.array(sm.spikes)[:,1]*1000.
+        spikingNeurons = np.array(sm.spikes)[:,0]
+        rate = np.array(prm.rate_).reshape(-1, 10).mean(axis=1)
 
         if calc_ISI:
-            ISIs               = np.hstack([np.diff(spikes_i*1000) for i, spikes_i in sm.spiketimes.items()])
+            ISIs = np.hstack([np.diff(spikes_i*1000) for i, spikes_i in sm.spiketimes.items()])
             ISIhist, bin_edges = np.histogram(ISIs, bins=20, range=(0,1000))
 
             return spikeTimes, spikingNeurons, rate, ISIhist, bin_edges
@@ -36,12 +36,12 @@ def preprocess_monitors(sm, prm, calc_ISI=True):
 
     import brian2.monitors.spikemonitor
     if type(sm) is brian2.monitors.spikemonitor.SpikeMonitor:
-        spikeTimes        = np.array(sm.t_) * 1000.
-        spikingNeurons    = np.array(sm.i_)
-        rate              = np.array(prm.rate_).reshape(-1, 10).mean(axis=1)
+        spikeTimes = np.array(sm.t_) * 1000.
+        spikingNeurons = np.array(sm.i_)
+        rate = np.array(prm.rate_).reshape(-1, 10).mean(axis=1)
 
         if calc_ISI:
-            ISIs               = np.hstack([np.diff(spikes_i*1000) for i, spikes_i in sm.spike_trains().items()])
+            ISIs = np.hstack([np.diff(spikes_i*1000) for i, spikes_i in sm.spike_trains().items()])
             ISIhist, bin_edges = np.histogram(ISIs, bins=20, range=(0,1000))
 
             return spikeTimes, spikingNeurons, rate, ISIhist, bin_edges
@@ -52,8 +52,7 @@ def preprocess_monitors(sm, prm, calc_ISI=True):
 def preprocess_spikes(spiketimes, N_norm, calc_ISI=True):
     """
     preprocess Brian's SpikeMonitor data for further analysis and plotting
-    -> no need for many monitors (saves RAM); or iterating over spiketimes dictionary many times in the plotting functions
-    (note: more reason for this function: Brian2 lacks ISIHistogramMonitor and bins= specification in PopulationRateMonitor)
+    -> more general, but slower version of preprocess_monitors()
     :param spiketimes: dictionary with keys as neuron IDs and spike time arrays (produced by Brian(1&2) SpikeMonitor)
     :return spikeTimes, spikingNeurons: used for raster plots
             rate: firing rate of the population (hard coded to use 1*ms bins!)
