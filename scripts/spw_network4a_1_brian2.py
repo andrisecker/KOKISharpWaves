@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 '''
-crates PC (adExp IF) and BC (IF) population in Brian2, loads in recurrent connection matrix for PC population
+creates PC (adExp IF) and BC (IF) population in Brian2, loads in recurrent connection matrix for PC population
 runs simulation and checks the dynamics
 see more: https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view
 author: András Ecker last update: 04.2017
@@ -107,7 +107,7 @@ def load_Wee(fName):  # this way the file will closed and memory will cleaned
     Wee = np.genfromtxt(fName) * 1e9
     np.fill_diagonal(Wee, 0)  # just to make sure
 
-    print "weight matrix loded"
+    print "weight matrix loaded"
     return Wee
 
 fName = os.path.join(SWBasePath, 'files', fIn)
@@ -167,15 +167,8 @@ run(10000*ms, report='text')
 
 
 if sme.num_spikes > 0 and smi.num_spikes > 0:  # check if there is any activity
-    spikeTimesE        = np.array(sme.it)[:,1]*1000.
-    spikingNeuronsE    = np.array(sme.it)[:,0]
-    poprE              = popre.rate_.reshape(-1, 10).mean(axis=1)
-    ISIs               = np.hstack([np.diff(spikes_i*1000) for i, spikes_i in sme.spike_trains().items()])
-    ISIhist, bin_edges = np.histogram(ISIs, bins=20, range=(0,1000))
-
-    spikeTimesI        = np.array(smi.it)[:,1]*1000.
-    spikingNeuronsI    = np.array(smi.it)[:,0]
-    poprI              = popri.rate_.reshape(-1, 10).mean(axis=1)
+    spikeTimesE, spikingNeuronsE, poprE, ISIhist, bin_edges = preprocess_monitors(sme, popre)
+    spikeTimesI, spikingNeuronsI, poprI = preprocess_monitors(smi, popri, calc_ISI=False)
 
     # calling detect_oscillation functions:
     avgReplayInterval = replay(ISIhist[3:16])  # bins from 150 to 850 (range of interest)

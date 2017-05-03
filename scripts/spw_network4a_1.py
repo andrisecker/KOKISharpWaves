@@ -111,7 +111,7 @@ def load_Wee(fName):  # this way the file will closed and memory will cleaned
     Wee = np.genfromtxt(fName) * 1e9
     np.fill_diagonal(Wee, 0)  # just to make sure
 
-    print "weight matrix loded"
+    print "weight matrix loaded"
     return Wee
 
 fName = os.path.join(SWBasePath, 'files', fIn)
@@ -157,16 +157,9 @@ popri = PopulationRateMonitor(PI)
 
 run(10000*ms, report='text')
 
-if sme.numspikes > 0 and smi.numspikes > 0:  # check if there is any activity
-    spikeTimesE        = np.array(sme.spikes)[:,1]*1000.
-    spikingNeuronsE    = np.array(sme.spikes)[:,0]
-    poprE              = popre.rate_.reshape(-1, 10).mean(axis=1)
-    ISIs               = np.hstack([np.diff(spikes_i*1000) for i, spikes_i in sme.spiketimes.items()])
-    ISIhist, bin_edges = np.histogram(ISIs, bins=20, range=(0,1000))
-
-    spikeTimesI        = np.array(smi.spikes)[:,1]*1000.
-    spikingNeuronsI    = np.array(smi.spikes)[:,0]
-    poprI              = popri.rate_.reshape(-1, 10).mean(axis=1)
+if sme.nspikes > 0 and smi.nspikes > 0:  # check if there is any activity
+    spikeTimesE, spikingNeuronsE, poprE, ISIhist, bin_edges = preprocess_monitors(sme, popre)
+    spikeTimesI, spikingNeuronsI, poprI = preprocess_monitors(smi, popri, calc_ISI=False)
 
     # calling detect_oscillation functions:
     avgReplayInterval = replay(ISIhist[3:16])  # bins from 150 to 850 (range of interest)
