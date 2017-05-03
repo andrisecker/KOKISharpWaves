@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 '''
-crates PC (adExp IF) and BC (IF) population in Brian2, loads in recurrent connection matrix for PC population 
+creates PC (adExp IF) and BC (IF) population in Brian2, loads in recurrent connection matrix for PC population
 runs simulation and checks the dynamics
 see more: https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view
 author: András Ecker last update: 04.2017
@@ -9,15 +9,16 @@ author: András Ecker last update: 04.2017
 
 import os
 from brian2 import *
-set_device('cpp_standalone')  # speed up the simulation with generated C++ code
 import numpy as np
 import matplotlib.pyplot as plt
 from detect_oscillations import *
 from plots import *
 
+set_device('cpp_standalone')  # speed up the simulation with generated C++ code
+
 fIn = 'wmxR_asym.txt'
 
-SWBasePath = '/'.join(os.path.abspath(__file__).split('/')[:-2])
+SWBasePath = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2])
 
 np.random.seed(12345)
 
@@ -106,7 +107,7 @@ def load_Wee(fName):  # this way the file will closed and memory will cleaned
     Wee = np.genfromtxt(fName) * 1e9
     np.fill_diagonal(Wee, 0)  # just to make sure
 
-    print "weight matrix loded"
+    print "weight matrix loaded"
     return Wee
 
 fName = os.path.join(SWBasePath, 'files', fIn)
@@ -156,22 +157,21 @@ del Wee  # cleary memory
 # Monitors
 sme = SpikeMonitor(PE)
 smi = SpikeMonitor(PI)
+popre = PopulationRateMonitor(PE)
+popri = PopulationRateMonitor(PI)
 #selection = np.arange(0, 4000, 100) # subset of neurons for recoring variables
+#msMe = StateMonitor(PE, vars=['vm', 'w', 'g_ampa', 'g_gaba'], record=selection.tolist())  # comment this out later (takes a lot of memory!)
 
 
 run(10000*ms, report='text')
 
 
-# Raster + ISI plot
-spikeTimesE, spikingNeuronsE, poprE, ISI = preprocess_spikes(sme.spike_trains(), NE)
-ISI = plot_raster_ISI(spikeTimesE, spikingNeuronsE, ISI, "blue", multiplier_=1)
-
-if np.max(poprE > 0):  # check if there is any activity
-   
-    spikeTimesI, spikingNeuronsI, poprI = preprocess_spikes(smi.spike_trains(), NI, calc_ISI=False)
+if sme.num_spikes > 0 and smi.num_spikes > 0:  # check if there is any activity
+    spikeTimesE, spikingNeuronsE, poprE, ISIhist, bin_edges = preprocess_monitors(sme, popre)
+    spikeTimesI, spikingNeuronsI, poprI = preprocess_monitors(smi, popri, calc_ISI=False)
 
     # calling detect_oscillation functions:
-    avgReplayInterval = replay(ISI[3:16])  # bins from 150 to 850 (range of interest)
+    avgReplayInterval = replay(ISIhist[3:16])  # bins from 150 to 850 (range of interest)
 
     meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE, 1000)
     avgGammaFE, gammaPE = gamma(fE, PxxE)
@@ -198,6 +198,7 @@ if np.max(poprE > 0):  # check if there is any activity
 
 
     # Plots
+    plot_raster_ISI(spikeTimesE, spikingNeuronsE, [ISIhist, bin_edges], 'blue', multiplier_=1)
     plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier_=1)
     plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier_=1)
 
@@ -208,10 +209,8 @@ if np.max(poprE > 0):  # check if there is any activity
     #plot_adaptation(msMe, selection, multiplier_=1)
 
 else:  # if there is no activity the auto-correlation function will throw an error!
-    
+
     print "No activity !"
     print "--------------------------------------------------"
 
 plt.show()
-
-

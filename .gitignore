@@ -4,4 +4,5 @@ figures/
 files/wmx*
 files/*txt
 scripts/output/
+notebooks/output/
 .ipynb_checkpoints

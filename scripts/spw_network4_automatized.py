@@ -18,7 +18,7 @@ from plots import *
 fIn = 'wmxR_asym.txt'
 fOut = 'results_asym_v02.txt'
 
-SWBasePath = '/'.join(os.path.abspath(__file__).split('/')[:-2])
+SWBasePath = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2])
 
 first = 0.5
 last = 2.5
@@ -110,10 +110,10 @@ dg_gaba/dt = -g_gaba/tauSyn_BasInh : 1
 # load in Wee only once ...
 def load_Wee(fName):  # this way the file will closed and memory will cleaned
     """dummy function, just to make python clear the memory"""
-    Wee = np.genfromtxt(fName) * 1e9 
+    Wee = np.genfromtxt(fName) * 1e9
     np.fill_diagonal(Wee, 0)  # just to make sure
 
-    print "weight matrix loded"
+    print "weight matrix loaded"
     return Wee
 
 fName = os.path.join(SWBasePath, 'files', fIn)
@@ -128,11 +128,11 @@ for k in range(0, dataPoints):
 
     multiplier = multipliers[k]
     print "multiplier=%s"%multiplier
-    
+
     np.random.seed(seed)
 
     # recreate the neurons in every iteration (just to make sure!)
-    SCR = SimpleCustomRefractoriness(myresetfunc, tref_Pyr, state='vm')   
+    SCR = SimpleCustomRefractoriness(myresetfunc, tref_Pyr, state='vm')
     PE = NeuronGroup(NE, model=eqs_adexp, threshold=v_spike_Pyr, reset=SCR)
     PI = NeuronGroup(NI, model=eqs_bas, threshold=theta_Bas, reset=reset_Bas, refractory=tref_Bas)
     PE.vm = Vrest_Pyr
@@ -145,39 +145,37 @@ for k in range(0, dataPoints):
     MF = PoissonGroup(NE, p_rate_mf)
 
     print "Connecting the network"
-    
-    Cext = IdentityConnection(MF, PE, 'g_ampa', weight=J_PyrMF)    
-    Cee = Connection(PE, PE, 'g_ampa', delay=delay_PyrExc)        
+
+    Cext = IdentityConnection(MF, PE, 'g_ampa', weight=J_PyrMF)
+    Cee = Connection(PE, PE, 'g_ampa', delay=delay_PyrExc)
     Wee_tmp = Wee * multiplier  # Wee matrix loaded before the for loop
     Cee.connect(PE, PE, Wee_tmp)
     Cei = Connection(PE, PI, 'g_ampa', weight=J_BasExc, sparseness=eps_pyr, delay=delay_BasExc)
     Cie = Connection(PI, PE, 'g_gaba', weight=J_PyrInh, sparseness=eps_bas, delay=delay_PyrInh)
     Cii = Connection(PI, PI, 'g_gaba', weight=J_BasInh, sparseness=eps_bas, delay=delay_BasInh)
-    
+
     print "Connections done"
     del Wee_tmp  # cleary memory
 
     # init monitors
     sme = SpikeMonitor(PE)
     smi = SpikeMonitor(PI)
+    popre = PopulationRateMonitor(PE)
+    popri = PopulationRateMonitor(PI)
     # other monitors factored out to speed up simulation and make the process compatible with Brian2
-    selection = np.arange(0, 4000, 100) # subset of neurons for recoring variables
-    msMe = MultiStateMonitor(PE, vars=['vm', 'w', 'g_ampa', 'g_gaba'], record=selection.tolist())  # comment this out later (takes a lot of memory!)
-    
-    
-    run(10000*ms, report='text')  # run the simulation! 
-    
-    
-    # Raster + ISI plot
-    spikeTimesE, spikingNeuronsE, poprE, ISI = preprocess_spikes(sme.spiketimes, NE)
-    ISI = plot_raster_ISI(spikeTimesE, spikingNeuronsE, ISI, "blue", multiplier)
+    #selection = np.arange(0, 4000, 100) # subset of neurons for recoring variables
+    #msMe = MultiStateMonitor(PE, vars=['vm', 'w', 'g_ampa', 'g_gaba'], record=selection.tolist())  # comment this out later (takes a lot of memory!)
 
-    if np.max(poprE > 0):  # check if there is any activity
-    
-        spikeTimesI, spikingNeuronsI, poprI = preprocess_spikes(smi.spiketimes, NI, calc_ISI=False)
+
+    run(10000*ms, report='text')  # run the simulation!
+
+
+    if sme.nspikes > 0 and smi.nspikes > 0:  # check if there is any activity
+        spikeTimesE, spikingNeuronsE, poprE, ISIhist, bin_edges = preprocess_monitors(sme, popre)
+        spikeTimesI, spikingNeuronsI, poprI = preprocess_monitors(smi, popri, calc_ISI=False)
 
         # calling detect_oscillation functions:
-        avgReplayInterval = replay(ISI[3:16])  # bins from 150 to 850 (range of interest)
+        avgReplayInterval = replay(ISIhist[3:16])  # bins from 150 to 850 (range of interest)
 
         meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE, 1000)
         avgGammaFE, gammaPE = gamma(fE, PxxE)
@@ -186,7 +184,7 @@ for k in range(0, dataPoints):
 
         print "Avg. exc. ripple freq:%s, Avg. inh. ripple freq:%s"%(avgRippleFE, avgRippleFI)
         print "--------------------------------------------------"
-        
+
         # store results for this multiplier
         X[:, k] = [multiplier,
                    meanEr, maxEAC, tMaxEAC, maxEACR, tMaxEACR,
@@ -201,21 +199,21 @@ for k in range(0, dataPoints):
 
         ymin, ymax = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier)
         plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier, Pyr_pop=False)
-        subset = select_subset(selection, ymin, ymax)
-        plot_detailed(msMe, subset, multiplier)
+        #subset = select_subset(selection, ymin, ymax)
+        #plot_detailed(msMe, subset, multiplier)
         #plot_adaptation(msMe, selection, multiplier)
-    
+
         plt.close('all')
-        
+
     else:  # if there is no activity the auto-correlation function will throw an error!
-    
+
         print "No activity !"
         print "--------------------------------------------------"
-		
+
         # store results for this multiplier
         X[:, k] = [multiplier, 0, np.nan, np.nan, np.nan, np.nan, 0, np.nan, np.nan, np.nan, np.nan,
 		           np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
-		
+
     # Reinitialize variables
     reinit(states=True)  # population is recreated so this might be useless
     reinit_default_clock()  # population is recreated so this might be useless
@@ -339,7 +337,7 @@ if len(fIn) > 8:  # if not the original matrix (wmxR.txt) is used - save the fig
 
     fName = os.path.join(SWBasePath, 'files', fIn)
     wmxM = load_Wee(fName)
-    
+
     plot_wmx_avg(wmxM, 100, "wmx")
     plt.close()
 
