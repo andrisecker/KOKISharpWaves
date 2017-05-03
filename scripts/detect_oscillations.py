@@ -23,7 +23,7 @@ def preprocess_monitors(sm, prm, calc_ISI=True):
     if type(sm) is brian.monitor.SpikeMonitor:
         spikeTimes         = np.array(sm.spikes)[:,1]*1000.
         spikingNeurons     = np.array(sm.spikes)[:,0]
-        rate               = prm.rate_.reshape(-1, 10).mean(axis=1)
+        rate               = np.array(prm.rate_).reshape(-1, 10).mean(axis=1)
 
         if calc_ISI:
             ISIs               = np.hstack([np.diff(spikes_i*1000) for i, spikes_i in sm.spiketimes.items()])
