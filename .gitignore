@@ -6,4 +6,5 @@ files/*txt
 scripts/output/
 notebooks/output/
 notebooks/*html
+optimization/checkpoints/*pkl
 .ipynb_checkpoints

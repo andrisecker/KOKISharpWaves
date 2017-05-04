@@ -32,7 +32,7 @@ def plot_raster_ISI(spikeTimes, spikingNeurons, hist, color_, multiplier_):
     ax.set_ylabel("Neuron number")
 
     ax2 = fig.add_subplot(2, 1, 2)
-    ax2.bar(hist[1][:-1], hist[0], width=50, color=color_, edgecolor='black', lw=0.5, alpha=0.9)
+    ax2.bar(hist[1][:-1], hist[0], width=50, align="edge", color=color_, edgecolor='black', lw=0.5, alpha=0.9)
     ax2.axvline(150, ls='--', c="gray", label="ROI for replay analysis")
     ax2.axvline(850, ls='--', c="gray")
     ax2.set_title("Pyr_population ISI distribution")
@@ -43,7 +43,7 @@ def plot_raster_ISI(spikeTimes, spikingNeurons, hist, color_, multiplier_):
 
     fig.tight_layout()
 
-    figName = os.path.join(figFolder, "%s_raster_ISI.png"%(multiplier_))
+    figName = os.path.join(figFolder, "%s*.png"%(multiplier_))
     fig.savefig(figName)
 
 
@@ -461,3 +461,28 @@ def plot_weights(dWee, saveName_):
 
     figName = os.path.join(figFolder, "%s.png"%saveName_)
     fig.savefig(figName)
+    
+    
+def plot_evolution(ngen, min_fit, mean_fit, std_fit, saveName_):
+    """
+    saves figure with the evolution of fittnes error (see: optimization/)
+    :param ngen: number of generations
+    :param min_fit: minimum of fitting errors (see bpop: _,_,log,_ = opt.run())
+    :param mean_fit: mean of fitting errors (see bpop: _,_,log,_ = opt.run())
+    :param std_fit: standard deviation of fitting errors (see bpop: _,_,log,_ = opt.run())
+    :param saveName_: name of saved img
+    """
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(1, 1, 1)
+
+    ax.plot(ngen, mean_fit, 'k-', linewidth=2, label="pop. average")
+    ax.fill_between(ngen, mean_fit - std_fit, mean_fit + std_fit, color='lightgray', linewidth=1.5, label=r"pop. std")
+    ax.plot(ngen, min_fit, "r-", linewidth=2, label="pop. minimum")
+    ax.set_xlabel("#Generation")
+    ax.set_xlim([1, max(ngen)])                                                         
+    ax.set_ylabel("Fittnes score")                                                                                
+    ax.legend()
+    
+    figName = os.path.join(figFolder, "%s.png"%saveName_)
+    fig.savefig(figName)
+    
