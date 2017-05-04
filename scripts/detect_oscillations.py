@@ -94,9 +94,9 @@ def replay(isi):
     '''
 
     binsROI = isi
-    binMeans = np.linspace(175, 825, 14)
+    binMeans = np.linspace(175, 825, 14)  # hard coded...
     maxInd = np.argmax(binsROI)
-
+    
     if 1 <= maxInd <= len(binsROI) - 2:
         bins3 = binsROI[maxInd-1:maxInd+2]
         tmp = binsROI[maxInd-1]*binMeans[maxInd-1] + binsROI[maxInd]*binMeans[maxInd] + binsROI[maxInd+1]*binMeans[maxInd+1]
@@ -104,16 +104,11 @@ def replay(isi):
     else:
         bins3 = []
 
-    # print 'ROI:', sum(int(i) for i in binsROI)
-    # print '3 bins:', sum(int(i) for i in bins3)
-
+    replay_ = np.nan
     if sum(int(i) for i in binsROI) * 0.7 < sum(int(i) for i in bins3):
-        print 'Replay, avg. replay interval:', avgReplayInterval, '[ms]'
-    else:
-        avgReplayInterval = np.nan
-        print 'Not replay'
+        replay_ = avgReplayInterval
 
-    return avgReplayInterval
+    return replay_
 
 
 def autocorrelation(x):
@@ -225,3 +220,11 @@ def gamma(f, Pxx):
     gammaP = (tmp / power) * 100
 
     return avgGammaF, gammaP
+    
+    
+def load_Wee(fName):  # this function does not belong to here ... (should be eg. in helpers)
+    """dummy function, just to make python close the file and clear the memory"""
+    Wee = np.genfromtxt(fName) * 1e9
+    np.fill_diagonal(Wee, 0)  # just to make sure
+    return Wee
+    

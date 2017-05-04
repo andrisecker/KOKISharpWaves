@@ -101,15 +101,6 @@ dg_gaba/dt = -g_gaba/tauSyn_BasInh : 1
 # ====================================== end of parameters ======================================
 
 
-# load in Wee only once ...
-def load_Wee(fName):  # this way the file will closed and memory will cleaned
-    """dummy function, just to make python clear the memory"""
-    Wee = np.genfromtxt(fName) * 1e9
-    np.fill_diagonal(Wee, 0)  # just to make sure
-
-    print "weight matrix loaded"
-    return Wee
-
 fName = os.path.join(SWBasePath, 'files', fIn)
 Wee = load_Wee(fName)
 
