@@ -199,7 +199,7 @@ def gamma(f, Pxx):
 
     f = np.asarray(f)
     gammaS = np.where(30 < f)[0][0]
-    gammaE = np.where(f < 145)[0][-1]
+    gammaE = np.where(f < 100)[0][-1]
     f.tolist()
     PxxGamma = Pxx[gammaS:gammaE]
 

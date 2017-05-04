@@ -62,7 +62,7 @@ def plot_PSD(rate, rippleAC, f, Pxx, title_, linespec_, multiplier_):
     rippleS = np.where(145 < f)[0][0]
     rippleE = np.where(f < 250)[0][-1]
     gammaS = np.where(30 < f)[0][0]
-    gammaE = np.where(f < 80)[0][-1]
+    gammaE = np.where(f < 100)[0][-1]
     f.tolist()
     # ripple range
     PxxRipple = Pxx[rippleS:rippleE]
@@ -92,8 +92,8 @@ def plot_PSD(rate, rippleAC, f, Pxx, title_, linespec_, multiplier_):
 
     ax3 = fig.add_subplot(3, 1, 3)
     ax3.plot(f, PxxPlot, linespec_, marker='o')
-    ax3.plot(fRipple, PxxRipplePlot, 'r-', marker='o', linewidth=1.5, label="ripple")
-    ax3.plot(fGamma, PxxGammaPlot, 'k-', marker='o', linewidth=1.5, label="gamma")
+    ax3.plot(fRipple, PxxRipplePlot, 'r-', marker='o', linewidth=1.5, label="ripple (145-250Hz)")
+    ax3.plot(fGamma, PxxGammaPlot, 'k-', marker='o', linewidth=1.5, label="gamma (30-100Hz)")
     ax3.set_title("Power Spectrum Density")
     ax3.set_xlim([0, 500])
     ax3.set_xlabel("Frequency (Hz)")
