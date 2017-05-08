@@ -1,5 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
+"""
+helper functions for generating hippocampal like spike trains
+authors: András Ecker, Eszter Vértes, Szabolcs Káli last update: 05.2017
+"""
 
 import numpy as np
 
@@ -28,10 +32,10 @@ def generateFiringRate(nPop, pop, phase0, t, **kwargs):
     wMice = 2 * np.pi / tRoute  # angular velocity
     x = np.mod(wMice * t, 2 * np.pi)  # position of the mice [rad]
 
-    if 'phiStarts' not in kwargs.keys():
+    if "phiStarts" not in kwargs.keys():
         phiStart = (float(pop) / float(nPop)) * 2 * np.pi
     else:
-        phiStarts = kwargs['phiStarts']
+        phiStarts = kwargs["phiStarts"]
         if pop not in phiStarts.keys():
             phiStart = np.random.rand(1)[0] * 2 * np.pi
             phiStarts[pop] = phiStart
@@ -52,7 +56,6 @@ def generateFiringRate(nPop, pop, phase0, t, **kwargs):
         if phiStart <= x and x < phiEnd:  # if the mice is in the place field
             lambda1 = np.cos((2 * np.pi) / (2 * phiPFRad) * (x - mPF)) * avgRateInField
             lambda2 = np.exp(s * np.cos(y - m)) / np.exp(s)
-
         else:
             lambda1 = 0
             lambda2 = 1
@@ -63,7 +66,6 @@ def generateFiringRate(nPop, pop, phase0, t, **kwargs):
         if phiStart <= x or x < phiEnd:  # if the mice is in the place field
             lambda1 = np.cos((2 * np.pi) / (2 * phiPFRad) * (x - mPF)) * avgRateInField
             lambda2 = np.exp(s * np.cos(y - m)) / np.exp(s)
-
         else:
             lambda1 = 0
             lambda2 = 1
@@ -109,3 +111,28 @@ def inhomPoisson(nPop, pop, phase0, seed, **kwargs):
             inhP.append(t)
 
     return inhP
+    
+def refractoriness(spikeTrains, ref_per=5e-3):  # added only in 05.2017
+    '''
+    Delete spikes which are too close to each other
+    :param spikeTrains: list of (4000) lists representing individual spike trains
+    :param ref_per: refractory period (in sec)
+    :return spikeTrains: same structure, but with some spikes deleted
+    '''
+    
+    spikeTrains_updated = []
+    count = 0
+    for spikes in spikeTrains:  # iterates over single spike trains (from indiv. neurons)
+        tmp = np.diff(spikes)  # calculate ISIs
+        idx = np.where(tmp < ref_per)[0] + 1 # 2ms refractoriness
+        if idx.size:
+            count += idx.size
+            spikes_updated = np.delete(spikes, idx).tolist()  # delete spikes which are too close
+        else:
+            spikes_updated = spikes
+        spikeTrains_updated.append(spikes_updated)
+    
+    print "%i spikes deleted becuse of too short refractory period"%count
+      
+    return spikeTrains_updated
+     
