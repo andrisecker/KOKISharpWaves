@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from detect_oscillations import *
 from plots import *
 
-fIn = 'wmxR_asym.txt'
+fIn = "wmxR_asym.txt"
 
 SWBasePath = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2])
 

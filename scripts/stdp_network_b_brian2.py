@@ -19,7 +19,7 @@ from plots import *
 fIn = "spikeTrainsR.npz"
 fOut = "wmxR_sym.txt"
 
-SWBasePath =  '/'.join(os.path.abspath(__file__).split('/')[:-2])
+SWBasePath = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2])
 
 N = 4000  # #{neurons}
 
