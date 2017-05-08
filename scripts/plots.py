@@ -415,15 +415,15 @@ def plot_w_distr(wmx, saveName_):
 
     ax = fig.add_subplot(2, 1, 1)
     ax.hist(wmx, bins=150)
-    ax.set_title('Distriboution of synaptic weights')
-    ax.set_xlabel('pyr-pyr synaptic weight strength [nS]')
+    ax.set_title('Distribution of synaptic weights')
+    ax.set_xlabel('pyr-pyr synaptic weight strength (nS)')
     ax.set_ylabel('# of synapses (on logarithmic scale)')
     plt.yscale('log')
 
     ax2 = fig.add_subplot(2, 1, 2)
     ax2.hist(log10wmx, bins=150, color='red')
     ax2.set_title('Distribution of synaptic weights')
-    ax2.set_xlabel('log10(pyr-pyr synaptic weight strength) [nS]')
+    ax2.set_xlabel('log10(pyr-pyr synaptic weight strength)')
     ax2.set_ylabel('# of synapses (on logarithmic scale)')
     plt.yscale('log')
 
