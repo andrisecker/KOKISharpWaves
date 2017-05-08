@@ -12,6 +12,7 @@ To run the scripts, [install Brian (version 1)](http://brian.readthedocs.org/en/
     cd KOKISharpWaves
     mkdir figures  # creates directory for the saved figures
     cd scripts
+    # (on can found the generates spike trains in the files folder, or run the next line)
     python generate_spike_train.py  # generate CA3 like spike trains (as exploration of a maze) -> files/spikeTrainR.npz
     python stdp_network_b.py  # learns the recurrent weight (via STDP, based on the spiketrain) -> files/wmx.txt
     python spw_network4a_1.py  # creates the network, runs the simulation, extracts dynamic features
@@ -45,4 +46,3 @@ Raster plot of the activity and inferred place from spike trains + analysis of t
 ------------------------------------------------------
 
 > note: (with some IDE) one has to change the PATH (SWBasePath at the top of the scripts)
-
