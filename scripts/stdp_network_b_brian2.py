@@ -8,16 +8,26 @@ see more: https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view
 author: András Ecker last update: 03.2017
 '''
 
+import os
 from brian2 import *
 set_device('cpp_standalone')  # speed up the simulation with generated C++ code
 from brian2tools import *  # just for spec. plotting
-import os
 import numpy as np
 import matplotlib.pyplot as plt
 from plots import *
 
 fIn = "spikeTrainsR.npz"
-fOut = "wmxR_sym.txt"
+fOut = "wmxR_asym.txt"
+
+# STDP parameters
+taup = taum = 20*ms  # ms  # 20 - baseline
+Ap = 0.01  # : 1 # asymmetric STDP rule
+Am = -Ap  # : 1 # asymmetric STDP rule
+#Ap = Am = 0.01  # : 1 # symmetric STDP rule
+wmax = 40e-9  # S (w is dimensionless in the equations) asymmetric STDP rule S
+#wmax=7.5e-9  # S (w is dimensionless in the equations) symmetric STDP rule (orig taus)
+Ap *= wmax  # needed to reproduce Brian1 results
+Am *= wmax  # needed to reproduce Brian1 results
 
 SWBasePath = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2])
 
@@ -40,17 +50,7 @@ for neuron in range(1, N):
 print "spike times loaded"
 
 
-# with default dt=100*us there are neurons whose emit more then 1 spike per timestep
-#TODO: check why! (generated spikes are is sec...)
-PC = SpikeGeneratorGroup(N, spikingNrns, spikeTimes*second, dt=35*us)  
-
-
-# STDP parameters
-taup = taum = 20*ms
-Ap = Am = 0.01  # : 1
-wmax = 7.5e-9 # S (w is dimensionless in the equations)
-Ap *= wmax
-Am *= wmax
+PC = SpikeGeneratorGroup(N, spikingNrns, spikeTimes*second) 
 
 
 def learning(spikingNeuronGroup, taup, taum, Ap, Am, wmax):
@@ -84,12 +84,10 @@ def learning(spikingNeuronGroup, taup, taum, Ap, Am, wmax):
              on_post="""
              A_post += Am
              w = clip(w + A_pre, 0, wmax)
-             """)#,
-             #dt=35*us)  # small dt is only to match the dt of SpikeGeneratorGroup
+             """)
              
     STDP.connect(condition="i!=j", p=0.16)
     STDP.w = 0.1e-9 # S
-
 
     # run simulation
     spikeM = SpikeMonitor(spikingNeuronGroup, record=True)
