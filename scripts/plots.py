@@ -407,8 +407,8 @@ def plot_w_distr(wmx, saveName_):
     tmp = wmx.tolist()
     wmx = [val for sublist in tmp for val in sublist]
     wmx = filter(lambda i: i != 0, wmx)
-    wmx = np.array(wmx)
-    log10wmx = np.log10(wmx)
+    wmx = np.array(wmx)*1e9  # nS conversion
+    log10wmx = np.log10(wmx)*1e9  # nS conversion
     print "mean(nonzero weights): %s (S)"%np.mean(wmx)
 
     fig = plt.figure(figsize=(10, 8))
@@ -423,7 +423,7 @@ def plot_w_distr(wmx, saveName_):
     ax2 = fig.add_subplot(2, 1, 2)
     ax2.hist(log10wmx, bins=150, color='red')
     ax2.set_title('Distribution of synaptic weights')
-    ax2.set_xlabel('log10(pyr-pyr synaptic weight strength)')
+    ax2.set_xlabel('log10(pyr-pyr synaptic weight strength) (nS)')
     ax2.set_ylabel('# of synapses (on logarithmic scale)')
     plt.yscale('log')
 
