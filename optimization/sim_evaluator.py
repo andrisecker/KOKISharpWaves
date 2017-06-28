@@ -2,8 +2,7 @@
 # -*- coding: utf8 -*-
 '''
 BluePyOpt evaluator for optimization
-still in development - search for #TODO: !!!
-authors: Bagi Bence, András Ecker last update: 05.2017
+authors: Bence Bagi, András Ecker last update: 06.2017
 '''
 
 import os
@@ -30,7 +29,7 @@ class Brian2Evaluator(bpop.evaluators.Evaluator):
         # Parameters to be optimized
         self.params = [bpop.parameters.Parameter(name, bounds=(minval, maxval))
                        for name, minval, maxval in self.params]
-        self.objectives = ["fitness_score"]
+        self.objectives = ["fitness_score"]  # random name for BluePyOpt
                        
     def generate_model(self, individual):
         """runs simulation (run_sim.py) and returns monitors"""
@@ -45,30 +44,30 @@ class Brian2Evaluator(bpop.evaluators.Evaluator):
 
             spikeTimesE, spikingNeuronsE, poprE, ISIhist, bin_edges = preprocess_monitors(sme, popre)
             spikeTimesI, spikingNeuronsI, poprI = preprocess_monitors(smi, popri, calc_ISI=False)
-            # call detect_oscillation functions:
+            # call replay detection functions:
             avgReplayInterval = replay(ISIhist[3:16])  # bins from 150 to 850 (range of interest)
-            meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE, 1000)
-            avgGammaFE, gammaPE = gamma(fE, PxxE)
-            meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI, 1000)
-            avgGammaFI, gammaPI = gamma(fI, PxxI)
             
-            bool_gammaE = int(np.isnan(avgGammaFE))
-            bool_gammaI = int(np.isnan(avgGammaFI))
-            replay_ = 0
-            if not np.isnan(avgReplayInterval):
-                replay_ = 10
-            ripple_peakE = 0
-            if not np.isnan(avgRippleFE):
+            if not np.isnan(avgReplayInterval):  # evaluate only if there's sequence replay!
+            
+                # call detect_oscillation functions:
+                meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE, 1000)
+                avgGammaFE, gammaPE = gamma(fE, PxxE)
+                meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI, 1000)
+                avgGammaFI, gammaPI = gamma(fI, PxxI)
+            
+                # look for significant ripple peak close to 180 Hz
                 ripple_peakE = 5 - (np.abs(avgRippleFE - 180) / 180)
-            ripple_peakI = 0
-            if not np.isnan(avgRippleFI):
                 ripple_peakI = 5 - (np.abs(avgRippleFI - 180) / 180)
-            #TODO: add populational rate!
-            
-            fitness = -1 * (replay_ + ripple_peakE + ripple_peakI + (ripplePE/gammaPE) + (ripplePI/gammaPI) + bool_gammaE + bool_gammaI)
+                # look for the absence of significant gamma peak
+                bool_gammaE = int(np.isnan(avgGammaFE))
+                bool_gammaI = int(np.isnan(avgGammaFI))
+                # look for "low" population rate (gauss around 3Hz for exc. pop.)
+                rateE = np.exp(-1/2*(meanEr-3)**2/1.5**2)  # peak normalized to 1
+                
+                fitness = -1 * (ripple_peakE + ripple_peakI + (ripplePE/gammaPE) + (ripplePI/gammaPI) + bool_gammaE + bool_gammaI + rateE)
+            else:
+                fitness = 0
         
-        return [fitness]
+        return [fitness]  # single score but has to be a list for BluePyOpt
         
-        
-        
-        
+ 

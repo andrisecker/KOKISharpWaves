@@ -2,9 +2,8 @@
 # -*- coding: utf8 -*-
 '''
 optimize connection parameters (synaptic weights, time constants, delays)
-authors: Bagi Bence, András Ecker last update: 05.2017
+authors: Bence Bagi, András Ecker last update: 06.2017
 '''
-
 
 import os
 import sys
@@ -13,7 +12,8 @@ import numpy as np
 import sim_evaluator
 import bluepyopt as bpop
 import multiprocessing as mp
-import matplotlib.pyplot as plt
+
+
 SWBasePath = os.path.sep.join(os.path.abspath('__file__').split(os.path.sep)[:-2])
 # add the 'scripts' directory to the path (import the modules)
 sys.path.insert(0, os.path.sep.join([SWBasePath, 'scripts']))
@@ -25,20 +25,24 @@ logging.basicConfig(stream=sys.stdout)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+
 fIn = "wmxR_asym.txt"
 fName = os.path.join(SWBasePath, "files", fIn)
 Wee = load_Wee(fName)
 
 # Parameters to be fitted as a list of: (name, lower bound, upper bound)
-optconf = [("J_PyrInh_", 0.01, 1.),  # !!! the values are now around the ones Bence found with hand tuning, just to check the algo ... 
-           ("J_BasExc_", 5., 35.),
-           ("J_BasInh_", 2., 15.),
-           ("WeeMult_", 2., 7.)]
+optconf = [("J_PyrInh_", 0.5, 5),
+           ("J_BasExc_", 0.5, 5),
+           ("J_BasInh_", 0.5, 5),
+           ("WeeMult_", 0.5, 5.),
+           ("J_PyrMF_", 5., 30.),
+           ("rate_MF_", 5., 50.)]
            # the order matters! if you want to add more parameters - update run_sim.py too 
 pnames = [name for name, _, _ in optconf]
 
+
 # Create multiprocessing pool for parallel evaluation of fitness function
-pool = mp.Pool(processes=mp.cpu_count())
+pool = mp.Pool(processes=3)  # processes=mp.cpu_count()
 
 # Create BluePyOpt optimization and run 
 evaluator = sim_evaluator.Brian2Evaluator(Wee, optconf)
@@ -62,6 +66,7 @@ plot_evolution(log.select('gen'), np.array(log.select('min')), np.array(log.sele
 
 print " ===== Rerun simulation with the best parameters ===== "
 sme, smi, popre, popri = evaluator.generate_model(best)
+# might throw errors from ripple() with NaNs if there is no activity in the best model!
 
 # analyze dynamics
 spikeTimesE, spikingNeuronsE, poprE, ISIhist, bin_edges = preprocess_monitors(sme, popre)
