@@ -100,7 +100,7 @@ plot_wmx(weightmx, "wmx_%s"%mode_)
 plot_wmx_avg(weightmx, 100, "wmx_avg_%s"%mode_)
 plot_w_distr(weightmx, "w_distr_%s"%mode_)
 
-selection = np.array([500, 1500, 2500, 3500])  # some random neuron IDs to save weigths (eg. select the strongest weights)
+selection = np.array([500, 1500, 2500, 3500])  # some random neuron IDs to save weigths
 dWee = save_selected_w(weightmx, selection)
 plot_weights(dWee, "sel_weights_%s"%mode_)
 

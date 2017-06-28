@@ -16,7 +16,7 @@ from plots import *
 
 set_device('cpp_standalone')  # speed up the simulation with generated C++ code
 
-fIn = 'wmxR_asym.txt'
+fIn = "wmxR_asym.txt"
 
 SWBasePath = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2])
 
@@ -101,7 +101,7 @@ dg_gaba/dt = -g_gaba/tauSyn_BasInh : 1
 # ====================================== end of parameters ======================================
 
 
-fName = os.path.join(SWBasePath, 'files', fIn)
+fName = os.path.join(SWBasePath, "files", fIn)
 Wee = load_Wee(fName)
 
 PE = NeuronGroup(NE, model=eqs_adexp, threshold="vm>v_spike_Pyr",
