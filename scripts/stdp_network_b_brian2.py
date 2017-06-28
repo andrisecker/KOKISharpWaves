@@ -17,15 +17,15 @@ import matplotlib.pyplot as plt
 from plots import *
 
 fIn = "spikeTrainsR.npz"
-fOut = "wmxR_asym.txt"
+fOut = "wmxR_sym.txt"
 
 # STDP parameters
-taup = taum = 20*ms  # ms  # 20 - baseline
-Ap = 0.01  # : 1 # asymmetric STDP rule
-Am = -Ap  # : 1 # asymmetric STDP rule
-#Ap = Am = 0.01  # : 1 # symmetric STDP rule
-wmax = 40e-9  # S (w is dimensionless in the equations) asymmetric STDP rule S
-#wmax=7.5e-9  # S (w is dimensionless in the equations) symmetric STDP rule (orig taus)
+taup = taum = 70*ms  # ms  # 20*ms - baseline
+#Ap = 0.01  # : 1 # asymmetric STDP rule
+#Am = -Ap  # : 1 # asymmetric STDP rule
+Ap = Am = 0.0035  # : 1 # symmetric STDP rule
+#wmax = 40e-9  # S (w is dimensionless in the equations) asymmetric STDP rule
+wmax = 7e-9  # S (w is dimensionless in the equations) symmetric STDP rule (orig taus)
 Ap *= wmax  # needed to reproduce Brian1 results
 Am *= wmax  # needed to reproduce Brian1 results
 
@@ -113,11 +113,11 @@ plot_wmx(weightmx, "wmx_%s"%mode_)
 plot_wmx_avg(weightmx, 100, "wmx_avg_%s"%mode_)
 plot_w_distr(weightmx, "w_distr_%s"%mode_)
 
-selection = np.array([500, 1500, 2500, 3500])  # some random neuron IDs to save weigths (eg. select the strongest weights)
+selection = np.array([500, 1500, 2500, 3500])  # some random neuron IDs to save weigths
 dWee = save_selected_w(weightmx, selection)
 plot_weights(dWee, "sel_weights_%s"%mode_)
 
 
 # save weightmatrix
-fName = os.path.join(SWBasePath, 'files', fOut)
+fName = os.path.join(SWBasePath, "files", fOut)
 np.savetxt(fName, weightmx)
