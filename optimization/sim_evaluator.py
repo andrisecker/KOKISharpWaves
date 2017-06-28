@@ -56,8 +56,12 @@ class Brian2Evaluator(bpop.evaluators.Evaluator):
                 avgGammaFI, gammaPI = gamma(fI, PxxI)
             
                 # look for significant ripple peak close to 180 Hz
-                ripple_peakE = 5 - (np.abs(avgRippleFE - 180) / 180)
-                ripple_peakI = 5 - (np.abs(avgRippleFI - 180) / 180)
+                ripple_peakE = 0
+                if not np.isnan(avgRippleFE):
+                    ripple_peakE = 5 - (np.abs(avgRippleFE - 180) / 180)
+                ripple_peakI = 0
+                if not np.isnan(avgRippleFI):
+                    ripple_peakI = 5 - (np.abs(avgRippleFI - 180) / 180)
                 # look for the absence of significant gamma peak
                 bool_gammaE = int(np.isnan(avgGammaFE))
                 bool_gammaI = int(np.isnan(avgGammaFI))
