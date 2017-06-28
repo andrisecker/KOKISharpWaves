@@ -1,6 +1,5 @@
 *pyc
 *~
-archive/
 figures/
 files/wmx*
 files/*txt
@@ -9,3 +8,4 @@ notebooks/output/
 notebooks/*html
 optimization/checkpoints/*pkl
 .ipynb_checkpoints
+scripts/archive/
