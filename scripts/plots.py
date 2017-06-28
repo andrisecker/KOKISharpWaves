@@ -320,7 +320,7 @@ def plot_STDP_rule(taup, taum, Ap, Am, saveName_):
         mode = "tmp"
     print "========== STDP rule: %s =========="%mode
 
-    delta_t = np.linspace(-120, 120, 1000)
+    delta_t = np.linspace(-150, 150, 1000)
     delta_w = np.where(delta_t>0, Ap*np.exp(-delta_t/taup), Am*np.exp(delta_t/taum))
 
     fig = plt.figure(figsize=(10, 8))
@@ -334,7 +334,7 @@ def plot_STDP_rule(taup, taum, Ap, Am, saveName_):
         ax.set_ylim([-Ap*1.05, Ap*1.05])
     elif mode == "sym":
         ax.set_ylim([-Ap*0.05, Ap*1.05])
-    ax.set_xlim([-100, 100])
+    ax.set_xlim([-150, 150])
     ax.axhline(0, ls='-', c='k')
     ax.legend()
 
@@ -404,12 +404,9 @@ def plot_w_distr(wmx, saveName_):
     """
 
     # deleting nulls from wmx to plot the distribution of the weights
-    tmp = wmx.tolist()
-    wmx = [val for sublist in tmp for val in sublist]
-    wmx = filter(lambda i: i != 0, wmx)
-    wmx = np.array(wmx)*1e9  # nS conversion
-    log10wmx = np.log10(wmx)*1e9  # nS conversion
-    print "mean(nonzero weights): %s (S)"%np.mean(wmx)
+    wmx = wmx[np.nonzero(wmx)]*1e9  # nS conversion
+    log10wmx = np.log10(wmx)
+    print "mean(nonzero weights): %s (nS)"%np.mean(wmx)
 
     fig = plt.figure(figsize=(10, 8))
 
