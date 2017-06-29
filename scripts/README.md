@@ -10,6 +10,7 @@ Teaching the recurrent weights:
 * generate_spike_train.py
 * stdp_network_b.py (Brian script: STDP during exploration)
 * stdp_network_b_brian2.py (same Brian2 script - bit faster)
+* analyse_EPSC.py (analyse EPSC based on the learned weight matrix)
 
 Analyse network dynamics:
 
