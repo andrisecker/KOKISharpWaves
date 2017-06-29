@@ -19,16 +19,17 @@ from detect_oscillations import *
 from plots import *
 
 
-fIn = "wmxR_sym.txt"
-cpIn = "checkpoint_sym_1.pkl"
+fIn = "wmxR_asym.txt"
+cpIn = "checkpoint_asym_2.pkl"
 
-# Parameters fitted as a list of: (name, lower bound, upper bound)
+# Optimized parameters (the bounds might be difference, but it's necessary to have this here...)
 optconf = [("J_PyrInh_", 0.5, 5),
            ("J_BasExc_", 0.5, 5),
            ("J_BasInh_", 0.5, 5),
            ("WeeMult_", 0.5, 5.),
            ("J_PyrMF_", 5., 30.),
            ("rate_MF_", 5., 50.)]
+           # the order matters! if you want to add more parameters - update run_sim.py too 
 pnames = [name for name, _, _ in optconf]
 
 # load in saved checkpoints
