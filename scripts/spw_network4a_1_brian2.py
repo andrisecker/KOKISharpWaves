@@ -170,12 +170,7 @@ if sme.num_spikes > 0 and smi.num_spikes > 0:  # check if there is any activity
 
     # Print out some info
     print 'Mean excitatory rate: ', meanEr
-    print 'Maximum exc. autocorrelation:', maxEAC, 'at', tMaxEAC, '[ms]'
-    print 'Maximum exc. AC in ripple range:', maxEACR, 'at', tMaxEACR, '[ms]'
     print 'Mean inhibitory rate: ', meanIr
-    print 'Maximum inh. autocorrelation:', maxIAC, 'at', tMaxIAC, '[ms]'
-    print 'Maximum inh. AC in ripple range:', maxIACR, 'at', tMaxIACR, '[ms]'
-    print ''
     print 'Average exc. ripple freq:', avgRippleFE
     print 'Exc. ripple power:', ripplePE
     print 'Average exc. gamma freq:', avgGammaFE
