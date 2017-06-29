@@ -61,14 +61,14 @@ class Brian2Evaluator(bpop.evaluators.Evaluator):
                     ripple_peakE = 5 - (np.abs(avgRippleFE - 180) / 180)
                 ripple_peakI = 0
                 if not np.isnan(avgRippleFI):
-                    ripple_peakI = 5 - (np.abs(avgRippleFI - 180) / 180)
+                    ripple_peakI = 7 - (np.abs(avgRippleFI - 180) / 180)
                 # look for the absence of significant gamma peak
                 bool_gammaE = int(np.isnan(avgGammaFE))
                 bool_gammaI = int(np.isnan(avgGammaFI))
                 # look for "low" population rate (gauss around 3Hz for exc. pop.)
                 rateE = np.exp(-1/2*(meanEr-3)**2/1.5**2)  # peak normalized to 1
                 
-                fitness = -1 * (ripple_peakE + ripple_peakI + (ripplePE/gammaPE) + (ripplePI/gammaPI) + bool_gammaE + bool_gammaI + rateE)
+                fitness = -1 * (ripple_peakE + ripple_peakI + ripplePE/gammaPE + ripplePI/gammaPI + 3*bool_gammaE + 2*bool_gammaI + 4*rateE)
             else:
                 fitness = 0
         
