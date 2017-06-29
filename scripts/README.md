@@ -19,7 +19,6 @@ Analyse network dynamics:
 * spw_network4a_1.py (Brian script: runs the simulation, extracts dynamic features)
 * spw_network4a_1_brian2.py (same Brian2 script - bit faster)
 * spw_network4_automatized.py (Brian script: investigates into network dynamics with varios scaling factor (of the weight matrix))
-* spw_network4_BasInputs_f.py (Brian script: investigates into network dynamics with different outer inputs to the Basket cell population)
 
 ------------------------------------------------------
 
@@ -27,5 +26,7 @@ Bayesian decoding:
 
 * bayesian_decoding.py (infers to place from spikes recorded from place cells)
 * analyse_bayesian_decoding.py (analyse the resulted (from the inference) angular velocity)
+
+> note: these are not included in the reference (and do not work properly yet)analyse the resulted (from the inference) angular velocity)
 
 > note: these are not included in the reference (and do not work properly yet)
