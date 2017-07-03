@@ -9,22 +9,20 @@ author: András Ecker last update: 04.2017
 
 import os
 from brian2 import *
+#set_device('cpp_standalone')  # speed up the simulation with generated C++ code
 import numpy as np
 import matplotlib.pyplot as plt
 from detect_oscillations import *
 from plots import *
 
-set_device('cpp_standalone')  # speed up the simulation with generated C++ code
 
 fIn = "wmxR_asym.txt"
 
 SWBasePath = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2])
-
 np.random.seed(12345)
 
 NE = 4000
 NI = 1000
-
 # sparseness
 eps_pyr = 0.16
 eps_bas = 0.4
@@ -152,7 +150,7 @@ popre = PopulationRateMonitor(PE)
 popri = PopulationRateMonitor(PI)
 
 
-run(10000*ms, report='text')
+run(10000*ms, report="text")
 
 
 if sme.num_spikes > 0 and smi.num_spikes > 0:  # check if there is any activity
@@ -183,9 +181,9 @@ if sme.num_spikes > 0 and smi.num_spikes > 0:  # check if there is any activity
 
 
     # Plots
-    plot_raster_ISI(spikeTimesE, spikingNeuronsE, [ISIhist, bin_edges], 'blue', multiplier_=1)
-    plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier_=1)
-    plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier_=1)
+    plot_raster_ISI(spikeTimesE, spikingNeuronsE, [ISIhist, bin_edges], "blue", multiplier_=1)
+    plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", "b-", multiplier_=1)
+    plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", "g-", multiplier_=1)
 
     _, _ = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
     plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1, Pyr_pop=False)
