@@ -16,13 +16,12 @@ from detect_oscillations import load_Wee
 
 
 fIn = "wmxR_asym.txt"
-Wee_mult = 2.85
 
 np.random.seed(12345)
 SWBasePath = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2])
 figFolder = os.path.join(SWBasePath, "figures")
 
-wmx = load_Wee(os.path.join(SWBasePath, "files", fIn)) * Wee_mult
+wmx = load_Wee(os.path.join(SWBasePath, "files", fIn))
 wmx_nz = wmx[np.nonzero(wmx)]
 print "mean(nonzero weights): %s (nS)"%np.mean(wmx_nz)
 
