@@ -12,43 +12,41 @@ import numpy as np
 import sim_evaluator
 import bluepyopt as bpop
 import multiprocessing as mp
-
 SWBasePath = os.path.sep.join(os.path.abspath('__file__').split(os.path.sep)[:-2])
 # add the 'scripts' directory to the path (import the modules)
 sys.path.insert(0, os.path.sep.join([SWBasePath, 'scripts']))
 from detect_oscillations import *
 from plots import *
-
 # print info into console
 logging.basicConfig(stream=sys.stdout)
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
-fIn = "wmxR_sym.txt"
+fIn = "wmxR_asym.txt"
 fName = os.path.join(SWBasePath, "files", fIn)
 Wee = load_Wee(fName)
 
 # Parameters to be fitted as a list of: (name, lower bound, upper bound)
-optconf = [("J_PyrInh_", 0.5, 5),
-           ("J_BasExc_", 0.5, 5),
-           ("J_BasInh_", 0.5, 5),
-           ("WeeMult_", 0.5, 5.),
-           ("J_PyrMF_", 5., 30.),
-           ("rate_MF_", 5., 50.)]
+optconf = [("J_PyrInh_", 0.01, 0.1),
+           ("J_BasExc_", 4.5, 5.5),
+           ("J_BasInh_", 0.25, 1.),
+           ("WeeMult_", 2.5, 3.5),
+           ("J_PyrMF_", 20., 40.),
+           ("rate_MF_", 10., 25.)]
            # the order matters! if you want to add more parameters - update run_sim.py too 
 pnames = [name for name, _, _ in optconf]
 
 
 # Create multiprocessing pool for parallel evaluation of fitness function
-pool = mp.Pool(processes=3)  # processes=mp.cpu_count()
+pool = mp.Pool(processes=mp.cpu_count())
 
 # Create BluePyOpt optimization and run 
 evaluator = sim_evaluator.Brian2Evaluator(Wee, optconf)
-opt = bpop.optimisations.DEAPOptimisation(evaluator, offspring_size=3, map_function=pool.map,
+opt = bpop.optimisations.DEAPOptimisation(evaluator, offspring_size=30, map_function=pool.map,
                                           eta=20, mutpb=0.3, cxpb=0.7)
                                           
-pop, hof, log, hist = opt.run(max_ngen=3, cp_filename="checkpoints/checkpoint.pkl")
+pop, hof, log, hist = opt.run(max_ngen=20, cp_filename="checkpoints/checkpoint_asym.pkl")
 
 # Get best individual
 best = hof[0]
