@@ -1,6 +1,7 @@
 ## New network model
 
-This folder contains an improved version of the model (still under development)
+This folder contains an improved version of the model (still under development -
+see [optimization](https://github.com/andrisecker/KOKISharpWaves/tree/master/optimization) folder)
 
 ------------------------------------------------------
 
@@ -11,10 +12,11 @@ Improvements:
 * added a different recurrent weight distribution (based on a symetric STDP rule)
 * simulation transfered to Brian2 (to be paralellized...)
 
-To run the notebooks, install [Brian2](http://brian2.readthedocs.io/en/stable/introduction/install.html), and [jupyter](http://jupyter.org/install.html) and run:
+To run the scripts, [Brian2](http://brian2.readthedocs.io/en/stable/introduction/install.html) and run:
 
-	jupyter notebook
-
-or just run:
-
+	python stdp_network_new_brian2.py (recreate correctly scaled weight matrix - can be symetric or asymetric STDP rule)
 	python spw_network_new_brian2.py
+
+or install [jupyter](http://jupyter.org/install.html) and run:
+
+	jupyter notebooks
