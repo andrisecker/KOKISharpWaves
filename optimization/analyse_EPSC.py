@@ -16,7 +16,7 @@ from detect_oscillations import load_Wee
 
 
 fIn = "wmxR_asym.txt"
-Wee_mult = 2.9
+Wee_mult = 2.85
 
 np.random.seed(12345)
 SWBasePath = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2])
