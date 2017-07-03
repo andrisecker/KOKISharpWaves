@@ -170,7 +170,7 @@ def select_subset(selection, ymin, ymax):
     try:
         np.random.shuffle(selection)
         subset = []
-        counter = 3
+        counter = 5
         for i in selection:
             if i >= ymin and i <= ymax:
                 subset.append(i)
@@ -182,13 +182,14 @@ def select_subset(selection, ymin, ymax):
     return subset
 
 
-def plot_detailed(msM, subset, multiplier_, plot_adaptation=True):
+def plot_detailed(msM, subset, multiplier_, plot_adaptation=True, new_network=False):
     """
     saves figure with more detailes about some selected neurons
-    :param msM: Brian MultiStateMonitor object (could be more elegant...)
+    :param msM: Brian MultiStateMonitor object or Brian2 StateMonitor object (could be more elegant...)
     :param subset: selected neurons to plot (max 5)
     :param multiplier_: naming parameter
     :param plot_adaptation: boolean flag for plotting adaptation var.
+    :param new_network: boolean flag for plotting AMPA conductance (in the new network it's a sum)
     """
 
     fig = plt.figure(figsize=(15, 12))
@@ -200,16 +201,27 @@ def plot_detailed(msM, subset, multiplier_, plot_adaptation=True):
 
     import brian2.monitors.statemonitor
     if type(msM) is brian2.monitors.statemonitor.StateMonitor:
-        t = msM.t_ * 1000.
+        t = msM.t_ * 1000.  # *1000 ms convertion
+        for i in subset:
+            ax.plot(t, msM[i].vm*1000, linewidth=1.5, label="%i"%i)  # *1000 mV conversion
+            if plot_adaptation:
+                ax2.plot(t, msM[i].w*1e12, linewidth=1.5, label="%i"%i)  # *1e12 pA conversion
+            if new_network:  # diff exc->exc synapses (g_ampa is a sum of them in the new network)
+                ax3.plot(t, (msM[i].g_ampa + msM[i].g_ampaMF), linewidth=1.5, label="%i"%i)
+            else:
+                ax3.plot(t, msM[i].g_ampa, linewidth=1.5, label="%i"%i)
+            ax4.plot(t, msM[i].g_gaba, linewidth=1.5, label="%i"%i)
     else:
-        t = msM.times*1000  # *1000 ms convertion
-
-    for i in subset:
-        ax.plot(t, msM['vm', i]*1000, linewidth=1.5, label="%i"%i)  # *1000 mV conversion
-        if plot_adaptation:
-            ax2.plot(t, msM['w', i]*1e12, linewidth=1.5, label="%i"%i)  # *1e12 pA conversion
-        ax3.plot(t, msM['g_ampa', i], linewidth=1.5, label="%i"%i)
-        ax4.plot(t, msM['g_gaba', i], linewidth=1.5, label="%i"%i)
+        t = msM.times*1000.  # *1000 ms convertion
+        for i in subset:
+            ax.plot(t, msM["vm", i]*1000, linewidth=1.5, label="%i"%i)  # *1000 mV conversion
+            if plot_adaptation:
+                ax2.plot(t, msM["w", i]*1e12, linewidth=1.5, label="%i"%i)  # *1e12 pA conversion
+            if new_network:  # diff exc->exc synapses (g_ampa is a sum of them in the new network)
+                ax3.plot(t, (msM["g_ampa", i] + msM["g_ampaMF", i]), linewidth=1.5, label="%i"%i)
+            else:
+                ax3.plot(t, msM["g_ampa", i], linewidth=1.5, label="%i"%i)
+            ax4.plot(t, msM["g_gaba", i], linewidth=1.5, label="%i"%i)
 
     ax.set_title("Membrane potential (last 100 ms)")
     ax.set_xlabel("Time (ms)")
@@ -245,8 +257,8 @@ def plot_detailed(msM, subset, multiplier_, plot_adaptation=True):
 def plot_adaptation(msM, subset, multiplier_):  # quick and dirty solution (4 subplots) to use the 40 recorded cell...
     """
     saves figure with the adaptation variables of some selected neurons
-    :param msM: Brian MultiStateMonitor object (could be more elegant...)
-    :param subset: selected neurons to plot (coded for 40...)
+    :param msM: Brian MultiStateMonitor object or Brian2 StateMonitor object (could be more elegant...) - only "w" used here!
+    :param subset: selected neurons to plot
     :param multiplier_: naming parameter
     """
 
@@ -258,21 +270,28 @@ def plot_adaptation(msM, subset, multiplier_):  # quick and dirty solution (4 su
     ax4 = fig.add_subplot(2, 2, 4)
 
     import brian2.monitors.statemonitor
-    t = msM.times*1000  # *1000 ms convertion
     if type(msM) is brian2.monitors.statemonitor.StateMonitor:
-        t = msM.t_ * 1000.
+        t = msM.t_ * 1000.  # *1000 ms convertion
+        for i in subset:
+            if i >= 0 and i < 1000:
+                ax.plot(t, msM[i].w*1e12, linewidth=1.5, label="%i"%i)  # *1e12 pA conversion
+            elif i >= 1000 and i < 2000:
+                ax2.plot(t, msM[i].w*1e12, linewidth=1.5, label="%i"%i)  # *1e12 pA conversion
+            elif i >= 2000 and i < 3000:
+                ax3.plot(t, msM[i].w*1e12, linewidth=1.5, label="%i"%i)  # *1e12 pA conversion
+            else:
+                ax4.plot(t, msM[i].w*1e12, linewidth=1.5, label="%i"%i)  # *1e12 pA conversion
     else:
         t = msM.times*1000  # *1000 ms convertion
-
-    for i in subset:
-        if i >= 0 and i < 1000:
-            ax.plot(t, msM['w', i]*1e12, linewidth=1.5, label="%i"%i)  # *1e12 pA conversion
-        elif i >= 1000 and i < 2000:
-            ax2.plot(t, msM['w', i]*1e12, linewidth=1.5, label="%i"%i)  # *1e12 pA conversion
-        elif i >= 2000 and i < 3000:
-            ax3.plot(t, msM['w', i]*1e12, linewidth=1.5, label="%i"%i)  # *1e12 pA conversion
-        else:
-            ax4.plot(t, msM['w', i]*1e12, linewidth=1.5, label="%i"%i)  # *1e12 pA conversion
+        for i in subset:
+            if i >= 0 and i < 1000:
+                ax.plot(t, msM['w', i]*1e12, linewidth=1.5, label="%i"%i)  # *1e12 pA conversion
+            elif i >= 1000 and i < 2000:
+                ax2.plot(t, msM['w', i]*1e12, linewidth=1.5, label="%i"%i)  # *1e12 pA conversion
+            elif i >= 2000 and i < 3000:
+                ax3.plot(t, msM['w', i]*1e12, linewidth=1.5, label="%i"%i)  # *1e12 pA conversion
+            else:
+                ax4.plot(t, msM['w', i]*1e12, linewidth=1.5, label="%i"%i)  # *1e12 pA conversion
 
     ax.set_title("Adaptation variables (0-1000)")
     ax.set_xlabel("Time (ms)")

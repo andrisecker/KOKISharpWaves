@@ -170,7 +170,9 @@ Cii.delay = delay_BasInh
 sme = SpikeMonitor(PE)
 smi = SpikeMonitor(PI)
 popre = PopulationRateMonitor(PE)
-popri = PopulationRateMonitor(PI)             
+popri = PopulationRateMonitor(PI)
+selection = np.arange(0, 4000, 50)  # subset of neurons for recoring variables
+msMe = StateMonitor(PE, ["vm", "w", "g_ampa", "g_ampaMF","g_gaba"], record=selection.tolist())  # comment this out later (takes memory!)        
 
 
 run(10000*ms, report='text')
@@ -208,8 +210,10 @@ if sme.num_spikes > 0 and smi.num_spikes > 0:  # check if there is any activity
     plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier_=1)
     plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier_=1)
 
-    _, _ = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
+    ymin, ymax= plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
     plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1, Pyr_pop=False)
+    subset = select_subset(selection, ymin, ymax)
+    plot_detailed(msMe, subset, multiplier_=1, new_network=True)
 
 else:  # if there is no activity the auto-correlation function will throw an error!
 
