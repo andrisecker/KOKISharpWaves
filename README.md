@@ -2,6 +2,9 @@
 
 Reference: [BSc thesis](https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view) *Modeling the network dynamics underlying hippocampal sharp waves and sequence replay.*
 
+#### Big changes:
+whole network retuned to match experimental parameters and moved to Brian2 (06.2017)
+
 ------------------------------------------------------
 
 > With the scripts in the repository one can create a [CA3 network model](https://github.com/andrisecker/KOKISharpWaves/blob/master/CA3_network_model.pdf) and examine the network dynamics during hippocampal SWRs (Sharp Wave-Ripples).
