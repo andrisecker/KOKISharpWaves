@@ -20,15 +20,21 @@ from detect_oscillations import *
 from plots import *
 
 
-fIn = 'wmxR_asym.txt'
+STDP_mode = "asym"
+fIn = "wmxR_%s.txt"%STDP_mode
 
 # synaptic weights
 J_PyrInh = 0.02
-J_BasExc = 5.
-J_BasInh = 0.45
-Wee_mult = 2.85
+if STDP_mode == "asym":
+    J_BasExc = 5
+    J_BasInh = 0.4
+elif STDP_mode == "sym":
+    J_BasExc = 4.5
+    J_BasInh = 0.75
+# wmx scale factor already introduced in the stdp* script!
+   
+# mossy fiber input
 J_PyrMF = 24.25
-# input freq
 rate_MF = 20 * Hz
 
 # size of populations
@@ -118,7 +124,7 @@ dx_gaba/dt = -x_gaba/BasInh_decay : 1
 
 
 fName = os.path.join(SWBasePath, "files", fIn)
-Wee = load_Wee(fName) * Wee_mult
+Wee = load_Wee(fName)
 
 
 PE = NeuronGroup(NE, model=eqs_Pyr, threshold="vm>v_spike_Pyr",
