@@ -4,7 +4,7 @@
 updated network, parameters are (should be) closer to the experimental data!
 creates PC (adExp IF) and BC (exp IF) population in Brian2, loads in recurrent connection matrix for PC population
 runs simulation and checks the dynamics
-authors: Bagi Bence, András Ecker last update: 06.2017
+authors: Bence Bagi, András Ecker last update: 06.2017
 '''
 
 import os
@@ -12,6 +12,7 @@ import sys
 from brian2 import *
 #set_device('cpp_standalone')  # speed up the simulation with generated C++ code
 import numpy as np
+import random as pyrandom
 import matplotlib.pyplot as plt
 SWBasePath = os.path.sep.join(os.path.abspath('__file__').split(os.path.sep)[:-2])
 # add the 'scripts' directory to the path (import the modules)
@@ -140,9 +141,10 @@ PI.vm  = Vrest_Bas
 PI.g_ampa = 0
 PI.g_gaba = 0
 
-MF = PoissonGroup(NE, rate_MF)
-
 np.random.seed(12345)
+pyrandom.seed(12345)
+
+MF = PoissonGroup(NE, rate_MF)
 
 Cext = Synapses(MF, PE, on_pre="x_ampaMF+=J_PyrMF")
 Cext.connect(j='i')
