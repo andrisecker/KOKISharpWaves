@@ -10,6 +10,7 @@ import os
 import gc
 from brian import *
 import numpy as np
+import random as pyrandom
 import matplotlib.pyplot as plt
 from detect_oscillations import *
 from plots import *
@@ -117,16 +118,17 @@ dWee = save_selected_w(Wee, selection)
 plot_weights(dWee, "sel_weights")
 plt.close("all")
 
+
 X = np.zeros((20, dataPoints))  # init. container to store results
 
 # ====================================== iterates over diff. multipliers ======================================
 
-for k in range(0, dataPoints):
+for k, multiplier in enumerate(multipliers):
 
-    multiplier = multipliers[k]
-    print "multiplier=%s"%multiplier
+    print "multiplier: %f"%multiplier
 
     np.random.seed(12345)
+    pyrandom.seed(12345)
 
     # recreate the neurons in every iteration (just to make sure!)
     SCR = SimpleCustomRefractoriness(myresetfunc, tref_Pyr, state='vm')
@@ -164,7 +166,7 @@ for k in range(0, dataPoints):
     msMe = MultiStateMonitor(PE, vars=["vm", "w", "g_ampa", "g_gaba"], record=selection.tolist())  # comment this out later (takes a lot of memory!)
 
 
-    run(10000*ms, report='text')  # run the simulation!
+    run(10000*ms, report="text")
 
 
     if sme.nspikes > 0 and smi.nspikes > 0:  # check if there is any activity
