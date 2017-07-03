@@ -37,16 +37,19 @@ def run_simulation(Wee, J_PyrInh_, J_BasExc_, J_BasInh_, WeeMult_, J_PyrMF_, rat
     # synaptic time constants:
     # rise time constants
     PyrExc_rise = 1.3 * ms  # Gupta 2016 (only from Fig.1 H - 20-80%)
-    PyrInh_rise = 0.3 * ms  # Bartos 2002
+    PyrExcMF_rise = 0.65 * ms  # Vyleta ... Jonas 2016 (20-80%)
+    PyrInh_rise = 0.3 * ms  # Bartos 2002 (20-80%)
     BasExc_rise = 1. * ms  # Lee 2014 (data from CA1) 
     BasInh_rise = 0.25 * ms  # Bartos 2002 (20-80%)
     # decay time constants
     PyrExc_decay = 9.5 * ms  # Gupta 2016 ("needed for temporal summation of EPSPs") 
+    PyrExcMF_decay = 5.4 * ms  # Vyleta ... Jonas 2016
     PyrInh_decay = 3.3 * ms  # Bartos 2002
     BasExc_decay = 4.1 * ms  # Lee 2014 (data from CA1)
     BasInh_decay = 1.2 * ms  # Bartos 2002
     # Normalization factors (normalize the peak of the PSC curve to 1)
     invpeak_PyrExc = (PyrExc_decay / PyrExc_rise) ** (PyrExc_rise / (PyrExc_decay - PyrExc_rise))
+    invpeak_PyrExcMF = (PyrExcMF_decay / PyrExcMF_rise) ** (PyrExcMF_rise / (PyrExcMF_decay - PyrExcMF_rise))
     invpeak_PyrInh = (PyrInh_decay / PyrInh_rise) ** (PyrInh_rise / (PyrInh_decay - PyrInh_rise))
     invpeak_BasExc = (BasExc_decay / BasExc_rise) ** (BasExc_rise / (BasExc_decay - BasExc_rise))
     invpeak_BasInh = (BasInh_decay / BasInh_rise) ** (BasInh_rise / (BasInh_decay - BasInh_rise))
@@ -90,24 +93,22 @@ def run_simulation(Wee, J_PyrInh_, J_BasExc_, J_BasInh_, WeeMult_, J_PyrMF_, rat
     reset_Bas = -39.1229822301 * mV
     theta_Bas = -39.5972788689 * mV
     tref_Bas = 1.06976577195 * ms
-    a_Bas = 0.821975246336 * nS 
-    b_Bas = 0.00398843790629 * nA
     delta_T_Bas = 2.21103724225 * mV
-    tau_w_Bas = 415.241939453 * ms
     v_spike_Bas = theta_Bas + 10 * delta_T_Bas
 
     eqs_Pyr = '''
-    dvm/dt = (-gL_Pyr*(vm-Vrest_Pyr) + gL_Pyr*delta_T_Pyr*exp((vm- theta_Pyr)/delta_T_Pyr)- w - (g_ampa*z*(vm-E_Exc) + g_gaba*z*(vm-E_Inh)))/Cm_Pyr : volt (unless refractory)
+    dvm/dt = (-gL_Pyr*(vm-Vrest_Pyr) + gL_Pyr*delta_T_Pyr*exp((vm- theta_Pyr)/delta_T_Pyr) - w - ((g_ampa+g_ampaMF)*z*(vm-E_Exc) + g_gaba*z*(vm-E_Inh)))/Cm_Pyr : volt (unless refractory)
     dw/dt = (a_Pyr*(vm- Vrest_Pyr )-w)/tau_w_Pyr : amp
     dg_ampa/dt = (invpeak_PyrExc * x_ampa - g_ampa) / PyrExc_rise : 1
     dx_ampa/dt = -x_ampa / PyrExc_decay : 1
+    dg_ampaMF/dt = (invpeak_PyrExcMF * x_ampaMF - g_ampaMF) / PyrExcMF_rise : 1
+    dx_ampaMF/dt = -x_ampaMF / PyrExcMF_decay : 1
     dg_gaba/dt = (invpeak_PyrInh * x_gaba - g_gaba) / PyrInh_rise : 1
     dx_gaba/dt = -x_gaba/PyrInh_decay : 1
     '''
 
     eqs_Bas = '''
-    dvm/dt = (-gL_Bas*(vm-Vrest_Bas) + gL_Bas*delta_T_Bas*exp((vm- theta_Bas)/delta_T_Bas)- w - (g_ampa*z*(vm-E_Exc) + g_gaba*z*(vm-E_Inh)))/Cm_Bas : volt (unless refractory)
-    dw/dt = (a_Bas*(vm- Vrest_Bas )-w)/tau_w_Bas : amp
+    dvm/dt = (-gL_Bas*(vm-Vrest_Bas) + gL_Bas*delta_T_Bas*exp((vm- theta_Bas)/delta_T_Bas) - (g_ampa*z*(vm-E_Exc) + g_gaba*z*(vm-E_Inh)))/Cm_Bas : volt (unless refractory)
     dg_ampa/dt = (invpeak_BasExc * x_ampa - g_ampa) / BasExc_rise : 1
     dx_ampa/dt = -x_ampa/BasExc_decay : 1
     dg_gaba/dt = (invpeak_BasInh * x_gaba - g_gaba) / BasInh_rise : 1
@@ -119,10 +120,11 @@ def run_simulation(Wee, J_PyrInh_, J_BasExc_, J_BasInh_, WeeMult_, J_PyrMF_, rat
     PE = NeuronGroup(NE, model=eqs_Pyr, threshold="vm>v_spike_Pyr",
                  reset="vm=reset_Pyr; w+=b_Pyr", refractory=tref_Pyr, method="exponential_euler")
     PI = NeuronGroup(NI, model=eqs_Bas, threshold="vm>v_spike_Bas",
-                 reset="vm=reset_Bas; w+=b_Bas", refractory=tref_Bas, method="exponential_euler")
+                 reset="vm=reset_Bas", refractory=tref_Bas, method="exponential_euler")
 
     PE.vm = Vrest_Pyr
     PE.g_ampa = 0
+    PE.g_ampaMF = 0
     PE.g_gaba = 0
 
     PI.vm  = Vrest_Bas
@@ -133,7 +135,7 @@ def run_simulation(Wee, J_PyrInh_, J_BasExc_, J_BasInh_, WeeMult_, J_PyrMF_, rat
 
     np.random.seed(12345)
 
-    Cext = Synapses(MF, PE, on_pre="x_ampa+=J_PyrMF")
+    Cext = Synapses(MF, PE, on_pre="x_ampaMF+=J_PyrMF")
     Cext.connect(j='i')
 
     # weight matrix used here:
