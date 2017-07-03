@@ -16,6 +16,19 @@ sys.path.insert(0, os.path.sep.join([SWBasePath, 'scripts']))
 from detect_oscillations import *
 
 
+def evaluate_power(ripple, gamma):
+    """helper function to score ripple/gamma power ratio"""
+    tmp = ripple/gamma
+    scoreRG = 0
+    if tmp > 20.:
+        scoreRG = 3
+    elif 10. < tmp <= 20.:
+        scoreRG = 2
+    elif 2. <= tmp <= 10.:
+        scoreRG = 1
+    return scoreRG
+
+
 class Brian2Evaluator(bpop.evaluators.Evaluator):
 
     def __init__(self, Wee, params):
@@ -35,7 +48,7 @@ class Brian2Evaluator(bpop.evaluators.Evaluator):
         """runs simulation (run_sim.py) and returns monitors"""
         sme, smi, popre, popri = sim.run_simulation(self.Wee, *individual)
         return sme, smi, popre, popri
-        
+
     def evaluate_with_lists(self, individual):
         """fitness error used by BluePyOpt for the optimization"""
         sme, smi, popre, popri = self.generate_model(individual)
@@ -61,16 +74,17 @@ class Brian2Evaluator(bpop.evaluators.Evaluator):
                     ripple_peakE = 5 - (np.abs(avgRippleFE - 180) / 180)
                 ripple_peakI = 0
                 if not np.isnan(avgRippleFI):
-                    ripple_peakI = 7 - (np.abs(avgRippleFI - 180) / 180)
+                    ripple_peakI = 6 - (np.abs(avgRippleFI - 180) / 180)
                 # penalize significant gamma peak
-                bool_gammaE = int(np.isnan(avgGammaFE)) - 1  # 0 or -1
-                bool_gammaI = int(np.isnan(avgGammaFI)) - 1
-                # look for "low" population rate (gauss around 3Hz for exc. pop.)
-                rateE = np.exp(-1/2*(meanEr-3)**2/1.5**2)  # peak normalized to 1
+                bool_gammaE = int(np.isnan(avgGammaFE))
+                bool_gammaI = int(np.isnan(avgGammaFI))
+                # look for high ripple/gamma power ratio
+                ripple_gammaE = evaluate_power(ripplePE, gammaPE)
+                ripple_gammaI = evaluate_power(ripplePI, gammaPI)
+                # look for "low" population rate (gauss around 2.5Hz for exc. pop.)
+                rateE = np.exp(-1/2*(meanEr-2.5)**2/1.5**2)  # peak normalized to 1
                 
-                fitness = -1 * (ripple_peakE + ripple_peakI + 0.1*ripplePE/gammaPE + 0.1*ripplePI/gammaPI + 2*bool_gammaE + 2*bool_gammaI + 4*rateE)
-            else:
-                fitness = 0
+                fitness = -1 * (ripple_peakE + ripple_peakI + bool_gammaE + 1.5*bool_gammaI + ripple_gammaE + ripple_gammaI + 3*rateE)
         
         return [fitness]  # single score but has to be a list for BluePyOpt
         
