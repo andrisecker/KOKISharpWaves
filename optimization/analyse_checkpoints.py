@@ -11,7 +11,6 @@ import pickle
 import numpy as np
 import sim_evaluator
 import matplotlib.pyplot as plt
-
 SWBasePath = os.path.sep.join(os.path.abspath('__file__').split(os.path.sep)[:-2])
 # add the 'scripts' directory to the path (import the modules)
 sys.path.insert(0, os.path.sep.join([SWBasePath, 'scripts']))
@@ -20,16 +19,15 @@ from plots import *
 
 
 fIn = "wmxR_asym.txt"
-cpIn = "checkpoint_asym_2.pkl"
+cpIn = "checkpoint_asym_13.pkl"
 
 # Optimized parameters (the bounds might be difference, but it's necessary to have this here...)
-optconf = [("J_PyrInh_", 0.5, 5),
-           ("J_BasExc_", 0.5, 5),
-           ("J_BasInh_", 0.5, 5),
-           ("WeeMult_", 0.5, 5.),
-           ("J_PyrMF_", 5., 30.),
-           ("rate_MF_", 5., 50.)]
-           # the order matters! if you want to add more parameters - update run_sim.py too 
+optconf = [("J_PyrInh_", 0.01, 0.1),
+           ("J_BasExc_", 4.5, 5.5),
+           ("J_BasInh_", 0.25, 1.),
+           ("WeeMult_", 2.5, 3.5),
+           ("J_PyrMF_", 20., 40.),
+           ("rate_MF_", 10., 25.)]
 pnames = [name for name, _, _ in optconf]
 
 # load in saved checkpoints
