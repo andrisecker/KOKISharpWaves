@@ -16,13 +16,13 @@ from plots import *
 
 
 fIn = 'wmxR_asym.txt'
-fOut = 'results_asym_v02.txt'
+fOut = 'results_asym_tmp.txt'
 
 SWBasePath = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2])
 
-first = 0.5
-last = 2.5
-dataPoints = 21
+first = 0.9
+last = 1.1
+dataPoints = 3
 
 multipliers = np.linspace(first, last, dataPoints)
 
@@ -110,17 +110,23 @@ dg_gaba/dt = -g_gaba/tauSyn_BasInh : 1
 fName = os.path.join(SWBasePath, 'files', fIn)
 Wee = load_Wee(fName)
 
+# plot matrix (and some selected weights)
+plot_wmx_avg(Wee, 100, "wmx")
+selection = np.array([500, 1500, 2500, 3500])  # some random neuron IDs to save weigths
+dWee = save_selected_w(Wee, selection)
+plot_weights(dWee, "sel_weights")
+plt.close("all")
+
 X = np.zeros((20, dataPoints))  # init. container to store results
 
 # ====================================== iterates over diff. multipliers ======================================
 
-seed = 12345
 for k in range(0, dataPoints):
 
     multiplier = multipliers[k]
     print "multiplier=%s"%multiplier
 
-    np.random.seed(seed)
+    np.random.seed(12345)
 
     # recreate the neurons in every iteration (just to make sure!)
     SCR = SimpleCustomRefractoriness(myresetfunc, tref_Pyr, state='vm')
@@ -154,8 +160,8 @@ for k in range(0, dataPoints):
     popre = PopulationRateMonitor(PE)
     popri = PopulationRateMonitor(PI)
     # other monitors factored out to speed up simulation and make the process compatible with Brian2
-    selection = np.arange(0, 4000, 100) # subset of neurons for recoring variables
-    msMe = MultiStateMonitor(PE, vars=['vm', 'w', 'g_ampa', 'g_gaba'], record=selection.tolist())  # comment this out later (takes a lot of memory!)
+    selection = np.arange(0, 4000, 50) # subset of neurons for recoring variables
+    msMe = MultiStateMonitor(PE, vars=["vm", "w", "g_ampa", "g_gaba"], record=selection.tolist())  # comment this out later (takes a lot of memory!)
 
 
     run(10000*ms, report='text')  # run the simulation!
@@ -166,7 +172,7 @@ for k in range(0, dataPoints):
         spikeTimesE, spikingNeuronsE, poprE, ISIhist, bin_edges = preprocess_monitors(sme, popre)
         spikeTimesI, spikingNeuronsI, poprI = preprocess_monitors(smi, popri, calc_ISI=False)
 
-        # calling detect_oscillation functions:
+        # call detect_oscillation functions:
         avgReplayInterval = replay(ISIhist[3:16])  # bins from 150 to 850 (range of interest)
 
         meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE, 1000)
@@ -186,6 +192,7 @@ for k in range(0, dataPoints):
                    avgRippleFI, ripplePI, avgGammaFI, gammaPI]
 
         # Plots
+        plot_raster_ISI(spikeTimesE, spikingNeuronsE, [ISIhist, bin_edges], "blue", multiplier)
         plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier)
         plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier)
 
@@ -195,7 +202,7 @@ for k in range(0, dataPoints):
         plot_detailed(msMe, subset, multiplier)
         #plot_adaptation(msMe, selection, multiplier)
 
-        plt.close('all')
+        plt.close("all")
 
     else:  # if there is no activity the auto-correlation function will throw an error!
 
@@ -206,136 +213,21 @@ for k in range(0, dataPoints):
         X[:, k] = [multiplier, 0, np.nan, np.nan, np.nan, np.nan, 0, np.nan, np.nan, np.nan, np.nan,
 		           np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
 
-    # Reinitialize variables
-    reinit(states=True)  # population is recreated so this might be useless
-    reinit_default_clock()  # population is recreated so this might be useless
-    clear(True)
     gc.collect()
-    seed += 1
 
 
 # ====================================== summary plots and saving ======================================
 
+plot_summary_replay(multipliers, replay_interval=X[11, :], rateE=X[1, :], rateI=X[6, :])
+plot_summary_AC(multipliers, maxACE=X[2, :], maxACI=X[7, :], maxRACE=X[4, :], maxRACI=X[9, :])
+plot_summary_ripple(multipliers, rippleFE=X[12, :], rippleFI=X[16, :], ripplePE=X[13, :], ripplePI=X[17, :])
+plot_summary_gamma(multipliers, gammaFE=X[14, :], gammaFI=X[18, :], gammaPE=X[15, :], gammaPI=X[19, :])
 
-fig = plt.figure(figsize=(10, 8))
-
-ax = fig.add_subplot(2, 1, 1)
-ax.plot(multipliers, X[11, :], linewidth=2, marker='|')
-ax.set_title('Average replay interval')
-ax.set_xlim(first, last)
-ax.set_ylabel('Time (ms)')
-
-ax2 = fig.add_subplot(2, 1, 2)
-ax3 = ax2.twinx()
-ax2.plot(multipliers, X[1, :], 'b-', linewidth=2, marker='|')
-ax2.set_ylabel(ylabel='PC (exc.) rate', color='blue')
-ax3.plot(multipliers, X[6, :], 'g-', linewidth=2, marker='|')
-ax3.set_ylabel(ylabel='BC (inh.) rate', color='green')
-ax2.set_xlabel('scale factors')
-ax2.set_xlim(first, last)
-ax2.set_title('Mean firing rates')
-
-fig.tight_layout()
-fig.savefig(os.path.join(SWBasePath, 'figures', 'replay_and_firing_rates.png'))
-
-
-fig2 = plt.figure(figsize=(10, 8))
-
-ax = fig2.add_subplot(2, 1, 1)
-ax.plot(multipliers, X[2, :], label='PC (exc.)', color='blue', linewidth=2, marker='|')
-ax.plot(multipliers, X[7, :], label='BC (inh.)', color='green', linewidth=2, marker='|')
-ax.set_xlim(first, last)
-ax.set_title('Maximum autocerrelations')
-ax.legend()
-
-ax2 = fig2.add_subplot(2, 1, 2)
-ax2.plot(multipliers, X[4, :], label='PC (exc.)', color='blue', linewidth=2, marker='|')
-ax2.plot(multipliers, X[9, :], label='BC (inh.)', color='green', linewidth=2, marker='|')
-ax2.set_xlim(first, last)
-ax2.set_title('Maximum autocerrelations in ripple range')
-ax2.set_xlabel('scale factors')
-ax2.legend()
-
-fig2.tight_layout()
-fig2.savefig(os.path.join(SWBasePath, 'figures', 'autocorrelations.png'))
-
-
-fig3 = plt.figure(figsize=(10, 8))
-
-ax = fig3.add_subplot(2, 1, 1)
-ax.plot(multipliers, X[12, :], label='Ripple freq (exc.)', color='blue', linewidth=2, marker='o')
-ax2 = ax.twinx()
-ax2.plot(multipliers, X[13, :], label='Ripple power (exc.)', color='red', linewidth=2, marker='|')
-ax.set_xlim(first, last)
-ax.set_ylabel(ylabel='freq [Hz]', color='blue')
-ax.set_ylim([np.nanmin(X[12, :])-5, np.nanmax(X[12, :])+8])
-ax2.set_ylabel(ylabel='power %', color='red')
-ax2.set_ylim([0, 100])
-ax.set_title('Ripple oscillation')
-ax.legend(loc=2)
-ax2.legend()
-
-ax3 = fig3.add_subplot(2, 1, 2)
-ax3.plot(multipliers, X[16, :], label='Ripple freq (inh.)', color='green', linewidth=2, marker='o')
-ax4 = ax3.twinx()
-ax4.plot(multipliers, X[17, :], label='Ripple power (inh.)', color='red', linewidth=2, marker='|')
-ax3.set_xlim(first, last)
-ax3.set_ylabel(ylabel='freq [Hz]', color='green')
-ax3.set_ylim([np.nanmin(X[16, :])-5, np.nanmax(X[16, :])+8])
-ax4.set_ylabel(ylabel='power %', color='red')
-ax4.set_ylim([0, 100])
-ax3.set_xlabel('scale factors')
-ax3.legend(loc=2)
-ax4.legend()
-
-fig3.tight_layout()
-fig3.savefig(os.path.join(SWBasePath, 'figures', 'ripple.png'))
-
-
-fig4 = plt.figure(figsize=(10, 8))
-
-ax = fig4.add_subplot(2, 1, 1)
-ax.plot(multipliers, X[14, :], label='Gamma freq (exc.)', color='blue', linewidth=2, marker='o')
-ax2 = ax.twinx()
-ax2.plot(multipliers, X[15, :], label='Gamma power (exc.)', color='red', linewidth=2, marker='|')
-ax.set_xlim(first, last)
-ax.set_ylabel(ylabel='freq [Hz]', color='blue')
-ax.set_ylim([np.nanmin(X[14, :])-5, np.nanmax(X[14, :])+8])
-ax2.set_ylabel(ylabel='power %', color='red')
-ax2.set_ylim([0, 100])
-ax.set_title('Gamma oscillation')
-ax.legend(loc=2)
-ax2.legend()
-
-ax3 = fig4.add_subplot(2, 1, 2)
-ax3.plot(multipliers, X[18, :], label='Gamma freq (inh.)', color='green', linewidth=2, marker='o')
-ax4 = ax3.twinx()
-ax4.plot(multipliers, X[19, :], label='Gamma power (inh.)', color='red', linewidth=2, marker='|')
-ax3.set_xlim(first, last)
-ax3.set_ylabel(ylabel='freq [Hz]', color='green')
-ax3.set_ylim([np.nanmin(X[18, :])-5, np.nanmax(X[18, :])+8])
-ax4.set_ylabel(ylabel='power %', color='red')
-ax4.set_ylim([0, 100])
-ax3.set_xlabel('scale factors')
-ax3.legend(loc=2)
-ax4.legend()
-
-fig4.tight_layout()
-fig4.savefig(os.path.join(SWBasePath, 'figures', 'gamma.png'))
-
-plt.close('all')
-
-if len(fIn) > 8:  # if not the original matrix (wmxR.txt) is used - save the figure of the matrix...
-
-    fName = os.path.join(SWBasePath, 'files', fIn)
-    wmxM = load_Wee(fName)
-
-    plot_wmx_avg(wmxM, 100, "wmx")
-    plt.close()
+plt.close("all")
 
 
 # Save result array (X)
-fName= os.path.join(SWBasePath, 'files', fOut)
+fName= os.path.join(SWBasePath, "files", fOut)
 header = 'Multiplier, Mean_exc.rate, Max.exc.AC., at[ms], Max.exc.AC.in_ripple_range, at[ms],' \
          'Mean_inh.rate, Max.inh.AC., at[ms], Max.inh.AC.in_ripple_range, at[ms],' \
          'avg. replay interval,' \

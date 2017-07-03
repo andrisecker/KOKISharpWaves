@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 '''
 helper file to plot dynamics (and the weight matrix)
-authors: Bence Bagi, András Ecker, last update: 05.2017
+authors: Bence Bagi, András Ecker, last update: 06.2017
 '''
 
 import os
@@ -170,7 +170,7 @@ def select_subset(selection, ymin, ymax):
     try:
         np.random.shuffle(selection)
         subset = []
-        counter = 5
+        counter = 3
         for i in selection:
             if i >= ymin and i <= ymax:
                 subset.append(i)
@@ -457,6 +457,158 @@ def plot_weights(dWee, saveName_):
     ax.legend()
 
     figName = os.path.join(figFolder, "%s.png"%saveName_)
+    fig.savefig(figName)
+
+
+def plot_summary_replay(multipliers, replay_interval, rateE, rateI):
+    """
+    saves summary figure with avg. replay interval and avg. firing rates
+    :param multipliers: wmx multipliers
+    :param replay _interval: replay intervals (has to be the same size as multipliers)
+    :param rateE, rateI: avg. exc. and inh. firing rates (have to be the same size as multipliers)
+    """
+
+    fig = plt.figure(figsize=(10, 8))
+
+    ax = fig.add_subplot(2, 1, 1)
+    ax.plot(multipliers, replay_interval, linewidth=2, marker='|')
+    ax.set_title("Average replay interval")
+    ax.set_xlim([multipliers[0], multipliers[-1]])
+    ax.set_ylabel("Time (ms)")
+
+    ax2 = fig.add_subplot(2, 1, 2)
+    ax3 = ax2.twinx()
+    ax2.plot(multipliers, rateE, "b-", linewidth=2, marker="|", label="PC rate")
+    ax2.set_ylabel(ylabel="Exc. rate (Hz)", color="blue")
+    ax3.plot(multipliers, rateI, "g-", linewidth=2, marker="|", label="BC rate")
+    ax3.set_ylabel(ylabel="Inh rate (Hz)", color="green")
+    ax2.set_xlabel("scale factors")
+    ax2.set_xlim([multipliers[0], multipliers[-1]])
+    ax2.set_title("Mean firing rates")
+    h2, l2 = ax2.get_legend_handles_labels()
+    h3, l3 = ax3.get_legend_handles_labels()
+    ax2.legend(h2+h3, l2+l3)
+
+    fig.tight_layout()
+    figName = os.path.join(figFolder, "replay_rate.png")
+    fig.savefig(figName)   
+
+
+def plot_summary_AC(multipliers, maxACE, maxACI, maxRACE, maxRACI):
+    """
+    saves summary figure with maximum autocorrelations
+    :param multipliers: wmx multipliers
+    :param maxACE, maxACI: max. exc. and inh. ACs (have to be the same size as multipliers)
+    :param maxRACE, maxRACI: max. exc. and inh. ACs in ripple range (have to be the same size as multipliers)
+    """
+
+    fig = plt.figure(figsize=(10, 8))
+
+    ax = fig.add_subplot(2, 1, 1)
+    ax.plot(multipliers, maxACE, "b-", linewidth=2, marker="|", label="PC (exc.)")
+    ax.plot(multipliers, maxACI, "g-", linewidth=2, marker="|", label="BC (inh.)")
+    ax.set_xlim([multipliers[0], multipliers[-1]])
+    ax.set_title("Maximum autocerrelations")
+    ax.legend()
+
+    ax2 = fig.add_subplot(2, 1, 2)
+    ax2.plot(multipliers, maxRACE, "b-", linewidth=2, marker="|", label="PC (exc.)")
+    ax2.plot(multipliers, maxRACI, "g-", linewidth=2, marker="|", label="BC (inh.)")
+    ax2.set_xlim([multipliers[0], multipliers[-1]])
+    ax2.set_title("Maximum autocerrelations in ripple range")
+    ax2.set_xlabel("scale factors")
+    ax2.legend()
+
+    fig.tight_layout()
+    figName = os.path.join(figFolder, "autocorrelations.png")
+    fig.savefig(figName)
+    
+
+def plot_summary_ripple(multipliers, rippleFE, rippleFI, ripplePE, ripplePI):
+    """
+    saves summary figure with ripple freq. and power
+    :param multipliers: wmx multipliers
+    :param rippleFE, rippleFI: exc. and inh. ripple frequency (have to be the same size as multipliers)
+    :param ripplePE, ripplePI: exc. and inh. ripple power (have to be the same size as multipliers)
+    """
+
+    fig = plt.figure(figsize=(10, 8))
+
+    ax = fig.add_subplot(2, 1, 1)
+    ax.plot(multipliers, rippleFE, "b-", linewidth=2, marker="o", label="ripple freq (exc.)")
+    ax2 = ax.twinx()
+    ax2.plot(multipliers, ripplePE, "r-", linewidth=2, marker="|", label="ripple power (exc.)")
+    ax.set_xlim([multipliers[0], multipliers[-1]])
+    ax.set_ylabel(ylabel="freq (Hz)", color="blue")
+    ax.set_ylim([np.nanmin(rippleFE)-5, np.nanmax(rippleFE)+8])
+    ax2.set_ylabel(ylabel="power %", color="red")
+    ax2.set_ylim([0, 100])
+    ax.set_title("Ripple oscillation")
+    h1, l1 = ax.get_legend_handles_labels()
+    h2, l2 = ax2.get_legend_handles_labels()
+    ax.legend(h1+h2, l1+l2)
+
+
+    ax3 = fig.add_subplot(2, 1, 2)
+    ax3.plot(multipliers, rippleFI,  "g-", linewidth=2, marker="o", label="ripple freq (inh.)")
+    ax4 = ax3.twinx()
+    ax4.plot(multipliers, ripplePI,  "r-", linewidth=2, marker="|", label="ripple power (inh.)")
+    ax3.set_xlim([multipliers[0], multipliers[-1]])
+    ax3.set_ylabel(ylabel="freq (Hz)", color="green")
+    ax3.set_ylim([np.nanmin(rippleFI)-5, np.nanmax(rippleFI)+8])
+    ax4.set_ylabel(ylabel="power %", color="red")
+    ax4.set_ylim([0, 100])
+    ax3.set_xlabel("scale factors")
+    h3, l3 = ax3.get_legend_handles_labels()
+    h4, l4 = ax4.get_legend_handles_labels()
+    ax3.legend(h3+h4, l3+l4)
+
+    fig.tight_layout()
+    figName = os.path.join(figFolder, "ripple.png")
+    fig.savefig(figName)
+    
+    
+def plot_summary_gamma(multipliers, gammaFE, gammaFI, gammaPE, gammaPI):
+    """
+    saves summary figure with ripple freq. and power
+    :param multipliers: wmx multipliers
+    :param gammaFE, gammaFI: exc. and inh. gamma frequency (have to be the same size as multipliers)
+    :param gammaPE, gammaPI: exc. and inh. gamma power (have to be the same size as multipliers)
+    """
+
+    fig = plt.figure(figsize=(10, 8))
+
+    ax = fig.add_subplot(2, 1, 1)
+    ax.plot(multipliers, gammaFE, "b-", linewidth=2, marker="o", label="gamma freq (exc.)")
+    ax2 = ax.twinx()
+    ax2.plot(multipliers, gammaPE, "r-", linewidth=2, marker="|", label="gamma power (exc.)")
+    ax.set_xlim([multipliers[0], multipliers[-1]])
+    ax.set_ylabel(ylabel="freq (Hz)", color="blue")
+    ax.set_ylim([np.nanmin(gammaFE)-5, np.nanmax(gammaFE)+8])
+    ax2.set_ylabel(ylabel="power %", color="red")
+    ax2.set_ylim([0, 100])
+    ax.set_title("Gamma oscillation")
+    h1, l1 = ax.get_legend_handles_labels()
+    h2, l2 = ax2.get_legend_handles_labels()
+    ax.legend(h1+h2, l1+l2)
+
+
+    ax3 = fig.add_subplot(2, 1, 2)
+    ax3.plot(multipliers, gammaFI,  "g-", linewidth=2, marker="o", label="gamma freq (inh.)")
+    ax4 = ax3.twinx()
+    ax4.plot(multipliers, gammaPI,  "r-", linewidth=2, marker="|", label="gamma power (inh.)")
+    ax3.set_xlim([multipliers[0], multipliers[-1]])
+    ax3.set_ylabel(ylabel="freq (Hz)", color="green")
+    ax3.set_ylim([np.nanmin(gammaFI)-5, np.nanmax(gammaFI)+8])
+    ax4.set_ylabel(ylabel="power %", color="red")
+    ax4.set_ylim([0, 100])
+    ax3.set_xlabel("scale factors")
+    h3, l3 = ax3.get_legend_handles_labels()
+    h4, l4 = ax4.get_legend_handles_labels()
+    ax3.legend(h3+h4, l3+l4)
+
+    fig.tight_layout()
+    figName = os.path.join(figFolder, "gamma.png")
     fig.savefig(figName)
     
     
