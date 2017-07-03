@@ -2,11 +2,12 @@
 # -*- coding: utf8 -*-
 '''
 helper file to extract dynamic features: checking replay interval by ISI, computing AC and PSD of population rate
-authors: András Ecker, Bence Bagi, Szabolcs Káli last update: 05.2017
+authors: András Ecker, Bence Bagi, Eszter Vértes, Szabolcs Káli last update: 06.2017
 '''
 
 import numpy as np
 from scipy import signal, misc
+
 
 def preprocess_monitors(sm, prm, calc_ISI=True):
     """
@@ -85,13 +86,13 @@ def preprocess_spikes(spiketimes, N_norm, calc_ISI=True):
 
 
 def replay(isi):
-    '''
+    """
     Decides if there is a replay or not:
     searches for the max # of spikes (and plus one bin one left- and right side)
     if the 70% of the spikes are in that 3 bins then it's periodic activity: replay
     :param isi: Inter Spike Intervals of the pyr. pop.
     :return avgReplayInterval: counted average replay interval
-    '''
+    """
 
     binsROI = isi
     binMeans = np.linspace(175, 825, 14)  # hard coded...
@@ -112,12 +113,12 @@ def replay(isi):
 
 
 def autocorrelation(x):
-    '''
+    """
     Computes the autocorrelation/serial correlation of a time series (to find repeating patterns)
     R(\tau) = \frac{E[(X_t - \mu)(X_{t+\tau} - \mu)]}{\sigma^2}
     :param x: time series
     :return: autocorrelation
-    '''
+    """
 
     meanx = np.mean(x)
     xUb = x - meanx
@@ -128,7 +129,7 @@ def autocorrelation(x):
 
 
 def ripple(rate, fs):
-    '''
+    """
     Decides if there is a high freq. ripple oscillation or not
     calculates the autocorrelation and the power spectrum of the activity
     and applies a Fisher g-test (on the spectrum) and if p value is smaller than 0.01 it's ripple
@@ -139,7 +140,7 @@ def ripple(rate, fs):
              maxACR, tMaxAC: maximum autocorrelation in ripple range, time interval of maxACR
              f, Pxx: sample frequencies and power spectral density (results of PSD analysis)
              avgRippleF, rippleP: average frequency and power of the oscillation
-    '''
+    """
 
     meanr = np.mean(rate)
     rAC = autocorrelation(rate)
@@ -150,7 +151,7 @@ def ripple(rate, fs):
     tMaxACR = rAC[3:9].argmax()+3
 
     # see more: http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.signal.welch.html
-    f, Pxx = signal.welch(rate, fs, nperseg=512, scaling='spectrum')
+    f, Pxx = signal.welch(rate, fs, window="hamming", nperseg=512, scaling="spectrum")
 
     f = np.asarray(f)
     rippleS = np.where(145 < f)[0][0]
@@ -183,13 +184,13 @@ def ripple(rate, fs):
 
 
 def gamma(f, Pxx):
-    '''
+    """
     Decides if there is a gamma oscillation or not
     and applies a Fisher g-test (on the spectrum) and if p value is smaller than 0.01 it's gamma
     :param f: calculated frequecies of the power spectrum
     :param Pxx: power spectrum of the neural activity
     :return: avgGammaF, gammaP: average frequency and power of the oscillation
-    '''
+    """
 
     f = np.asarray(f)
     gammaS = np.where(30 < f)[0][0]
