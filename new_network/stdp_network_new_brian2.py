@@ -29,13 +29,12 @@ if STDP_mode == "asym":
     Ap = 0.01
     Am = -Ap
     wmax = 40e-9  # S (w is dimensionless in the equations)
-    scale_factor = 2.85  # scaling factor necessary to get replay with the new cell models (not sure if this it should be here or somewhere else)
-    #wmax = 7e-9  # S (w is dimensionless in the equations) symmetric STDP rule (7e-9/8e-9)
+    scale_factor = 3.  # scaling factor necessary to get replay with the new cell models (not sure if this it should be here or somewhere else)
 elif STDP_mode == "sym":
     taup = taum = 20 * ms  # 70
     Ap = Am = 0.01  # 0.0035
     wmax = 8e-9  # S (w is dimensionless in the equations) # 7e-9
-    scale_factor = 3.15  # scaling factor necessary to get replay with the new cell models (not sure if this it should be here or somewhere else)
+    scale_factor = 3.35 # scaling factor necessary to get replay with the new cell models (not sure if this it should be here or somewhere else)
 
 Ap *= wmax  # needed to reproduce Brian1 results
 Am *= wmax  # needed to reproduce Brian1 results

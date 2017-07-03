@@ -25,11 +25,12 @@ STDP_mode = "asym"
 fIn = "wmxR_%s.txt"%STDP_mode
 
 # synaptic weights
-J_PyrInh = 0.02
 if STDP_mode == "asym":
+    J_PyrInh = 0.02
     J_BasExc = 5
     J_BasInh = 0.4
 elif STDP_mode == "sym":
+    J_PyrInh = 0.016
     J_BasExc = 4.5
     J_BasInh = 0.75
 # wmx scale factor already introduced in the stdp* script!
