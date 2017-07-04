@@ -2,161 +2,110 @@
 # -*- coding: utf8 -*-
 '''
 helper functions used for weight matrix modifications
-author: András Ecker last update: 10.2015
+author: András Ecker last update: 06.2017
 '''
 
 import numpy as np
+np.random.seed(12345)
 
 
-def load_Wee(fName):  # this way the file will closed and memory will cleaned
-    """dummy function, just to make python clear the memory"""
-    wmx = np.genfromtxt(fName)
-    np.fill_diagonal(wmx, 0)  # just to make sure
-
-    print "weight matrix loded"
-    return wmx
-
-
-def calc_mean(wmx):  # use to check if the distribution is changed
-    """calculates the mean of nonzero weights"""
-    tmp = wmx.tolist()
-    wmx = [val for sublist in tmp for val in sublist]
-    wmx = filter(lambda i: i != 0, wmx)
+def shuffle(wmxO):
+    """
+    Randomly shuffles the weight matrix (keeps weight distribution, but no spatial pattern)
+    :param wmxO: original weight matrix (4000 * 4000 ndarray)
+    :return: wmxM: modified weight matrix (4000 * 4000 ndarray)
+    """
     
-    print "mean(nonzero weights): %s (S)"%np.mean(wmx)
-    return np.mean(wmx)
-
-
-def gauss(wmxO):  # TODO: check if there are negative weights! ...
-    '''
-    Replace the whole weight matrix with random numbers (gaussian distribution, same mean and deviation)
-    :param wmxO: original weight matrix (4000 * 4000 ndarray)
-    :return: wmxM: modified weight matrix (4000 * 4000 ndarray)
-    '''
-
-    mu = np.mean(wmxO)
-    print "mu: %s (S)"%mu
-    sigma = np.std(wmxO)
-    print "sigma: %s"%sigma
-
-    np.random.seed(0)
-    wmxM = np.random.normal(mu, sigma, (4000, 4000))
+    wmxM = wmxO  # stupid numpy...
+    np.random.shuffle(wmxO)  # shuffle's only rows (keeps output weights)
 
     return wmxM
 
 
-def gauss_rectangle(wmxO):  # negative weights fixed (04.2017!)
+def shuffle_blocks(wmxO, popSize=50):
     '''
-    Replace to weights of neurons 3500 - 4000, with random numbers
-    (gaussian distribution, same mean and deviation as the original 15/64 of the matrix)
+    shuffles popSize*popSize blocks within the martrix
     :param wmxO: original weight matrix (4000 * 4000 ndarray)
-    :return: wmxM: modified weight matrix (4000 * 4000 ndarray)
-    '''   
-    _ = calc_mean(wmxO)
-    # this could be done better...
-    x1, x2, x3, x4, x5, x6, x7, wmxDown = np.vsplit(wmxO, 8)
-    wmx_tmp = np.concatenate((x1, x2, x3, x4, x5, x6, x7), axis=0)
-    y1, y2, y3, y4, y5, y6, y7, wmxRight = np.hsplit(wmx_tmp, 8)
-
-    muR = np.mean(wmxRight)
-    sigmaR = np.std(wmxRight)
-    muD = np.mean(wmxDown)
-    sigmaD = np.std(wmxDown)
-    mu = (muR + muD) / 2.0
-    print "mu: %s (S)"%mu
-    sigma = (sigmaR + sigmaD) / 2.0
-    print "sigma: %s"%sigma
-
-    np.random.seed(0)
-    wmxRGauss = np.random.normal(mu, sigma, (3500, 500))
-    np.random.seed(1)
-    wmxDGauss = np.random.normal(mu, sigma, (500, 4000))
-
-    wmx_tmp = np.concatenate((y1, y2, y3, y4, y5, y6, y7), axis=1)
-    wmxUp = np.concatenate((wmx_tmp, wmxRGauss), axis=1)
-    wmxM_neg = np.concatenate((wmxUp, wmxDGauss), axis=0)
-    wmxM = np.absolute(wmxM_neg)  # bugfix on 08.04.2017. - get rid of negative weights !!!
-    _ = calc_mean(wmxM)
-
-    return wmxM
-
-
-def mean_rectangle(wmxO):
-    '''
-    Replace an 1000*1000 rectangle with the mean of the distribution
-    :param wmxO: original weight matrix (4000 * 4000 ndarray)
+    :param popSize: size of the blocks
     :return: wmxM: modified weight matrix (4000 * 4000 ndarray)
     '''
 
-    x1, x2, x3, tmp = np.vsplit(wmxO, 4)
-    tmp1, tmp2, tmp3, tmp4 = np.hsplit(tmp, 4)
-
-    mu = np.mean(tmp4)
-    print 'mu:', mu
-
-    np.random.seed(0)
-    wmxMean = mu * np.ones((1000, 1000))
-
-    wmxU = np.concatenate((x1, x2, x3), axis=0)
-    wmxD = np.concatenate((tmp1, tmp2, tmp3, wmxMean), axis=1)
-    wmxM = np.concatenate((wmxU, wmxD), axis=0)
-
-    return wmxM
-
-
-def shuffle_rows_cols(wmxO):
-    '''
-    Perturbes the rows and columns of the weight matrix
-    :param wmxO: original weight matrix (4000 * 4000 ndarray)
-    :return: wmxM: modified weight matrix (4000 * 4000 ndarray)
-    '''
-    rowPert = np.linspace(0, 3999, 4000)
-    np.random.seed(0)
-    np.random.shuffle(rowPert)
-    tmp = wmxO[rowPert.tolist()]
-
-    tmp = np.transpose(tmp)
-    colPert = np.linspace(0, 3999, 4000)
-    np.random.seed(1)
-    np.random.shuffle(colPert)
-    tmp = tmp[colPert.tolist()]
-
-    wmxM = np.transpose(tmp)
-
-    return wmxM
-
-
-def shuffle_block_rows_cols(wmxO):
-    '''
-    Perturbes the rows and columns in small blocks of the weight matrix
-    :param wmxO: original weight matrix (4000 * 4000 ndarray)
-    :return: wmxM: modified weight matrix (4000 * 4000 ndarray)
-    '''
-
-    popSize = 50
     nPop = 4000 / popSize
-
     wmxM = np.zeros((4000, 4000))
-
+    d = {}
+    # get subpops
     for i in range(nPop):
         for j in range(nPop):
             tmp = wmxO[i*popSize:(i+1)*popSize, j*popSize:(j+1)*popSize]
+            d[i, j] = tmp
+    # shuffle idx
+    x = np.linspace(0, nPop-1, nPop)
+    y = np.linspace(0, nPop-1, nPop)
+    np.random.shuffle(x)
+    np.random.shuffle(y)
+    # recreate matrix
+    for i, vali in enumerate(x):
+        for j, valj in enumerate(y):
+            wmxM[i*popSize:(i+1)*popSize, j*popSize:(j+1)*popSize] = d[vali, valj]
 
+    return wmxM
+
+
+def shuffle_block_rows_cols(wmxO, popSize=50):
+    '''
+    Perturbes the rows and columns in small blocks of the weight matrix
+    :param wmxO: original weight matrix (4000 * 4000 ndarray)
+    :param popSize: size of the block shuffled inside
+    :return: wmxM: modified weight matrix (4000 * 4000 ndarray)
+    '''
+
+    wmxM = np.zeros((4000, 4000))
+    nPop = 4000 / popSize  
+    # get subpops
+    for i in range(nPop):
+        for j in range(nPop):
+            tmp = wmxO[i*popSize:(i+1)*popSize, j*popSize:(j+1)*popSize]
+            # shuffle rows
             rowPert = np.linspace(0, popSize-1, popSize)
-            np.random.seed(i)
             np.random.shuffle(rowPert)
-
             tmp = tmp[rowPert.tolist()]
-
+            # shuffle cols
             tmp = np.transpose(tmp)
             colPert = np.linspace(0, popSize-1, popSize)
-            np.random.seed(j)
             np.random.shuffle(colPert)
             tmp = tmp[colPert.tolist()]
             tmp = np.transpose(tmp)
-
+            # put back to matrix
             wmxM[i*popSize:(i+1)*popSize, j*popSize:(j+1)*popSize] = tmp
 
+    return wmxM
+
+
+def shuffle_subpop_input_weights(wmxO, shuffle_size=200):  # added only in 06.2017
+    """
+    shuffles the input weight (within one column) of a small pop. at the end of the matrix (4000-shuffle_size)
+    :param wmxO: original weight matrix (4000 * 4000 ndarray)
+    :param shuffle_size: size of the subpop. to modify
+    :return: wmxM: modified weight matrix (4000 * 4000 ndarray)
+    """
+    
+    # split matrix
+    id_ = 4000-shuffle_size
+    subwmxO_keep = wmxO[:, 0:id_]
+    subwmxO_mod = wmxO[:, id_:]
+    
+    # shuffle subpop
+    shuffled = subwmxO_mod[:, 0]  # stupid numpy...
+    np.random.shuffle(shuffled)
+    for i in range(1, shuffle_size):  # iterates over colums
+        tmp = subwmxO_mod[:, i]  # stupid numpy...
+        np.random.shuffle(tmp)
+        shuffled = np.vstack([shuffled, tmp])  # stacks as rows and will be transposed later  
+               
+    # connect to non-shuffled part
+    shuffled = np.transpose(shuffled)  # get back the original dimensions
+    wmxM = np.hstack([subwmxO_keep, shuffled])
+    
     return wmxM
 
 
@@ -171,37 +120,37 @@ def avg_weak_weights(wmxO):
 
     for i in range(0, 4000):
         row = wmxO[i, :]
-        max = np.max(row)
+        max_ = np.max(row)
         maxj = np.argmax(row)
         mu = np.mean(row)
         wmxM[i, :] = mu
-        wmxM[i, maxj] = max
+        wmxM[i, maxj] = max_
 
     return wmxM
 
 
-def avg_x_weak_weights(wmxO, x):
+def avg_x_weak_weights(wmxO, x=3975):
     '''
     Holds only the 4000-x strongest weight in every row and average the other ones
     :param wmxO: original weight matrix (4000 * 4000 ndarray)
     :return: wmxM: modified weight matrix (4000 * 4000 ndarray)
     '''
 
-    nHolded = 4000 - x
+    nHeld = 4000 - x
     wmxM = np.zeros((4000, 4000))
 
     for i in range(0, 4000):
         row = wmxO[i, :]
 
-        tmp = np.partition(-row, nHolded)
-        max = -tmp[:nHolded]  # values of first 4000-x elements
-        rest = -tmp[nHolded:]
+        tmp = np.partition(-row, nHeld)
+        max_ = -tmp[:nHeld]  # values of first 4000-x elements
+        rest = -tmp[nHeld:]
         mu = np.mean(rest)  # mean of the x weights
-        tmp = np.argpartition(-row, nHolded)
-        maxj = tmp[:nHolded]  # indexes of first 4000-x elements
+        tmp = np.argpartition(-row, nHeld)
+        maxj = tmp[:nHeld]  # indexes of first 4000-x elements
 
         rowM = mu * np.ones((1, 4000))
-        for j, val in zip(maxj, max):
+        for j, val in zip(maxj, max_):
            rowM[0, j] = val
 
         wmxM[i, :] = rowM
@@ -209,85 +158,35 @@ def avg_x_weak_weights(wmxO, x):
     return wmxM
 
 
-def disconnected(wmxO):
-    '''
-    splits the matrix and reconnet the upper and the lower part invertedly
-    :param wmxO: original weight matrix (4000 * 4000 ndarray)
-    :return: wmxM: modified weight matrix (4000 * 4000 ndarray)
-    '''
-
-    tmp1, tmp2 = np.vsplit(wmxO, 2)
-    wmxM = np.concatenate((tmp2, tmp1), axis=0)
-
-    return wmxM
-
-
-def binary_weights(wmxO, x):
+def binary_weights(wmxO, x=1):
     '''
     Makes the matrix binary by averaging the first x and the other 100-x percent of the matrix
     :param wmxO: original weight matrix (4000 * 4000 ndarray)
+    :param x: percent of strongest weights to keep
     :return: wmxM: modified weight matrix (4000 * 4000 ndarray)
     '''
 
-    nHolded = int((4000**2) * (x / 100.0))
+    nHeld = int((4000**2) * (x / 100.0))
     wmxM = np.zeros((4000, 4000))
 
+    # sort values, get min and max weights
     tmp = wmxO.tolist()
     wmxL = [val for sublist in tmp for val in sublist]
     wmxL.sort()
     wmxL = wmxL[::-1]
-    max = np.mean(wmxL[:nHolded])
-    min = np.mean(wmxL[nHolded:])
+    max_ = np.mean(wmxL[:nHeld])
+    min_ = np.mean(wmxL[nHeld:])
 
-    print 'max:', max
-    print 'min:', min
-
-    nHolded = int(4000 * (x / 100.0))
-
+    # recreate matrix
+    nHeld = int(4000 * (x / 100.0))   
     for i in range(0, 4000):
         row = wmxO[i, :]
-
-        tmp = np.argpartition(-row, nHolded)
-        maxj = tmp[:nHolded]
-
-        rowM = min * np.ones((1, 4000))
+        tmp = np.argpartition(-row, nHeld)
+        maxj = tmp[:nHeld]
+        rowM = min_ * np.ones((1, 4000))
         for j in maxj:
-           rowM[0, j] = max
-
+           rowM[0, j] = max_
         wmxM[i, :] = rowM
-
-    return wmxM
-
-
-def shuffle_blocks(wmxO, popSize):
-    '''
-    shuffles popSize*popSize blocks within the martrix
-    :param wmxO: original weight matrix (4000 * 4000 ndarray)
-    :param popSize: size of the blocks
-    :return: wmxM: modified weight matrix (4000 * 4000 ndarray)
-    '''
-
-    nPop = 4000 / popSize
-
-    d = {}
-    wmxM = np.zeros((4000, 4000))
-
-    for i in range(nPop):
-        for j in range(nPop):
-            tmp = wmxO[i*popSize:(i+1)*popSize, j*popSize:(j+1)*popSize]
-            d[i, j] = tmp
-
-    x = np.linspace(0, nPop-1, nPop)
-    y = np.linspace(0, nPop-1, nPop)
-
-    np.random.seed(0)
-    np.random.shuffle(x)
-    np.random.seed(1)
-    np.random.shuffle(y)
-
-    for i, vali in enumerate(x):
-        for j, valj in enumerate(y):
-            wmxM[i*popSize:(i+1)*popSize, j*popSize:(j+1)*popSize] = d[vali, valj]
 
     return wmxM
 
