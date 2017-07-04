@@ -15,7 +15,8 @@ sys.path.insert(0, os.path.sep.join([SWBasePath, 'scripts']))
 from detect_oscillations import load_Wee
 
 
-fIn = "wmxR_asym.txt"
+STDP_mode = "sym"
+fIn = "wmxR_%s.txt"%STDP_mode
 
 np.random.seed(12345)
 SWBasePath = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2])
@@ -49,14 +50,14 @@ tau_w_Pyr = 80.1747780694 * ms
 v_spike_Pyr = theta_Pyr + 10 * delta_T_Pyr
 
 eqs_Pyr = '''
-dvm/dt = (-gL_Pyr*(vm-Vrest_Pyr) + gL_Pyr*delta_T_Pyr*exp((vm- theta_Pyr)/delta_T_Pyr)- w - EPSC)/Cm_Pyr : volt (unless refractory)
+dvm/dt = (-gL_Pyr*(vm-Vrest_Pyr) + gL_Pyr*delta_T_Pyr*exp((vm- theta_Pyr)/delta_T_Pyr) - w - EPSC)/Cm_Pyr : volt (unless refractory)
 dw/dt = (a_Pyr*(vm- Vrest_Pyr )-w)/tau_w_Pyr : amp
 dg_ampa/dt = (invpeak_PyrExc * x_ampa - g_ampa) / PyrExc_rise : 1
 dx_ampa/dt = -x_ampa / PyrExc_decay : 1
 EPSC = g_ampa*z*(vm-E_Exc): amp
 '''
 
-n = 100
+n = 200
 weights = np.random.choice(wmx_nz, n, replace=False)
 EPSPs = np.zeros((n, 2000))
 EPSCs = np.zeros((n, 2000))
@@ -127,7 +128,7 @@ ax2.set_xlim([0,200])
 ax2.set_ylabel("EPSC (pA)")
 ax2.legend()
 fig.tight_layout()
-figName = os.path.join(figFolder, "EPS*_sym.png")
+figName = os.path.join(figFolder, "EPS*_%s.png"%STDP_mode)
 fig.savefig(figName)
 
 fig2 = plt.figure(figsize=(10,8))
@@ -142,7 +143,7 @@ ax2.set_title("%i random EPSCs (mean: %f pA)"%(n, np.mean(peakEPSCs)))
 ax2.set_xlabel("EPSC (pA)")
 ax2.set_yticks([])
 fig2.tight_layout()
-figName = os.path.join(figFolder, "distEPS*_sym.png")
+figName = os.path.join(figFolder, "distEPS*_%s.png"%STDP_mode)
 fig2.savefig(figName)
 
 plt.show()
