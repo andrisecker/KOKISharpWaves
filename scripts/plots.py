@@ -234,7 +234,7 @@ def plot_detailed(msM, subset, multiplier_, plot_adaptation=True, new_network=Fa
     ax2.set_ylabel("w (pA)")
     ax2.set_xlim([9900, 10000])
     if plot_adaptation:
-    ax2.legend()
+        ax2.legend()
 
     ax3.set_title("Exc. inputs (last 100 ms)")
     ax3.set_xlabel("Time (ms)")
