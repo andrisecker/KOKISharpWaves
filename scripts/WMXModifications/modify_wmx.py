@@ -12,21 +12,20 @@ from wmx_modifications import *
 SWBasePath = os.path.sep.join(os.path.abspath('__file__').split(os.path.sep)[:-3])
 # add the 'scripts' directory to the path (import the modules)
 sys.path.insert(0, os.path.sep.join([SWBasePath, 'scripts']))
-from detect_oscillations import load_Wee
 from plots import plot_wmx, plot_wmx_avg
 
 
 STDP_mode = "asym"
 fIn = "wmxR_%s.txt"%STDP_mode
-fOut = "wmxR_%s_binary.txt"%STDP_mode
+fOut = "wmxR_%s_shuf_subpop_inp.txt"%STDP_mode
 
-wmxO = load_Wee(os.path.join(SWBasePath, "files", fIn))
+wmxO = np.genfromtxt(os.path.join(SWBasePath, "files", fIn))
 print "weight matrix loaded"
 
 #wmxM = shuffle(wmxO)
-wmxM = binary_weights(wmxO, 0.5)
+#wmxM = binary_weights(wmxO, 0.5)
 #wmxM = shuffle_blocks(wmxO, 200)
-#wmxM = shuffle_subpop_input_weights(wmxO, 500)
+wmxM = shuffle_subpop_input_weights(wmxO, 500)
 # ===============================================
 # wmxM = shuffle_block_rows_cols(wmxO)
 # wmxM = avg_weak_weights(wmxO)
