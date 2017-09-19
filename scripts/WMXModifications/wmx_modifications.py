@@ -1,9 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
-'''
+"""
 helper functions used for weight matrix modifications
 author: András Ecker last update: 06.2017
-'''
+"""
 
 import numpy as np
 np.random.seed(12345)
@@ -17,7 +17,8 @@ def shuffle(wmxO):
     """
     
     wmxM = wmxO  # stupid numpy...
-    np.random.shuffle(wmxO)  # shuffle's only rows (keeps output weights)
+    np.random.shuffle(wmxM)  # shuffle's only rows (keeps output weights)
+    np.random.shuffle(wmxM.T)  # transpose and shuffle rows -> shuffle columns
 
     return wmxM
 
