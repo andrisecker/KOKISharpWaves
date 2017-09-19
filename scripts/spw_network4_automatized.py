@@ -16,14 +16,14 @@ from detect_oscillations import *
 from plots import *
 
 
-fIn = 'wmxR_asym.txt'
-fOut = 'results_asym_tmp.txt'
+fIn = "wmxR_asym_shuf_old.txt"
+fOut = "results_asym_shuf_old.txt"
 
 SWBasePath = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2])
 
-first = 0.9
-last = 1.1
-dataPoints = 3
+first = 1.0
+last = 2.0
+dataPoints = 11
 
 multipliers = np.linspace(first, last, dataPoints)
 
@@ -215,6 +215,7 @@ for k, multiplier in enumerate(multipliers):
         X[:, k] = [multiplier, 0, np.nan, np.nan, np.nan, np.nan, 0, np.nan, np.nan, np.nan, np.nan,
 		           np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]
 
+    reinit_default_clock()  # this is needed for correct plots (for some funny reason)
     gc.collect()
 
 
