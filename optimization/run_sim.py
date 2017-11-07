@@ -36,13 +36,13 @@ def run_simulation(Wee, J_PyrInh_, J_BasExc_, J_BasInh_, WeeMult_, J_PyrMF_, rat
 
     # synaptic time constants:
     # rise time constants
-    PyrExc_rise = 1.3 * ms  # Gupta 2016 (only from Fig.1 H - 20-80%)
+    PyrExc_rise = 1.3 * ms  # Guzman 2016 (only from Fig.1 H - 20-80%)
     PyrExcMF_rise = 0.65 * ms  # Vyleta ... Jonas 2016 (20-80%)
     PyrInh_rise = 0.3 * ms  # Bartos 2002 (20-80%)
     BasExc_rise = 1. * ms  # Lee 2014 (data from CA1) 
     BasInh_rise = 0.25 * ms  # Bartos 2002 (20-80%)
     # decay time constants
-    PyrExc_decay = 9.5 * ms  # Gupta 2016 ("needed for temporal summation of EPSPs") 
+    PyrExc_decay = 9.5 * ms  # Guzman 2016 ("needed for temporal summation of EPSPs") 
     PyrExcMF_decay = 5.4 * ms  # Vyleta ... Jonas 2016
     PyrInh_decay = 3.3 * ms  # Bartos 2002
     BasExc_decay = 4.1 * ms  # Lee 2014 (data from CA1)
@@ -55,7 +55,7 @@ def run_simulation(Wee, J_PyrInh_, J_BasExc_, J_BasInh_, WeeMult_, J_PyrMF_, rat
     invpeak_BasInh = (BasInh_decay / BasInh_rise) ** (BasInh_rise / (BasInh_decay - BasInh_rise))
 
     # synaptic delays:
-    delay_PyrExc = 2.2 * ms  # Gupta 2016
+    delay_PyrExc = 2.2 * ms  # Guzman 2016
     delay_PyrInh = 1.1 * ms  # Bartos 2002
     delay_BasExc = 0.9 * ms  # Geiger 1997 (data from DG)
     delay_BasInh = 0.6 * ms  # Bartos 2002
