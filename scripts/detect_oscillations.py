@@ -2,7 +2,7 @@
 # -*- coding: utf8 -*-
 '''
 helper file to extract dynamic features: checking replay interval by ISI, computing AC and PSD of population rate
-authors: András Ecker, Bence Bagi, Eszter Vértes, Szabolcs Káli last update: 06.2017
+authors: András Ecker, Bence Bagi, Eszter Vértes, Szabolcs Káli last update: 09.2017
 '''
 
 import numpy as np
@@ -154,8 +154,8 @@ def ripple(rate, fs):
     f, Pxx = signal.welch(rate, fs, window="hamming", nperseg=512, scaling="spectrum")
 
     f = np.asarray(f)
-    rippleS = np.where(145 < f)[0][0]
-    rippleE = np.where(f < 250)[0][-1]
+    rippleS = np.where(160 < f)[0][0]  # 145 -> replaced to have the same lenght as for gamma, to get the significance test unbiased...
+    rippleE = np.where(f < 230)[0][-1]  # 250 -> replaced to have the same lenght as for gamma, to get the significance test unbiased...
     f.tolist()
     PxxRipple = Pxx[rippleS:rippleE]
 
