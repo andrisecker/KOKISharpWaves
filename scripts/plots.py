@@ -654,3 +654,88 @@ def plot_evolution(ngen, min_fit, mean_fit, std_fit, saveName_):
     figName = os.path.join(figFolder, "%s.png"%saveName_)
     fig.savefig(figName)
     
+    
+def plot_SS_voltage(t, v, SS_voltage, current):
+    """
+    saves figure with SS voltage after current injection
+    :param t,v: time and voltage
+    :param SS_voltage: steady state voltage reached
+    :param current: input current
+    """
+    
+    fig = plt.figure(figsize=(10, 8))
+    ax = fig.add_subplot(1, 1, 1)
+    
+    ax.plot(t, v, linewidth=1.5, label="V_m")
+    ax.plot(np.linspace(800, 1000, 200), SS_voltage*np.ones(200), linewidth=1.5, label="V_SS: %.3f mV"%SS_voltage)
+    ax.set_xlabel("Time (ms)")
+    ax.set_ylabel("Memb. pot. (mV)")
+    ax.set_title("Pyramidal cell with %s pA input"%current)
+    ax.legend() 
+    
+    figName = os.path.join(figFolder, "clampPC_%s.png"%current)
+    fig.savefig(figName)
+  
+
+def plot_avg_EPS(t, EPSPs, EPSP, EPSCs, EPSC, mean_weight, saveName_):
+    """
+    saves figure with average EPSP and EPSC
+    :param t: time
+    :param EPSPs, EPSP: array of EPSPs from random weights and EPSP for the average weight
+    :param EPSCs, EPSC: array of EPSCs from random weights and EPSC for the average weight
+    :param mean_weight: mean of all nonzero weights
+    :param saveName_: name of saved img
+    """
+
+    fig = plt.figure(figsize=(10, 8))
+    
+    ax = fig.add_subplot(2, 1, 1)   
+    ax.plot(t, np.mean(EPSPs, axis=0), "b-", label="mean of %i random weights"%EPSPs.shape[0])
+    ax.plot(t, EPSP, "g-", label="mean of all weights (%f nS)"%mean_weight)
+    ax.set_title("average EPSP")
+    ax.set_xlim([0, 400])
+    ax.set_ylabel("EPSP (mV)")
+    ax.legend()
+    
+    ax2 = fig.add_subplot(2, 1, 2)
+    ax2.plot(t, np.mean(EPSCs, axis=0), "b-", label="mean of %i random weights"%EPSCs.shape[0])
+    ax2.plot(t, EPSC, "g-", label="mean of all weights (%f nS)"%mean_weight)
+    ax2.set_title("average EPSC")
+    ax2.set_xlabel("Time (ms)")
+    ax2.set_xlim([0, 400])
+    ax2.set_ylabel("EPSC (pA)")
+    ax2.legend()
+    
+    fig.tight_layout()    
+    figName = os.path.join(figFolder, "%s.png"%saveName_)
+    fig.savefig(figName)
+
+
+def plot_EPS_dist(peakEPSPs, peakEPSCs, saveName_):
+    """
+    saves violin plots with EPSP and EPSC distributions
+    :param peakEPSPs, peakEPSCs: vectors of peakEPSP & EPSC values
+    :param saveName_: name of saved img
+    """
+
+    fig = plt.figure(figsize=(10, 8))
+    
+    ax = fig.add_subplot(2, 1, 1)
+    ax.violinplot(peakEPSPs, vert=False, showmeans=True, showextrema=False, showmedians=False,
+                  points=peakEPSPs.shape[0], bw_method='silverman')
+    ax.set_title("%i random EPSPs (mean: %f mV)"%(peakEPSPs.shape[0], np.mean(peakEPSPs)))
+    ax.set_xlabel("EPSP (mV)")
+    ax.set_yticks([])
+    
+    ax2 = fig.add_subplot(2, 1, 2)
+    ax2.violinplot(peakEPSCs, vert=False, showmeans=True, showextrema=False, showmedians=False,
+                   points=peakEPSCs.shape[0], bw_method='silverman')
+    ax2.set_title("%i random EPSCs (mean: %f pA)"%(peakEPSCs.shape[0], np.mean(peakEPSCs)))
+    ax2.set_xlabel("EPSC (pA)")
+    ax2.set_yticks([])
+    
+    fig.tight_layout()
+    figName = os.path.join(figFolder, "%s.png"%saveName_)
+    fig.savefig(figName)  
+
+
