@@ -49,7 +49,7 @@ I : amp
 '''
 
 
-def sym_paired_recording(weight, v_hold=None, i_hold=None):
+def sym_paired_recording(weight, i_hold=None):
     """Aims to mimic paired recording of 2 connected PCs: Clamps postsynaptic, deliver spikes from presynaptic and measure EPSP, EPSC"""
     
     np.random.seed(12345)
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     peakEPSCs = np.zeros(n)    
     for i, weight in enumerate(weights):   
      
-        t_, EPSP, EPSC = sym_paired_recording(weight, v_hold, i_hold)
+        t_, EPSP, EPSC = sym_paired_recording(weight, i_hold)
         
         EPSPs[i,:] = EPSP; EPSCs[i,:] = EPSC
         if i_hold:
@@ -116,7 +116,7 @@ if __name__ == "__main__":
 
 
     # finall run with the average of all nonzero weights
-    t_, EPSP, EPSC = sym_paired_recording(np.mean(wmx_nz), v_hold, i_hold)
+    t_, EPSP, EPSC = sym_paired_recording(np.mean(wmx_nz), i_hold)
 
     # Plots
     plot_avg_EPS(t_, EPSPs, EPSP, EPSCs, EPSC, np.mean(wmx_nz), "EPS*_%s"%STDP_mode)
