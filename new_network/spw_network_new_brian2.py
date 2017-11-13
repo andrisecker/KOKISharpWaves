@@ -1,39 +1,23 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
-'''
-updated network, parameters are (should be) closer to the experimental data!
+"""
 creates PC (adExp IF) and BC (exp IF) population in Brian2, loads in recurrent connection matrix for PC population
 runs simulation and checks the dynamics
-authors: Bence Bagi, András Ecker last update: 06.2017
-'''
+(updated network, parameters are/should be closer to the experimental data!)
+authors: Bence Bagi, András Ecker last update: 11.2017
+"""
 
 import os
 import sys
 from brian2 import *
-#set_device('cpp_standalone')  # speed up the simulation with generated C++ code
 import numpy as np
 import random as pyrandom
 import matplotlib.pyplot as plt
 SWBasePath = os.path.sep.join(os.path.abspath('__file__').split(os.path.sep)[:-2])
-# add the 'scripts' directory to the path (import the modules)
 sys.path.insert(0, os.path.sep.join([SWBasePath, 'scripts']))
 from detect_oscillations import *
 from plots import *
 
-
-STDP_mode = "asym"
-fIn = "wmxR_%s.txt"%STDP_mode
-
-# synaptic weights
-if STDP_mode == "asym":
-    J_PyrInh = 0.02
-    J_BasExc = 5
-    J_BasInh = 0.4
-elif STDP_mode == "sym":
-    J_PyrInh = 0.016
-    J_BasExc = 4.5
-    J_BasInh = 0.75
-# wmx scale factor already introduced in the stdp* script!
    
 # mossy fiber input
 J_PyrMF = 24.25
@@ -122,107 +106,140 @@ dg_gaba/dt = (invpeak_BasInh * x_gaba - g_gaba) / BasInh_rise : 1
 dx_gaba/dt = -x_gaba/BasInh_decay : 1
 '''
 
-# ====================================== end of parameters ======================================
+
+def run_simulation(Wee, STDP_mode="asym", detailed=True):
+    """
+    Sets up the network and runs simulation
+    :param Wee: np.array representing synaptic weight matrix
+    :param STDP_mode: symmetric or asymmetric weight matrix flag (used for synapse parameters)
+    :param detailed: bool - useage of multi state monitor (for membrane pot and inh. and exc. inputs of some singe cells)
+    :return sme, smi, popre, popri, selection, msMe: brian2 monitors (+ array of selected cells used by multi state monitor) 
+    """
+
+    np.random.seed(12345)
+    pyrandom.seed(12345)
+    
+    # synaptic weights
+    if STDP_mode == "asym":
+        J_PyrInh = 0.02
+        J_BasExc = 5
+        J_BasInh = 0.4
+    elif STDP_mode == "sym":
+        J_PyrInh = 0.016
+        J_BasExc = 4.5
+        J_BasInh = 0.75
+    # wmx scale factor already introduced in the stdp* script!
+
+    PE = NeuronGroup(NE, model=eqs_Pyr, threshold="vm>v_spike_Pyr",
+                     reset="vm=reset_Pyr; w+=b_Pyr", refractory=tref_Pyr, method="exponential_euler")
+    PI = NeuronGroup(NI, model=eqs_Bas, threshold="vm>v_spike_Bas",
+                     reset="vm=reset_Bas", refractory=tref_Bas, method="exponential_euler")
+    PE.vm = Vrest_Pyr
+    PE.g_ampa = 0
+    PE.g_ampaMF = 0
+    PE.g_gaba = 0
+    PI.vm  = Vrest_Bas
+    PI.g_ampa = 0
+    PI.g_gaba = 0
+
+    MF = PoissonGroup(NE, rate_MF)
+
+    Cext = Synapses(MF, PE, on_pre="x_ampaMF+=J_PyrMF")
+    Cext.connect(j='i')
+
+    # weight matrix used here:
+    Cee = Synapses(PE, PE, 'w_exc:1', on_pre='x_ampa+=w_exc')
+    Cee.connect()
+    Cee.w_exc = Wee.flatten()
+    Cee.delay = delay_PyrExc
+    del Wee  # clear memory
+
+    Cei = Synapses(PE, PI, on_pre='x_ampa+=J_BasExc')
+    Cei.connect(p=eps_pyr)
+    Cei.delay = delay_BasExc
+
+    Cie = Synapses(PI, PE, on_pre='x_gaba+=J_PyrInh')
+    Cie.connect(p=eps_bas)
+    Cie.delay = delay_PyrInh
+
+    Cii = Synapses(PI, PI, on_pre='x_gaba+=J_BasInh')
+    Cii.connect(p=eps_bas)
+    Cii.delay = delay_BasInh
+
+    # Monitors
+    sme = SpikeMonitor(PE)
+    smi = SpikeMonitor(PI)
+    popre = PopulationRateMonitor(PE)
+    popri = PopulationRateMonitor(PI)
+    if detailed:
+        selection = np.arange(0, 4000, 50)  # subset of neurons for recoring variables
+        msMe = StateMonitor(PE, ["vm", "w", "g_ampa", "g_ampaMF","g_gaba"], record=selection.tolist())  # comment this out later (takes memory!)        
+
+    run(10000*ms, report='text')
+    
+    if detailed:
+        return sme, smi, popre, popri, selection, msMe
+    else:
+        return sme, smi, popre, popri
 
 
-fName = os.path.join(SWBasePath, "files", fIn)
-Wee = load_Wee(fName)
+if __name__ == "__main__":
+
+    try:
+        STDP_mode = sys.argv[1]       
+    except:
+        STDP_mode = "asym"
+    assert(STDP_mode in ["sym", "asym"])
+    fIn = "wmxR_%s.txt"%STDP_mode    
+    fName = os.path.join(SWBasePath, "files", fIn)
+    Wee = load_Wee(fName)
+    
+    # run simulation
+    sme, smi, popre, popri, selection, msMe = run_simulation(Wee, STDP_mode)
+
+    # analyse results
+    if sme.num_spikes > 0 and smi.num_spikes > 0:  # check if there is any activity
+
+        spikeTimesE, spikingNeuronsE, poprE, ISIhist, bin_edges = preprocess_monitors(sme, popre)
+        spikeTimesI, spikingNeuronsI, poprI = preprocess_monitors(smi, popri, calc_ISI=False)
+
+        # calling detect_oscillation functions:
+        avgReplayInterval = replay(ISIhist[3:16])  # bins from 150 to 850 (range of interest)
+
+        meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE, 1000)
+        avgGammaFE, gammaPE = gamma(fE, PxxE)
+        meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI, 1000)
+        avgGammaFI, gammaPI = gamma(fI, PxxI)
+
+        # Print out some info
+        print 'Mean excitatory rate: ', meanEr
+        print 'Mean inhibitory rate: ', meanIr
+        print 'Average exc. ripple freq:', avgRippleFE
+        print 'Exc. ripple power:', ripplePE
+        print 'Average exc. gamma freq:', avgGammaFE
+        print 'Exc. gamma power:', gammaPE
+        print 'Average inh. ripple freq:', avgRippleFI
+        print 'Inh. ripple power:', ripplePI
+        print 'Average inh. gamma freq:', avgGammaFI
+        print 'Inh. gamma power:', gammaPI
+        print "--------------------------------------------------"
 
 
-PE = NeuronGroup(NE, model=eqs_Pyr, threshold="vm>v_spike_Pyr",
-                 reset="vm=reset_Pyr; w+=b_Pyr", refractory=tref_Pyr, method="exponential_euler")
-PI = NeuronGroup(NI, model=eqs_Bas, threshold="vm>v_spike_Bas",
-                 reset="vm=reset_Bas", refractory=tref_Bas, method="exponential_euler")
+        # Plots
+        plot_raster_ISI(spikeTimesE, spikingNeuronsE, [ISIhist, bin_edges], 'blue', multiplier_=1)
+        plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier_=1)
+        plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier_=1)
 
-PE.vm = Vrest_Pyr
-PE.g_ampa = 0
-PE.g_ampaMF = 0
-PE.g_gaba = 0
-PI.vm  = Vrest_Bas
-PI.g_ampa = 0
-PI.g_gaba = 0
+        ymin, ymax= plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
+        plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1, Pyr_pop=False)
+        subset = select_subset(selection, ymin, ymax)
+        plot_detailed(msMe, subset, multiplier_=1, new_network=True)
 
-np.random.seed(12345)
-pyrandom.seed(12345)
+    else:  # if there is no activity the auto-correlation function will throw an error!
 
-MF = PoissonGroup(NE, rate_MF)
+        print "No activity !"
+        print "--------------------------------------------------"
 
-Cext = Synapses(MF, PE, on_pre="x_ampaMF+=J_PyrMF")
-Cext.connect(j='i')
-
-# weight matrix used here:
-Cee = Synapses(PE, PE, 'w_exc:1', on_pre='x_ampa+=w_exc')
-Cee.connect()
-Cee.w_exc = Wee.flatten()
-Cee.delay = delay_PyrExc
-del Wee  # clear memory
-
-Cei = Synapses(PE, PI, on_pre='x_ampa+=J_BasExc')
-Cei.connect(p=eps_pyr)
-Cei.delay = delay_BasExc
-
-Cie = Synapses(PI, PE, on_pre='x_gaba+=J_PyrInh')
-Cie.connect(p=eps_bas)
-Cie.delay = delay_PyrInh
-
-Cii = Synapses(PI, PI, on_pre='x_gaba+=J_BasInh')
-Cii.connect(p=eps_bas)
-Cii.delay = delay_BasInh
-
-# Monitors
-sme = SpikeMonitor(PE)
-smi = SpikeMonitor(PI)
-popre = PopulationRateMonitor(PE)
-popri = PopulationRateMonitor(PI)
-selection = np.arange(0, 4000, 50)  # subset of neurons for recoring variables
-msMe = StateMonitor(PE, ["vm", "w", "g_ampa", "g_ampaMF","g_gaba"], record=selection.tolist())  # comment this out later (takes memory!)        
-
-
-run(10000*ms, report='text')
-
-
-if sme.num_spikes > 0 and smi.num_spikes > 0:  # check if there is any activity
-
-    spikeTimesE, spikingNeuronsE, poprE, ISIhist, bin_edges = preprocess_monitors(sme, popre)
-    spikeTimesI, spikingNeuronsI, poprI = preprocess_monitors(smi, popri, calc_ISI=False)
-
-    # calling detect_oscillation functions:
-    avgReplayInterval = replay(ISIhist[3:16])  # bins from 150 to 850 (range of interest)
-
-    meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE, 1000)
-    avgGammaFE, gammaPE = gamma(fE, PxxE)
-    meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI, 1000)
-    avgGammaFI, gammaPI = gamma(fI, PxxI)
-
-    # Print out some info
-    print 'Mean excitatory rate: ', meanEr
-    print 'Mean inhibitory rate: ', meanIr
-    print 'Average exc. ripple freq:', avgRippleFE
-    print 'Exc. ripple power:', ripplePE
-    print 'Average exc. gamma freq:', avgGammaFE
-    print 'Exc. gamma power:', gammaPE
-    print 'Average inh. ripple freq:', avgRippleFI
-    print 'Inh. ripple power:', ripplePI
-    print 'Average inh. gamma freq:', avgGammaFI
-    print 'Inh. gamma power:', gammaPI
-    print "--------------------------------------------------"
-
-
-    # Plots
-    plot_raster_ISI(spikeTimesE, spikingNeuronsE, [ISIhist, bin_edges], 'blue', multiplier_=1)
-    plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier_=1)
-    plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier_=1)
-
-    ymin, ymax= plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
-    plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1, Pyr_pop=False)
-    subset = select_subset(selection, ymin, ymax)
-    plot_detailed(msMe, subset, multiplier_=1, new_network=True)
-
-else:  # if there is no activity the auto-correlation function will throw an error!
-
-    print "No activity !"
-    print "--------------------------------------------------"
-
-plt.show()            
+    plt.show()            
                  
                  

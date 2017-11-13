@@ -6,26 +6,15 @@ author: András Ecker last update: 11.2017
 '''
 
 import os
+import sys
 from brian2 import *
 import numpy as np
+import random as pyrandom
 import matplotlib.pyplot as plt
 SWBasePath = os.path.sep.join(os.path.abspath('__file__').split(os.path.sep)[:-2])
-# add the 'scripts' directory to the path (import the modules)
 sys.path.insert(0, os.path.sep.join([SWBasePath, 'scripts']))
 from detect_oscillations import load_Wee
 from plots import plot_avg_EPS, plot_EPS_dist
-
-n = 500
-v_hold = -70.  # mV
-i_hold = -43.638  # pA (calculated by clamp_cell.py)
-STDP_mode = "asym"
-fIn = "wmxR_%s.txt"%STDP_mode
-
-np.random.seed(12345)
-
-wmx = load_Wee(os.path.join(SWBasePath, "files", fIn))
-wmx_nz = wmx[np.nonzero(wmx)]
-print "mean(nonzero weights): %s (nS)"%np.mean(wmx_nz)
 
 
 # synaptic parameters:
@@ -59,19 +48,20 @@ EPSC = g_ampa*z*(vm-E_Exc): amp
 I : amp
 '''
 
-weights = np.random.choice(wmx_nz, n, replace=False)
-EPSPs = np.zeros((n, 4000))
-EPSCs = np.zeros((n, 4000))
-peakEPSPs = np.zeros(n)
-peakEPSCs = np.zeros(n)
 
-for i, weight in enumerate(weights):
-
+def sym_paired_recording(weight, v_hold=None, i_hold=None):
+    """Aims to mimic paired recording of 2 connected PCs: Clamps postsynaptic, deliver spikes from presynaptic and measure EPSP, EPSC"""
+    
+    np.random.seed(12345)
+    pyrandom.seed(12345)
+    
+    # postsynaptic neuron
     PE = NeuronGroup(1, model=eqs_Pyr, threshold="vm>v_spike_Pyr",
                      reset="vm=reset_Pyr; w+=b_Pyr", refractory=tref_Pyr, method="exponential_euler")
     PE.vm = Vrest_Pyr
     PE.g_ampa = 0
-
+    
+    # presynaptic neuron is modelled only as a spike generator
     inp = SpikeGeneratorGroup(1, np.array([0]), np.array([250])*ms)
 
     Cee = Synapses(inp, PE, 'w_exc:1', on_pre='x_ampa+=w_exc')
@@ -81,50 +71,57 @@ for i, weight in enumerate(weights):
 
     vSM = StateMonitor(PE, 'vm', record=True)
     iSM = StateMonitor(PE, 'EPSC', record=True)
-
+    
     run(10*ms)
-    PE.I = i_hold * pA
+    if i_hold:
+        PE.I = i_hold * pA  # holding current has to be precalculated
     run(390*ms)
     
-    EPSPs[i,:] = vSM[0].vm/mV
-    EPSCs[i,:] = iSM[0].EPSC/pA
-    if i_hold:
-        t_ = vSM.t_ * 1000  # *1000 ms convertion
-        v = vSM[0].vm/mV
-        peakEPSPs[i] = np.max(v[np.where((250 < t_) & (t_ < 350))]) - v_hold
-    else:
-        peakEPSPs[i] = np.max(vSM[0].vm/mV) - Vrest_Pyr/mV
-    peakEPSCs[i] = np.min(iSM[0].EPSC/pA)
+    return vSM.t_ * 1000, vSM[0].vm/mV, iSM[0].EPSC/pA  # t, EPSP, EPSC
 
 
-# finall run with the average of all nonzero weights
-PE = NeuronGroup(1, model=eqs_Pyr, threshold="vm>v_spike_Pyr",
-                     reset="vm=reset_Pyr; w+=b_Pyr", refractory=tref_Pyr, method="exponential_euler")
-PE.vm = Vrest_Pyr
-PE.g_ampa = 0
+if __name__ == "__main__":
 
-inp = SpikeGeneratorGroup(1, np.array([0]), np.array([250])*ms)
+    try:
+        n = int(sys.argv[1])       
+    except:
+        n = 500  # number of random weights
+    
+    v_hold = -70.  # mV
+    i_hold = -43.638  # pA (calculated by clamp_cell.py)
+    
+    STDP_mode = "asym"
+    fIn = "wmxR_%s.txt"%STDP_mode
 
-Cee = Synapses(inp, PE, 'w_exc:1', on_pre='x_ampa+=w_exc')
-Cee.connect(i=0, j=0)
-Cee.w_exc = np.mean(wmx_nz) # nS
-Cee.delay = delay_PyrExc
+    wmx = load_Wee(os.path.join(SWBasePath, "files", fIn))
+    wmx_nz = wmx[np.nonzero(wmx)]
+    print "mean(nonzero weights): %s (nS)"%np.mean(wmx_nz)
+    
+    weights = np.random.choice(wmx_nz, n, replace=False)
+    
+    EPSPs = np.zeros((n, 4000))
+    EPSCs = np.zeros((n, 4000))
+    peakEPSPs = np.zeros(n)
+    peakEPSCs = np.zeros(n)    
+    for i, weight in enumerate(weights):   
+     
+        t_, EPSP, EPSC = sym_paired_recording(weight, v_hold, i_hold)
+        
+        EPSPs[i,:] = EPSP; EPSCs[i,:] = EPSC
+        if i_hold:
+            peakEPSPs[i] = np.max(EPSP[np.where((250 < t_) & (t_ < 350))]) - v_hold
+        else:
+            peakEPSPs[i] = np.max(EPSP) - Vrest_Pyr/mV
+        peakEPSCs[i] = np.min(EPSC)
 
-vSM = StateMonitor(PE, 'vm', record=True)
-iSM = StateMonitor(PE, 'EPSC', record=True)
 
-run(10*ms)
-PE.I = i_hold * pA
-run(390*ms)
+    # finall run with the average of all nonzero weights
+    t_, EPSP, EPSC = sym_paired_recording(np.mean(wmx_nz), v_hold, i_hold)
 
-t = vSM.t_ * 1000  # *1000 ms convertion
-EPSP = vSM[0].vm/mV; EPSC = iSM[0].EPSC/pA
+    # Plots
+    plot_avg_EPS(t_, EPSPs, EPSP, EPSCs, EPSC, np.mean(wmx_nz), "EPS*_%s"%STDP_mode)
+    plot_EPS_dist(peakEPSPs, peakEPSCs, "distEPS*_%s"%STDP_mode)
 
-
-# Plots
-plot_avg_EPS(t, EPSPs, EPSP, EPSCs, EPSC, np.mean(wmx_nz), "EPS*_%s"%STDP_mode)
-plot_EPS_dist(peakEPSPs, peakEPSCs, "distEPS*_%s"%STDP_mode)
-
-plt.show()
+    plt.show()
     
     
