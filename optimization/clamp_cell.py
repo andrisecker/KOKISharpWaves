@@ -9,9 +9,9 @@ import os
 import sys
 from brian2 import *
 import numpy as np
+import random as pyrandom
 from scipy.optimize import bisect
 SWBasePath = os.path.sep.join(os.path.abspath('__file__').split(os.path.sep)[:-2])
-# add the 'scripts' directory to the path (import the modules)
 sys.path.insert(0, os.path.sep.join([SWBasePath, 'scripts']))
 from plots import plot_SS_voltage
 
@@ -40,6 +40,9 @@ I : amp
 
 def calculate_SS_voltage(i, check_for_spiking=True, plot_=False):
     """calculates steady state voltage for a given current input"""
+    
+    np.random.seed(12345)
+    pyrandom.seed(12345)
     
     PE = NeuronGroup(1, model=eqs_Pyr, threshold="vm>v_spike_Pyr",
                      reset="vm=reset_Pyr; w+=b_Pyr", refractory=tref_Pyr, method="exponential_euler")
