@@ -9,5 +9,6 @@ new_network/*html
 new_network/spw_network_nb_brian2.py
 new_network/output/
 optimization/checkpoints/*pkl
+optimization/Mishra_2016
 
 

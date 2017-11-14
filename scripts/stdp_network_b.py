@@ -15,9 +15,9 @@ import matplotlib.pyplot as plt
 from plots import *
 
 fIn = "spikeTrainsR.npz"
-fOut = "wmxR_asym.txt"
+fOut = "wmxR_asym_old.txt"
 
-SWBasePath =  '/'.join(os.path.abspath(__file__).split('/')[:-2])
+SWBasePath = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2])
 
 np.random.seed(12345)
 

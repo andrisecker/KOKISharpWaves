@@ -5,7 +5,7 @@ loads in hippocampal like spike train (produced by generate_spike_train.py) and 
 -> creates learned weight matrix for PC population, used by spw_network* scripts
 see more: https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view
 updated to produce sym stdp curve as reported in Mishra et al. 2016 - 10.1038/ncomms11552 (+ transported to brian2)
-author: András Ecker last update: 06.2017
+author: András Ecker, based on Eszter Vértes's code last update: 06.2017
 '''
 
 import os
@@ -14,7 +14,6 @@ set_device('cpp_standalone')  # speed up the simulation with generated C++ code
 import numpy as np
 import matplotlib.pyplot as plt
 SWBasePath = os.path.sep.join(os.path.abspath('__file__').split(os.path.sep)[:-2])
-# add the 'scripts' directory to the path (import the modules)
 sys.path.insert(0, os.path.sep.join([SWBasePath, 'scripts']))
 from plots import *
 
@@ -121,7 +120,8 @@ selection = np.array([500, 1500, 2500, 3500])  # some random neuron IDs to save 
 dWee = save_selected_w(weightmx, selection)
 plot_weights(dWee, "sel_weights_%s"%mode_)
 
-
 # save weightmatrix
 fName = os.path.join(SWBasePath, "files", fOut)
 np.savetxt(fName, weightmx)
+
+plt.show()
