@@ -80,6 +80,17 @@ def sym_paired_recording(weight, i_hold=None):
     return vSM.t_ * 1000, vSM[0].vm/mV, iSM[0].EPSC/pA  # t, EPSP, EPSC
 
 
+def get_peak_EPSP(t_, EPSP, i_hold=None, v_hold=None):
+    """extracts peak EPSP from simulated traces"""   
+    
+    if i_hold:
+        assert v_hold, "if I_hold is specified, V_hold has to be specified too"
+        return np.max(EPSP[np.where((250 < t_) & (t_ < 350))]) - v_hold
+    else:
+        assert i_hold is None, "If V_hold is specfied, I_hold should be too"
+        return np.max(EPSP) - Vrest_Pyr/mV
+
+
 if __name__ == "__main__":
 
     try:
@@ -90,7 +101,7 @@ if __name__ == "__main__":
     v_hold = -70.  # mV
     i_hold = -43.638  # pA (calculated by clamp_cell.py)
     
-    STDP_mode = "asym"
+    STDP_mode = "sym"
     fIn = "wmxR_%s.txt"%STDP_mode
 
     wmx = load_Wee(os.path.join(SWBasePath, "files", fIn))
@@ -108,12 +119,8 @@ if __name__ == "__main__":
         t_, EPSP, EPSC = sym_paired_recording(weight, i_hold)
         
         EPSPs[i,:] = EPSP; EPSCs[i,:] = EPSC
-        if i_hold:
-            peakEPSPs[i] = np.max(EPSP[np.where((250 < t_) & (t_ < 350))]) - v_hold
-        else:
-            peakEPSPs[i] = np.max(EPSP) - Vrest_Pyr/mV
+        peakEPSPs[i] = get_peak_EPSP(t_, EPSP, i_hold, v_hold)
         peakEPSCs[i] = np.min(EPSC)
-
 
     # finall run with the average of all nonzero weights
     t_, EPSP, EPSC = sym_paired_recording(np.mean(wmx_nz), i_hold)
