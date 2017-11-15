@@ -8,7 +8,7 @@ author: András Ecker last update: 11.2017
 
 import os
 import json
-from brian2 import *
+from brian2 import *  
 import numpy as np
 import random as pyrandom
 from scipy.optimize import curve_fit
@@ -25,9 +25,9 @@ def sim_pairing_prot(delta_ts, taup, taum, Ap, Am, wmax, w_init):
     (Simulated for all different $delta$t-s in the same time, since it's way more effective than one-by-one)
     exponential STDP: f(s) = A_p * exp(-s/tau_p) (if s > 0), where s=tpost_{spike}-tpre_{spike}
     :param delta_ts: list of $delta$t intervals between pre and post spikes (in ms)
-    :param taup, taum: time constant of weight change
+    :param taup, taum: time constant of weight change (in ms)
     :param Ap, Am: max amplitude of weight change
-    :param wmax: maximum weight
+    :param wmax: maximum weight (in S)
     :param w_init: initial weights (in S)
     :return: np.array with learned weights (same order as delta_ts)
     """
@@ -49,26 +49,26 @@ def sim_pairing_prot(delta_ts, taup, taum, Ap, Am, wmax, w_init):
     # mimics Brian1's exponentialSTPD class, with interactions='all', update='additive'
     # see more on conversion: http://brian2.readthedocs.io/en/stable/introduction/brian1_to_2/synapses.html
     STDP = Synapses(PC, PC,
-             """
-             w : 1
-             dA_pre/dt = -A_pre/taup : 1 (event-driven)
-             dA_post/dt = -A_post/taum : 1 (event-driven)
-             """,
-             on_pre="""
-             A_pre += Ap
-             w = clip(w + A_post, 0, wmax)
-             """,
-             on_post="""
-             A_post += Am
-             w = clip(w + A_pre, 0, wmax)
-             """)
+            """
+            w : 1
+            dA_pre/dt = -A_pre/taup : 1 (event-driven)
+            dA_post/dt = -A_post/taum : 1 (event-driven)
+            """,
+            on_pre="""
+            A_pre += Ap
+            w = clip(w + A_post, 0, wmax)
+            """,
+            on_post="""
+            A_post += Am
+            w = clip(w + A_pre, 0, wmax)
+            """)
              
     STDP.connect(i=0, j=np.arange(1, len(delta_ts)+1).tolist())  # connect pre, to every post
     STDP.w = w_init
 
     # run simulation
     sm = SpikeMonitor(PC, record=True)
-    run(310*second, report='text')
+    run(310*second, report="text")
     
     return STDP.w[:]
 
@@ -126,12 +126,12 @@ def fit_exponential(delta_ts, dEPSPchanges, A_0, tau_0):
 if __name__ == "__main__":
     
     #delta_ts = [-100., -50., -20., -10., 10., 20., 50., 100.]  # (ms) same as Mishra et al. 2016
-    delta_ts = [-50., 25., 35., 45., 55., 65., 75., 100.]  # (ms) more diverse values to fit better exponential
+    delta_ts = [35., 40., 50., 60., 70., 80., 90., 100.]  # (ms) more diverse values to fit better exponential
     
     # STDP parameters
-    taup = taum = 20 * ms
-    Ap = Am = 0.01
-    wmax = 8e-9  # S (w is dimensionless in the equations)
+    taup = taum = 62.5 * ms
+    Ap = Am = 0.005
+    wmax = 10e-9  # S (w is dimensionless in the equations)
     Ap *= wmax  # needed to reproduce Brian1 results
     Am *= wmax  # needed to reproduce Brian1 results
     
