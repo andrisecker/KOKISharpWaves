@@ -135,7 +135,7 @@ if __name__ == "__main__":
 
     # save weightmatrix
     fName = os.path.join(SWBasePath, "files", fOut)
-    #np.savetxt(fName, weightmx)
+    np.savetxt(fName, weightmx)
 
     plt.show()
     
