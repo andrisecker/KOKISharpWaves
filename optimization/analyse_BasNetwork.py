@@ -1,23 +1,22 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
-'''
+"""
 analyse pure BC network with Poisson input
-author: András Ecker last update: 06.2017
-'''
+author: András Ecker last update: 11.2017
+"""
 
 import os
 from brian2 import *
 import numpy as np
+import random as pyrandom
 import matplotlib.pyplot as plt
+import warnings
+warnings.filterwarnings("ignore") # ignore scipy 0.18 sparse matrix warning...
 SWBasePath = os.path.sep.join(os.path.abspath('__file__').split(os.path.sep)[:-2])
-# add the 'scripts' directory to the path (import the modules)
 sys.path.insert(0, os.path.sep.join([SWBasePath, 'scripts']))
 from detect_oscillations import *
 from plots import *
-from detect_oscillations import *
-from plots import *
 
-np.random.seed(12345)
 
 NE = 4000
 NI = 1000
@@ -56,23 +55,22 @@ dg_gaba/dt = (invpeak_BasInh * x_gaba - g_gaba) / BasInh_rise : 1
 dx_gaba/dt = -x_gaba/BasInh_decay : 1
 '''
 
-J_BasExc = 5.
-J_BasInh = 0.4
-exc_rates = np.linspace(2, 4, 5)
 
+def run_simulation(exc_rate):
+    """Sets up the purely inhibitory network with outer input and runs simulation""" 
 
-for exc_rate in exc_rates:
-
-    rate_ = NE * eps_pyr * exc_rate * Hz  # calc incoming rate
-
+    np.random.seed(12345)
+    pyrandom.seed(12345)
+    
     PI = NeuronGroup(NI, model=eqs_Bas, threshold="vm>v_spike_Bas",
                      reset="vm=reset_Bas", refractory=tref_Bas, method="exponential_euler")
     PI.vm  = Vrest_Bas
     PI.g_ampa = 0
     PI.g_gaba = 0
-
+       
+    rate_ = NE * eps_pyr * exc_rate * Hz  # calc incoming rate
     outer_input = PoissonGroup(NI, rate_)
-
+    
     Cext = Synapses(outer_input, PI, on_pre="x_ampa+=J_BasExc")
     Cext.connect(j='i')
 
@@ -84,8 +82,15 @@ for exc_rate in exc_rates:
     popri = PopulationRateMonitor(PI)             
 
     run(10000*ms, report="text")
+    
+    return smi, popri
 
 
+def run_simulation_analyse_results(exc_rate):
+    """runs simulationa, prints out results and saves plots"""
+
+    smi, popri = run_simulation(exc_rate)
+    
     if smi.num_spikes > 0:  # check if there is any activity
 
         spikeTimesI, spikingNeuronsI, poprI = preprocess_monitors(smi, popri, calc_ISI=False)
@@ -103,10 +108,22 @@ for exc_rate in exc_rates:
         # Plots
         plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier_=exc_rate)
         plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=exc_rate, Pyr_pop=False)
+        plt.close("all")
 
     else:  # if there is no activity the auto-correlation function will throw an error!
 
         print "No activity !"
         print "--------------------------------------------------"
+        
 
-plt.show()
+if __name__ == "__main__":
+
+    J_BasExc = 5.5
+    J_BasInh = 0.8
+    exc_rates = np.linspace(0.2, 4, 10)
+
+    for exc_rate in exc_rates:
+    
+        run_simulation_analyse_results(exc_rate)
+        
+        
