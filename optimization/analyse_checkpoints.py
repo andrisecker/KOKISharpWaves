@@ -47,7 +47,7 @@ def run_simulation(Wee, best_indiv):
     """reruns simulation, using the optimizations (BluePyOpt's) structure"""
 
     evaluator = sim_evaluator.Brian2Evaluator(Wee, optconf)
-    sme, smi, popre, popri = evaluator.generate_model(best_indiv)
+    sme, smi, popre, popri = evaluator.generate_model(best_indiv, verbose=True)
 
     if sme.num_spikes > 0 and smi.num_spikes > 0:  # check if there is any activity
         # analyze dynamics
@@ -91,7 +91,7 @@ def run_simulation(Wee, best_indiv):
 if __name__ == "__main__":
 
     fIn = "wmxR_sym.txt"
-    cpIn = "checkpoint_sym_4020_v1.pkl"
+    cpIn = "checkpoint_sym_4020_v6.pkl"
     
     # load in checkpoints
     fName = os.path.join(SWBasePath, "optimization", "checkpoints", cpIn)

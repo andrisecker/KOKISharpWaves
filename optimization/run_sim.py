@@ -96,7 +96,7 @@ dx_gaba/dt = -x_gaba/BasInh_decay : 1
 '''
 
 
-def run_simulation(Wee, J_PyrInh_, J_BasExc_, J_BasInh_, WeeMult_, J_PyrMF_, rate_MF_):
+def run_simulation(Wee, J_PyrInh_, J_BasExc_, J_BasInh_, WeeMult_, J_PyrMF_, rate_MF_, verbose=False):
     """
     runs single simulation, with specified input parameters and synaptic weights (to be optimized by BluePyOpt)
     :param Wee: weight matrix (this will not be optimized)
@@ -106,6 +106,7 @@ def run_simulation(Wee, J_PyrInh_, J_BasExc_, J_BasInh_, WeeMult_, J_PyrMF_, rat
     :param WeeMult_: multiplier of Wee values (not the same as in the *_automatized scripts!)
     :param J_PyrMF: weight of outer (MF) excitatory input to PCs
     :param rate_MF: rate of outer (MF) excitatory input to PCs
+    .verbose: bool - report during running sims
     """
     
     # synaptic weights (to be optimized...)
@@ -164,7 +165,10 @@ def run_simulation(Wee, J_PyrInh_, J_BasExc_, J_BasInh_, WeeMult_, J_PyrMF_, rat
     popre = PopulationRateMonitor(PE)
     popri = PopulationRateMonitor(PI)             
 
-    run(10000*ms)
+    if verbose:
+        run(10000*ms,  report="text")
+    else:
+        run(10000*ms)
     
     return sme, smi, popre, popri
                  

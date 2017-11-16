@@ -30,6 +30,7 @@ def evaluate_power(ripple, gamma):
 
 
 class Brian2Evaluator(bpop.evaluators.Evaluator):
+    """class required by BluePyOpt"""
 
     def __init__(self, Wee, params):
         """
@@ -44,9 +45,9 @@ class Brian2Evaluator(bpop.evaluators.Evaluator):
                        for name, minval, maxval in self.params]
         self.objectives = ["fitness_score"]  # random name for BluePyOpt
                        
-    def generate_model(self, individual):
-        """runs simulation (run_sim.py) and returns monitors"""
-        sme, smi, popre, popri = sim.run_simulation(self.Wee, *individual)
+    def generate_model(self, individual, verbose=False):
+        """runs simulation (`run_sim.py`) and returns monitors"""
+        sme, smi, popre, popri = sim.run_simulation(self.Wee, *individual, verbose=verbose)
         return sme, smi, popre, popri
 
     def evaluate_with_lists(self, individual):
