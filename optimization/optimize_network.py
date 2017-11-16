@@ -48,20 +48,19 @@ opt = bpop.optimisations.DEAPOptimisation(evaluator, offspring_size=30, map_func
                                           
 pop, hof, log, hist = opt.run(max_ngen=20, cp_filename="checkpoints/checkpoint_asym.pkl")
 
+# ====================================== end of optimization ======================================
+
+# summary figure (about optimization)
+plot_evolution(log.select('gen'), np.array(log.select('min')), np.array(log.select('avg')),
+               np.array(log.select('std')), "fittnes_evolution")
+
 # Get best individual
 best = hof[0]
 for pname, value in zip(pnames, best):
     print '%s = %.2f' % (pname, value)
 print 'Fitness value: ', best.fitness.values
 
-# summary figure (about optimization)
-plot_evolution(log.select('gen'), np.array(log.select('min')), np.array(log.select('avg')),
-               np.array(log.select('std')), "fittnes_evolution")
-
-
-# ====================================== end of optimization ======================================
-
-print " ===== Rerun simulation with the best parameters ===== "
+# rerun with best parameters and save figures
 sme, smi, popre, popri = evaluator.generate_model(best)
 
 if sme.num_spikes > 0 and smi.num_spikes > 0:  # check if there is any activity
