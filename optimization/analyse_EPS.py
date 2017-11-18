@@ -121,6 +121,9 @@ if __name__ == "__main__":
         EPSPs[i,:] = EPSP; EPSCs[i,:] = EPSC
         peakEPSPs[i] = get_peak_EPSP(t_, EPSP, i_hold, v_hold)
         peakEPSCs[i] = np.min(EPSC)
+        
+        if i % 50 == 0:
+            print("%s/%s done..."%(i, n))
 
     # finall run with the average of all nonzero weights
     t_, EPSP, EPSC = sym_paired_recording(np.mean(wmx_nz), i_hold)
