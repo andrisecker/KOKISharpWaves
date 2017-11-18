@@ -76,10 +76,10 @@ def run_simulation(Wee, best_indiv):
         print "--------------------------------------------------"
         
         # plot results
-        plot_raster_ISI(spikeTimesE, spikingNeuronsE, [ISIhist, bin_edges], "blue", multiplier_=1)
+        plot_raster_ISI(spikeTimesE, spikingNeuronsE, poprE, [ISIhist, bin_edges], "blue", multiplier_=1)
         plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier_=1)
         plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier_=1)
-        _, _ = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
+        _ = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
         plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1, Pyr_pop=False)
         
     else:  # if there is no activity the auto-correlation function will throw an error!
@@ -91,7 +91,7 @@ def run_simulation(Wee, best_indiv):
 if __name__ == "__main__":
 
     fIn = "wmxR_sym.txt"
-    cpIn = "checkpoint_sym_4020_v6.pkl"
+    cpIn = "checkpoint_sym_4020_v1.pkl"
     
     # load in checkpoints
     fName = os.path.join(SWBasePath, "optimization", "checkpoints", cpIn)

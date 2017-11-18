@@ -9,6 +9,8 @@ import os
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+import brian2.monitors.statemonitor
 
 #sns.set_context("paper")
 sns.set_style("white")
@@ -16,34 +18,70 @@ sns.set_style("white")
 SWBasePath = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2])
 figFolder = os.path.join(SWBasePath, "figures")
 
+# spike thresholds
+v_spike_Pyr = 19.85800072  # (optimized by Bence)
+v_spike_Bas = -17.48690645  # (optimized by Bence)
 
-def plot_raster_ISI(spikeTimes, spikingNeurons, hist, color_, multiplier_):
+
+def _avg_rate(rate, bin_, zoomed=False):
+    """
+    helper function to bin rate for bar plots
+    :param rate: np.array representing firing rates (hard coded for 10000ms simulations)
+    :param bin_: bin size
+    :param zoomed: bool for zoomed in plots
+    """
+        
+    t = np.linspace(0, 10000, len(rate))
+    t0 = 0 if not zoomed else 9900
+    t1 = np.arange(t0, 10000, bin_)
+    t2 = t1 + bin_    
+    avg_rate = np.zeros_like(t1, dtype=np.float)
+    for i, (t1_, t2_) in enumerate(zip(t1, t2)):
+        avg_ = np.mean(rate[np.where((t1_ <= t) & (t < t2_))])
+        if avg_ != 0.:
+            avg_rate[i] = avg_
+        
+    return avg_rate
+
+
+def plot_raster_ISI(spikeTimes, spikingNeurons, rate, hist, color_, multiplier_):
     """
     saves figure with raster plot and ISI distribution
     (note: the main reason of this function is that Brian2 doesn't have ISIHistogramMonitor and the corresponding plot)
-    :param spikeTimes, spikingNeurons: used for raster plot - precalculated by detect_oscillation.py/preprocess_spikes
-    :param hist: used for plotting InterSpikeInterval histogram - result of a numpy.histogram call
+    :param spikeTimes, spikingNeurons: used for raster plot - precalculated by `detect_oscillation.py/preprocess_spikes()`
+    :param hist: used for plotting InterSpikeInterval histogram
+                 result of a numpy.histogram call: [hist, bin_edges] (see `detect_oscillations.py/preprocess_monitors()`)
     :param color_, multiplier_: outline and naming parameters
     """
 
     fig = plt.figure(figsize=(10, 8))
-    ax = fig.add_subplot(2, 1, 1)
+    gs = gridspec.GridSpec(3, 1, height_ratios=[3, 1, 2])
+    
+    ax = fig.add_subplot(gs[0])
     ax.scatter(spikeTimes, spikingNeurons, c=color_, marker='.', linewidth=0)
     ax.set_title("Pyr_population raster")
-    ax.set_xlim([0, 10000])
-    ax.set_xlabel("Time (ms)")
+    ax.set_xlim([0, 10000])    
     ax.set_ylim([0, 4000])
     ax.set_ylabel("Neuron number")
+    
+    bin_ = 20
+    avg_rate = _avg_rate(rate, bin_)
+     
+    ax2 = fig.add_subplot(gs[1])
+    ax2.bar(np.linspace(0, 10000, len(avg_rate)), avg_rate, width=bin_, align="edge", color=color_, edgecolor="black", linewidth=0.5, alpha=0.9)
+    ax2.set_xlim([0, 10000])
+    ax2.set_xlabel("Time (ms)")
+    ax2.set_ylabel("Rate (Hz)")
 
-    ax2 = fig.add_subplot(2, 1, 2)
-    ax2.bar(hist[1][:-1], hist[0], width=50, align="edge", color=color_, edgecolor='black', linewidth=0.5, alpha=0.9)
-    ax2.axvline(150, ls='--', c="gray", label="ROI for replay analysis")
-    ax2.axvline(850, ls='--', c="gray")
-    ax2.set_title("Pyr_population ISI distribution")
-    ax2.set_xlabel("Delta_t (ms)")
-    ax2.set_xlim([0, 1000])
-    ax2.set_ylabel("Count")
-    ax2.legend()
+    ax3 = fig.add_subplot(gs[2])
+    ax3.bar(hist[1][:-1], hist[0], width=50, align="edge", color=color_, edgecolor="black", linewidth=0.5, alpha=0.9)  # width=50 comes from bins=20 
+    ax3.axvline(150, ls='--', c="gray", label="ROI for replay analysis")
+    ax3.axvline(850, ls='--', c="gray")
+    ax3.set_title("Pyr_population ISI distribution")
+    ax3.set_xlabel("$\Delta t$ (ms)")
+    ax3.set_xlim([0, 1000])
+    ax3.set_ylabel("Count")
+    ax3.legend()
 
     fig.tight_layout()
 
@@ -84,8 +122,8 @@ def plot_PSD(rate, rippleAC, f, Pxx, title_, linespec_, multiplier_):
     ax = fig.add_subplot(3, 1, 1)
     ax.plot(np.linspace(0, 10000, len(rate)), rate, linespec_)
     ax.set_title("%s rate"%title_)
-    ax.set_xlabel("Time (ms)")
     ax.set_xlim([0, 10000])
+    ax.set_ylabel("Rate (Hz)")
 
     ax2 = fig.add_subplot(3, 1, 2)
     ax2.plot(np.linspace(2, 200, len(rEACPlot)), rEACPlot, linespec_)
@@ -110,66 +148,12 @@ def plot_PSD(rate, rippleAC, f, Pxx, title_, linespec_, multiplier_):
     fig.savefig(figName)
 
 
-def plot_zoomed(spikeTimes, spikingNeurons, rate, title_, color_, multiplier_, Pyr_pop=True):
+def _select_subset(selection, ymin, ymax):
     """
-    saves figure with zoomed in raster and rate (last 100ms)
-    :param spikeTimes, spikingNeurons: used for raster plot - precalculated by detect_oscillation.py/preprocess_spikes
-    :param rate: firing rate - precalculated by detect_oscillation.py/preprocess_spikes
-    :param title_, color_, linespec_, multiplier_: outline and naming parameters
-    :param Pyr_pop: flag for calculating and returning ymin and ymax (and zooming in the plot)
-    :return ymin, ymax for further plotting (see plot_variables)
-    """
-
-    # get last 100ms
-    ROI = np.where(spikeTimes > 9900)[0].tolist()  # hard coded for 10000ms...
-    rasterX = spikeTimes[ROI]
-    rasterY = spikingNeurons[ROI]
-
-    if Pyr_pop:
-        # boundaries
-        if rasterY.min()-50 > 0:
-            ymin = rasterY.min()-50
-        else:
-            ymin = 0
-        if rasterY.max()+50 < 4000:
-            ymax = rasterY.max()+50
-        else:
-            ymax = 4000
-    else:
-        ymin = 0
-        ymax = 1000
-
-    fig = plt.figure(figsize=(10, 8))
-
-    ax = fig.add_subplot(2, 1, 1)
-    ax.scatter(rasterX, rasterY, c=color_, marker='.', linewidth=0)
-    ax.set_title("%s raster (last 100 ms)"%title_)
-    ax.set_xlim([9900, 10000])
-    ax.set_xlabel("Time (ms)")
-    ax.set_ylim([ymin, ymax])
-    ax.set_ylabel("Neuron number")
-
-    ax2 = fig.add_subplot(2, 1, 2)
-    ax2.plot(np.linspace(9900, 10000, len(rate[9900:10000])), rate[9900:10000], c=color_, linewidth=1.5)
-    ax2.set_title("Rate (last 100 ms)")
-    ax2.set_xlabel("Time (ms)")
-    ax2.set_xlim([9900, 10000])
-
-    fig.tight_layout()
-
-    figName = os.path.join(figFolder, "%s_%s_zoomed.png"%(multiplier_, title_))
-    fig.savefig(figName)
-
-    if Pyr_pop:
-        return ymin, ymax
-
-
-def select_subset(selection, ymin, ymax):
-    """
-    select a subset of neurons for plotting more detailes (the subset is from the ones spiking in the last 100ms - see plot_zoomed())
-    param selection: recorded neurons (ndarray)
+    helper function to select a subset of neurons for plotting more detailes (the subset is from the ones spiking in the last 100ms - see `plot_zoomed()`)
+    param selection: np.array of recorded neurons 
     param ymin, ymax: lower and upper bound for the selection
-    return subset: selected subset (list)
+    return subset: list of selected subset
     """
     try:
         np.random.shuffle(selection)
@@ -184,6 +168,102 @@ def select_subset(selection, ymin, ymax):
     except:  # if there isn't any cell firing
         subset = [400, 1000, 1500, 2300, 3600]
     return subset
+
+
+def plot_zoomed(spikeTimes, spikingNeurons, rate, title_, color_, multiplier_, Pyr_pop=True, sm=None, selection=None):
+    """
+    saves figure with zoomed in raster, rate and optionally a trace (last 100ms)
+    :param spikeTimes, spikingNeurons: used for raster plot - precalculated by `detect_oscillation.py/preprocess_spikes()`
+    :param rate: firing rate - precalculated by detect_oscillation.py/preprocess_spikes
+    :param title_, color_, linespec_, multiplier_: outline and naming parameters
+    :param Pyr_pop: flag for calculating and returning ymin and ymax (and zooming in the plot)
+    :param sm: Brian MultiStateMonitor object or Brian2 StateMonitor object (could be more elegant...)
+    :param selection: np.array of recorded neurons (used only if Pyr_pop is true)
+    return subset: see `_select_subset()`
+    """
+
+    # get last 100ms of raster
+    ROI = [np.where(spikeTimes > 9900)[0]]  # hard coded for 10000ms...
+    spikeTimes = spikeTimes[ROI]; spikingNeurons = spikingNeurons[ROI]
+    
+    # average rate 
+    bin_ = 1.5
+    avg_rate = _avg_rate(rate, bin_, zoomed=True)
+    
+    # set boundaries
+    if Pyr_pop:        
+        ymin = spikingNeurons.min()-5 if spikingNeurons.min()-5 > 0 else 0
+        ymax = spikingNeurons.max()+5 if spikingNeurons.max()+5 < 4000 else 4000
+        subset = _select_subset(selection, ymin, ymax)
+    else:
+        ymin = 0; ymax = 1000
+    
+    # select trace to plot
+    if sm:
+        if Pyr_pop:
+            id_ = subset[0]
+            for i in subset:
+                idx = np.where(np.asarray(spikingNeurons)==i)[0]  # spike times of given neuron (used for red dots on scatter)
+                if len(idx) != 0:  # the randomly selected neuron spikes...
+                    id_ = i
+                    break             
+        else:  # for Bas. pop we always plot the same
+            id_ = 500  # fixed in simulations
+            idx = np.where(np.asarray(spikingNeurons)==id_)[0]  # spike times of given neuron (used for red dots on scatter)
+    
+        # get trace from monitor
+        if type(sm) is brian2.monitors.statemonitor.StateMonitor:
+            t = sm.t_ * 1000.  # *1000 ms convertion
+            v = sm[id_].vm*1000  # *1000 mV conversion        
+        else:
+            pass  # TODO: add code for brian1 monitor (if needed...)
+
+    fig = plt.figure(figsize=(10, 8))
+    if sm:
+        gs = gridspec.GridSpec(3, 1, height_ratios=[3, 1, 2])
+    else:
+        gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1])
+    
+    ax = fig.add_subplot(gs[0])
+    ax.scatter(spikeTimes, spikingNeurons, c=color_, marker='.', linewidth=0)
+    if sm:
+        if len(idx) != 0:
+            if Pyr_pop:
+                ax.scatter(spikeTimes[idx], spikingNeurons[idx], c="red", marker='.', linewidth=0, label=id_)
+            else:
+                ax.scatter(spikeTimes[idx], spikingNeurons[idx], c="red", marker='.', linewidth=0)
+    ax.set_title("%s raster (last 100 ms)"%title_)
+    ax.set_xlim([9900, 10000])
+    ax.set_ylim([ymin, ymax])
+    ax.set_ylabel("Neuron number")
+    if sm and Pyr_pop:
+        ax.legend()
+ 
+    ax2 = fig.add_subplot(gs[1])
+    ax2.bar(np.linspace(9900, 10000, len(avg_rate)), avg_rate, width=bin_, align="edge", color=color_, edgecolor="black", linewidth=0.5, alpha=0.9)
+    ax2.set_xlim([9900, 10000]) 
+    ax2.set_ylabel("Rate (Hz)")
+    
+    if sm:   
+        ax3 = fig.add_subplot(gs[2])
+        if len(idx) != 0:
+            ax3.plot(t[np.where((9900 <= t) & (t < 10000))], v[np.where((9900 <= t) & (t < 10000))], linewidth=2, c=color_,)
+            tmp = v_spike_Pyr * np.ones_like(idx, dtype=np.float) if Pyr_pop else v_spike_Bas * np.ones_like(idx, dtype=np.float)
+            ax3.plot(spikeTimes[idx], tmp, c="red", marker='.', linewidth=0, label=id_)
+        else:
+            ax3.plot(t[np.where((9900 <= t) & (t < 10000))], v[np.where((9900 <= t) & (t < 10000))], linewidth=2, c=color_, label=id_)
+        ax3.set_xlim([9900, 10000])
+        ax3.set_xlabel("Time (ms)")
+        ax3.set_ylabel("Vm (mV)")
+        ax3.legend()
+
+    fig.tight_layout()
+
+    figName = os.path.join(figFolder, "%s_%s_zoomed.png"%(multiplier_, title_))
+    fig.savefig(figName)
+
+    if Pyr_pop:
+         return subset
 
 
 def plot_detailed(msM, subset, multiplier_, plot_adaptation=True, new_network=False):
@@ -202,8 +282,8 @@ def plot_detailed(msM, subset, multiplier_, plot_adaptation=True, new_network=Fa
     ax2 = fig.add_subplot(2, 2, 2)
     ax3 = fig.add_subplot(2, 2, 3)
     ax4 = fig.add_subplot(2, 2, 4)
+    
 
-    import brian2.monitors.statemonitor
     if type(msM) is brian2.monitors.statemonitor.StateMonitor:
         t = msM.t_ * 1000.  # *1000 ms convertion
         for i in subset:
@@ -242,13 +322,13 @@ def plot_detailed(msM, subset, multiplier_, plot_adaptation=True, new_network=Fa
 
     ax3.set_title("Exc. inputs (last 100 ms)")
     ax3.set_xlabel("Time (ms)")
-    ax3.set_ylabel("g_ampa (nS)")
+    ax3.set_ylabel("g_AMPA (nS)")
     ax3.set_xlim([9900, 10000])
     ax3.legend()
 
     ax4.set_title("Inh. inputs (last 100 ms)")
     ax4.set_xlabel("Time (ms)")
-    ax4.set_ylabel("g_gaba (nS)")
+    ax4.set_ylabel("g_GABA (nS)")
     ax4.set_xlim([9900, 10000])
     ax4.legend()
 
@@ -273,7 +353,6 @@ def plot_adaptation(msM, subset, multiplier_):  # quick and dirty solution (4 su
     ax3 = fig.add_subplot(2, 2, 3)
     ax4 = fig.add_subplot(2, 2, 4)
 
-    import brian2.monitors.statemonitor
     if type(msM) is brian2.monitors.statemonitor.StateMonitor:
         t = msM.t_ * 1000.  # *1000 ms convertion
         for i in subset:

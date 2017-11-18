@@ -79,17 +79,18 @@ def run_simulation(exc_rate):
     Cii.delay = delay_BasInh
 
     smi = SpikeMonitor(PI)
-    popri = PopulationRateMonitor(PI)             
+    popri = PopulationRateMonitor(PI) 
+    sMI = StateMonitor(PI, "vm", record=[500])         
 
     run(10000*ms, report="text")
     
-    return smi, popri
+    return smi, popri, sMI
 
 
 def run_simulation_analyse_results(exc_rate):
-    """runs simulationa, prints out results and saves plots"""
+    """runs simulation, prints out results and saves plots"""
 
-    smi, popri = run_simulation(exc_rate)
+    smi, popri, sMI = run_simulation(exc_rate)
     
     if smi.num_spikes > 0:  # check if there is any activity
 
@@ -107,7 +108,7 @@ def run_simulation_analyse_results(exc_rate):
         
         # Plots
         plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier_=exc_rate)
-        plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=exc_rate, Pyr_pop=False)
+        plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, sMI, "Bas_population", "green", multiplier_=exc_rate, Pyr_pop=False)
         plt.close("all")
 
     else:  # if there is no activity the auto-correlation function will throw an error!

@@ -181,13 +181,12 @@ if sme.nspikes > 0 and smi.nspikes > 0:  # check if there is any activity
 
 
     # Plots
-    plot_raster_ISI(spikeTimesE, spikingNeuronsE, [ISIhist, bin_edges], 'blue', multiplier_=1)
+    plot_raster_ISI(spikeTimesE, spikingNeuronsE, poprE, [ISIhist, bin_edges], 'blue', multiplier_=1)
     plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier_=1)
     plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier_=1)
 
-    ymin, ymax = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
+    subset = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
     plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1, Pyr_pop=False)
-    subset = select_subset(selection, ymin, ymax)
     plot_detailed(msMe, subset, multiplier_=1)
     #plot_adaptation(msMe, selection, multiplier_=1)
 

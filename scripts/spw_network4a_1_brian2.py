@@ -181,11 +181,11 @@ if sme.num_spikes > 0 and smi.num_spikes > 0:  # check if there is any activity
 
 
     # Plots
-    plot_raster_ISI(spikeTimesE, spikingNeuronsE, [ISIhist, bin_edges], "blue", multiplier_=1)
+    plot_raster_ISI(spikeTimesE, spikingNeuronsE, poprE, [ISIhist, bin_edges], "blue", multiplier_=1)
     plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", "b-", multiplier_=1)
     plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", "g-", multiplier_=1)
 
-    _, _ = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
+    _  = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
     plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1, Pyr_pop=False)
 
 else:  # if there is no activity the auto-correlation function will throw an error!

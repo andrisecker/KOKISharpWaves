@@ -13,15 +13,13 @@ from brian2 import *
 import numpy as np
 import random as pyrandom
 import matplotlib.pyplot as plt
+import warnings
+warnings.filterwarnings("ignore") # ignore scipy 0.18 sparse matrix warning...
 SWBasePath = os.path.sep.join(os.path.abspath('__file__').split(os.path.sep)[:-2])
 sys.path.insert(0, os.path.sep.join([SWBasePath, 'scripts']))
 from detect_oscillations import *
 from plots import *
 
-   
-# mossy fiber input
-J_PyrMF = 24.25
-rate_MF = 20 * Hz
 
 # size of populations
 NE = 4000
@@ -59,6 +57,9 @@ delay_BasInh = 0.6 * ms  # Bartos 2002
 # synaptic reversal potentials
 E_Exc = 0.0 * mV
 E_Inh = -70.0 * mV
+
+# mossy fiber input
+rate_MF = 20 * Hz
 
 z = 1 * nS
 # parameters for pyr cells (optimized by Bence)
@@ -107,12 +108,13 @@ dx_gaba/dt = -x_gaba/BasInh_decay : 1
 '''
 
 
-def run_simulation(Wee, STDP_mode="asym", detailed=True):
+def run_simulation(Wee, STDP_mode="asym", detailed=True, verbose=True):
     """
     Sets up the network and runs simulation
     :param Wee: np.array representing synaptic weight matrix
     :param STDP_mode: symmetric or asymmetric weight matrix flag (used for synapse parameters)
     :param detailed: bool - useage of multi state monitor (for membrane pot and inh. and exc. inputs of some singe cells)
+    :param verbose: report status of simulation
     :return sme, smi, popre, popri, selection, msMe: brian2 monitors (+ array of selected cells used by multi state monitor) 
     """
 
@@ -120,14 +122,15 @@ def run_simulation(Wee, STDP_mode="asym", detailed=True):
     pyrandom.seed(12345)
     
     # synaptic weights
-    if STDP_mode == "asym":
-        J_PyrInh = 0.02
+    J_PyrInh = 0.02
+    if STDP_mode == "asym":    
         J_BasExc = 5
         J_BasInh = 0.4
+        J_PyrMF = 24.25
     elif STDP_mode == "sym":
-        J_PyrInh = 0.016
-        J_BasExc = 4.5
-        J_BasInh = 0.75
+        J_BasExc = 5.5
+        J_BasInh = 0.8
+        J_PyrMF = 30
     # wmx scale factor already introduced in the stdp* script!
 
     PE = NeuronGroup(NE, model=eqs_Pyr, threshold="vm>v_spike_Pyr",
@@ -173,12 +176,16 @@ def run_simulation(Wee, STDP_mode="asym", detailed=True):
     popri = PopulationRateMonitor(PI)
     if detailed:
         selection = np.arange(0, 4000, 50)  # subset of neurons for recoring variables
-        msMe = StateMonitor(PE, ["vm", "w", "g_ampa", "g_ampaMF","g_gaba"], record=selection.tolist())  # comment this out later (takes memory!)        
-
-    run(10000*ms, report='text')
+        mSME = StateMonitor(PE, ["vm", "w", "g_ampa", "g_ampaMF","g_gaba"], record=selection.tolist())  # comment this out later (takes memory!)   
+        sMI = StateMonitor(PI, "vm", record=[500])     
+    
+    if verbose:
+        run(10000*ms, report="text")
+    else:
+        run(10000*ms)
     
     if detailed:
-        return sme, smi, popre, popri, selection, msMe
+        return sme, smi, popre, popri, selection, mSME, sMI
     else:
         return sme, smi, popre, popri
 
@@ -195,7 +202,7 @@ if __name__ == "__main__":
     Wee = load_Wee(fName)
     
     # run simulation
-    sme, smi, popre, popri, selection, msMe = run_simulation(Wee, STDP_mode)
+    sme, smi, popre, popri, selection, mSME, sMI = run_simulation(Wee, STDP_mode)
 
     # analyse results
     if sme.num_spikes > 0 and smi.num_spikes > 0:  # check if there is any activity
@@ -226,14 +233,13 @@ if __name__ == "__main__":
 
 
         # Plots
-        plot_raster_ISI(spikeTimesE, spikingNeuronsE, [ISIhist, bin_edges], 'blue', multiplier_=1)
+        plot_raster_ISI(spikeTimesE, spikingNeuronsE, poprE, [ISIhist, bin_edges], "blue", multiplier_=1)
         plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier_=1)
         plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier_=1)
 
-        ymin, ymax= plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
-        plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1, Pyr_pop=False)
-        subset = select_subset(selection, ymin, ymax)
-        plot_detailed(msMe, subset, multiplier_=1, new_network=True)
+        subset = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1, sm=mSME, selection=selection)
+        plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1, Pyr_pop=False, sm=sMI)        
+        plot_detailed(mSME, subset, multiplier_=1, new_network=True)
 
     else:  # if there is no activity the auto-correlation function will throw an error!
 

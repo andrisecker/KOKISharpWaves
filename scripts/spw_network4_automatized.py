@@ -194,13 +194,12 @@ for k, multiplier in enumerate(multipliers):
                    avgRippleFI, ripplePI, avgGammaFI, gammaPI]
 
         # Plots
-        plot_raster_ISI(spikeTimesE, spikingNeuronsE, [ISIhist, bin_edges], "blue", multiplier)
+        plot_raster_ISI(spikeTimesE, spikingNeuronsE, poprE, [ISIhist, bin_edges], "blue", multiplier)
         plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier)
         plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier)
 
-        ymin, ymax = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier)
+        subset = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier)
         plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier, Pyr_pop=False)
-        subset = select_subset(selection, ymin, ymax)
         plot_detailed(msMe, subset, multiplier)
         #plot_adaptation(msMe, selection, multiplier)
 

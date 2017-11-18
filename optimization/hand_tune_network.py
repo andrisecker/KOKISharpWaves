@@ -33,7 +33,7 @@ def run_simulation_analyse_results(Wee, J_PyrInh, J_BasExc, J_BasInh, mult, J_Py
 
         spikeTimesE, spikingNeuronsE, poprE, ISIhist, bin_edges = preprocess_monitors(sme, popre)
         spikeTimesI, spikingNeuronsI, poprI = preprocess_monitors(smi, popri, calc_ISI=False)
-        plot_raster_ISI(spikeTimesE, spikingNeuronsE, [ISIhist, bin_edges], 'blue', multiplier_=tmp)
+        plot_raster_ISI(spikeTimesE, spikingNeuronsE, poprE, [ISIhist, bin_edges], 'blue', multiplier_=tmp)
 
         # call detect_oscillation functions:
         avgReplayInterval = replay(ISIhist[3:16])  # bins from 150 to 850 (range of interest)
@@ -48,7 +48,7 @@ def run_simulation_analyse_results(Wee, J_PyrInh, J_BasExc, J_BasInh, mult, J_Py
             plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier_=tmp)
             plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier_=tmp)
 
-            _, _ = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=tmp)
+            _ = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=tmp)
             plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=tmp, Pyr_pop=False)
             plt.close("all")
             
