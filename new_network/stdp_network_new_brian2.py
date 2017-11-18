@@ -92,7 +92,7 @@ if __name__ == "__main__":
     try:
         STDP_mode = sys.argv[1]       
     except:
-        STDP_mode = "sym"
+        STDP_mode = "asym"
         
     fIn = "spikeTrainsR.npz"
     fOut = "wmxR_%s.txt"%STDP_mode
@@ -108,7 +108,7 @@ if __name__ == "__main__":
         taup = taum = 62.5 * ms
         Ap = Am = 0.006
         wmax = 10e-9  # S (w is dimensionless in the equations)
-        scale_factor = 1 # scaling factor necessary to get replay with the new cell models (not sure if this it should be here or somewhere else)
+        scale_factor = 1.4 # scaling factor necessary to get replay with the new cell models (not sure if this it should be here or somewhere else)
     Ap *= wmax  # needed to reproduce Brian1 results
     Am *= wmax  # needed to reproduce Brian1 results
     w_init = 0.1e-9  # S (w is dimensionless in the equations)
