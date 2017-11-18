@@ -8,7 +8,8 @@ author: András Ecker last update: 11.2017
 
 import os
 import json
-from brian2 import *  
+from brian2 import *
+# could be speded up with C++ code gen, but only if the spiking net were here (and no EPSP measurement with "real" cells...)
 import numpy as np
 import random as pyrandom
 from scipy.optimize import curve_fit
@@ -125,12 +126,12 @@ def fit_exponential(delta_ts, dEPSPchanges, A_0, tau_0):
 
 if __name__ == "__main__":
     
-    #delta_ts = [-100., -50., -20., -10., 10., 20., 50., 100.]  # (ms) same as Mishra et al. 2016
-    delta_ts = [35., 40., 50., 60., 70., 80., 90., 100.]  # (ms) more diverse values to fit better exponential
+    #delta_ts = [-100., -50., -20., -10., 10., 20., 50., 100.]  # (ms) same as Mishra et al. 2016  (large weights gets cropped...)
+    delta_ts = [40., 50., 60., 70., 80., 90., 100., 110.]  # (ms) more diverse values to fit better exponential
     
     # STDP parameters
     taup = taum = 62.5 * ms
-    Ap = Am = 0.005
+    Ap = Am = 0.006
     wmax = 10e-9  # S (w is dimensionless in the equations)
     Ap *= wmax  # needed to reproduce Brian1 results
     Am *= wmax  # needed to reproduce Brian1 results
