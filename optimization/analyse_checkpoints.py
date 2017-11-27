@@ -57,9 +57,9 @@ def run_simulation(Wee, best_indiv):
         # call detect_oscillation functions:
         avgReplayInterval = replay(ISIhist[3:16])  # bins from 150 to 850 (range of interest)
         print "replay:", avgReplayInterval
-        meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE, 1000)
+        meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE)
         avgGammaFE, gammaPE = gamma(fE, PxxE)
-        meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI, 1000)
+        meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI)
         avgGammaFI, gammaPI = gamma(fI, PxxI)
         
         # Print out some info

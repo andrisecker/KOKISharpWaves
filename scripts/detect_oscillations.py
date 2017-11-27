@@ -1,12 +1,14 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
-'''
+"""
 helper file to extract dynamic features: checking replay interval by ISI, computing AC and PSD of population rate
-authors: András Ecker, Bence Bagi, Eszter Vértes, Szabolcs Káli last update: 09.2017
-'''
+authors: András Ecker, Bence Bagi, Eszter Vértes, Szabolcs Káli last update: 11.2017
+"""
 
 import numpy as np
 from scipy import signal, misc
+import brian.monitor
+import brian2.monitors.spikemonitor
 
 
 def preprocess_monitors(sm, prm, calc_ISI=True):
@@ -20,41 +22,32 @@ def preprocess_monitors(sm, prm, calc_ISI=True):
             ISIhist and ISI_bin_edges: bin heights and edges of the histogram of the ISI of the population
     """
 
-    import brian.monitor
+    # get data from monitors
     if type(sm) is brian.monitor.SpikeMonitor:
-        spikeTimes = np.array(sm.spikes)[:,1]*1000.
+        spikeTimes = np.array(sm.spikes)[:,1]*1000.  # *1000 ms conversion
         spikingNeurons = np.array(sm.spikes)[:,0]
-        rate = np.array(prm.rate_).reshape(-1, 10).mean(axis=1)
+        tmp_spikeTimes = sm.spiketimes.items()
+    elif type(sm) is brian2.monitors.spikemonitor.SpikeMonitor:
+        spikeTimes = np.array(sm.t_) * 1000.  # *1000 ms conversion
+        spikingNeurons = np.array(sm.i_)     
+        tmp_spikeTimes = sm.spike_trains().items() 
+    rate = np.array(prm.rate_).reshape(-1, 10).mean(axis=1)
 
-        if calc_ISI:
-            ISIs = np.hstack([np.diff(spikes_i*1000) for i, spikes_i in sm.spiketimes.items()])
-            ISIhist, bin_edges = np.histogram(ISIs, bins=20, range=(0,1000))
+    if calc_ISI:
+        ISIs = np.hstack([np.diff(spikes_i*1000) for i, spikes_i in tmp_spikeTimes])  # *1000 ms conversion
+        ISIhist, bin_edges = np.histogram(ISIs, bins=20, range=(0,1000))
 
-            return spikeTimes, spikingNeurons, rate, ISIhist, bin_edges
-
-        return spikeTimes, spikingNeurons, rate
-
-
-    import brian2.monitors.spikemonitor
-    if type(sm) is brian2.monitors.spikemonitor.SpikeMonitor:
-        spikeTimes = np.array(sm.t_) * 1000.
-        spikingNeurons = np.array(sm.i_)
-        rate = np.array(prm.rate_).reshape(-1, 10).mean(axis=1)
-
-        if calc_ISI:
-            ISIs = np.hstack([np.diff(spikes_i*1000) for i, spikes_i in sm.spike_trains().items()])
-            ISIhist, bin_edges = np.histogram(ISIs, bins=20, range=(0,1000))
-
-            return spikeTimes, spikingNeurons, rate, ISIhist, bin_edges
-
+        return spikeTimes, spikingNeurons, rate, ISIhist, bin_edges
+    else:
         return spikeTimes, spikingNeurons, rate
 
 
 def preprocess_spikes(spiketimes, N_norm, calc_ISI=True):
     """
     preprocess Brian's SpikeMonitor data for further analysis and plotting
-    -> more general, but slower version of preprocess_monitors()
+    -> more general (solves it without rate monitor), but slower version of preprocess_monitors()
     :param spiketimes: dictionary with keys as neuron IDs and spike time arrays (produced by Brian(1&2) SpikeMonitor)
+    :param N_norm: normaliation factor for rate
     :return spikeTimes, spikingNeurons: used for raster plots
             rate: firing rate of the population (hard coded to use 1*ms bins!)
             ISIs: inter spike intervals (used for replay detection and plotting)
@@ -62,7 +55,7 @@ def preprocess_spikes(spiketimes, N_norm, calc_ISI=True):
 
     spikeTimes = []
     spikingNeurons = []
-    rate = np.zeros((10000)) # hard coded for 10000ms and 1ms bins
+    rate = np.zeros((10000)); fs = 1000. # hard coded for 10000ms and 1ms bins
     if calc_ISI:
         ISIs = []
     for i, spikes_i in spiketimes.items():  # the order doesn't really matter...
@@ -78,19 +71,24 @@ def preprocess_spikes(spiketimes, N_norm, calc_ISI=True):
         # updating firing rate (based on spikes from 1 neuron)
         spike_ids = (spikes_i*1000).astype(int)  # create indexing array (*1000 ms conversion)
         rate[spike_ids] += 1
+        
+    # normalize rate
+    rate = rate/(N_norm*(1./fs))
+    # highpass filter rate
+    rate = _filter_rate(rate, fs)
 
     if calc_ISI:
-        return spikeTimes, spikingNeurons, rate/(N_norm*0.001), ISIs  # *0.001 is 1ms bin delta_t normalization...
+        return spikeTimes, spikingNeurons, rate, ISIs
     else:
-        return spikeTimes, spikingNeurons, rate/(N_norm*0.001)  # # *0.001 is 1ms bin delta_t normalization...
+        return spikeTimes, spikingNeurons, rate
 
 
-def replay(isi):
+def replay(isi, th=0.7):
     """
     Decides if there is a replay or not:
-    searches for the max # of spikes (and plus one bin one left- and right side)
-    if the 70% of the spikes are in that 3 bins then it's periodic activity: replay
-    :param isi: Inter Spike Intervals of the pyr. pop.
+    searches for the max # of spikes (and plus one bin one left- and right side) and checks again % threshold
+    :param isi: Inter Spike Intervals (of the pyr. pop.)
+    :param th: threshold for spike count in the highest and 2 nearest bins (set to 70%)
     :return avgReplayInterval: counted average replay interval
     """
 
@@ -106,13 +104,13 @@ def replay(isi):
         bins3 = []
 
     replay_ = np.nan
-    if sum(int(i) for i in binsROI) * 0.7 < sum(int(i) for i in bins3):
+    if sum(int(i) for i in binsROI) * th < sum(int(i) for i in bins3):
         replay_ = avgReplayInterval
 
     return replay_
 
 
-def autocorrelation(x):
+def _autocorrelation(x):
     """
     Computes the autocorrelation/serial correlation of a time series (to find repeating patterns)
     R(\tau) = \frac{E[(X_t - \mu)(X_{t+\tau} - \mu)]}{\sigma^2}
@@ -127,14 +125,55 @@ def autocorrelation(x):
 
     return xAC[len(xAC)/2:]
 
-
-def ripple(rate, fs):
+    
+def _filter_rate(rate, fs, cut=2., order=5):
     """
-    Decides if there is a high freq. ripple oscillation or not
+    highpass filters rate (above 2Hz) with a Butterfly filter (just for PSD)
+    :param rate: firing rate
+    :param fs: sampling freq
+    :param cut, order: cutting freq. and order of the filter
+    :return filt_rate: high pass filtered rate
+    """
+    
+    nyq = fs * 0.5
+    # see more: https://docs.scipy.org/doc/scipy-0.19.1/reference/generated/scipy.signal.butter.html
+    b, a = signal.butter(order, cut/nyq, btype="highpass")
+    #w, h = signal.freqz(b, a, worN=2000)
+    #plt.plot((nyq/np.pi)*w, abs(h))
+    filt_rate = signal.filtfilt(b, a, rate)
+    
+    return filt_rate
+    
+    
+def _fisher(Pxx):
+    """
+    Performs Fisher g-test on PSD (see Fisher 1929: http://www.jstor.org/stable/95247?seq=1#page_scan_tab_contents)
+    :param Pxx: spectrum (returned by scipy.signal.welch)
+    :param p: significance threshold
+    :return pVal: p-value
+    """
+
+    fisherG = Pxx.max() / np.sum(Pxx)
+
+    N = len(Pxx)
+    upper = int(np.floor(1 / fisherG))
+    I = []
+    for i in range(1, upper):
+        Nchoosei = misc.comb(N, i)
+        I.append(np.power(-1, i-1) * Nchoosei * np.power((1-i*fisherG), N-1))
+    pVal = np.sum(I)
+    
+    return pVal
+
+
+def ripple(rate, fs=1000, p=0.01):
+    """
+    Decides if there is a significant high freq. ripple oscillation
     calculates the autocorrelation and the power spectrum of the activity
-    and applies a Fisher g-test (on the spectrum) and if p value is smaller than 0.01 it's ripple
+    and applies a Fisher g-test (on the spectrum)
     :param rate: firing rate of the neuron population
     :param fs: sampling frequency (for the spectral analysis)
+    :param p: significance threshold for Fisher g-test
     :return: meanr, rAC: mean rate, autocorrelation of the rate
              maxAC, tMaxAC: maximum autocorrelation, time interval of maxAC
              maxACR, tMaxAC: maximum autocorrelation in ripple range, time interval of maxACR
@@ -142,81 +181,54 @@ def ripple(rate, fs):
              avgRippleF, rippleP: average frequency and power of the oscillation
     """
 
-    meanr = np.mean(rate)
-    rAC = autocorrelation(rate)
-
+    # analyse autocorrelation function (TODO: factor this out from here...)
+    rAC = _autocorrelation(rate)
+    # random hard coded values by Eszter:(
     maxAC = rAC[1:].max()
     tMaxAC = rAC[1:].argmax()+1
     maxACR = rAC[3:9].max()
     tMaxACR = rAC[3:9].argmax()+3
 
-    # see more: http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.signal.welch.html
+    # highpass filter rate before calculating PSD
+    rate = _filter_rate(rate, fs)
+
+    # get PSD - see more: http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.signal.welch.html
     f, Pxx = signal.welch(rate, fs, window="hamming", nperseg=512, scaling="spectrum")
 
+    # get ripple freq
     f = np.asarray(f)
-    rippleS = np.where(160 < f)[0][0]  # 145 -> replaced to have the same lenght as for gamma, to get the significance test unbiased...
-    rippleE = np.where(f < 230)[0][-1]  # 250 -> replaced to have the same lenght as for gamma, to get the significance test unbiased...
-    f.tolist()
-    PxxRipple = Pxx[rippleS:rippleE]
+    PxxRipple = Pxx[np.where((160 < f) & (f < 230))]
+    
+    # apply Fisher g-test
+    pVal = _fisher(PxxRipple)
+    avgRippleF = f[np.where(160 < f)[0][0] + PxxRipple.argmax()] if pVal < p else np.nan
+        
+    # get ripple power
+    rippleP = (sum(PxxRipple) / sum(Pxx)) * 100
 
-    # Fisher g-test
-    fisherG = PxxRipple.max() / np.sum(PxxRipple)
-
-    N = len(PxxRipple)
-    upper = int(np.floor(1 / fisherG))
-    I = []
-    for i in range(1, upper):
-        Nchoosei = misc.comb(N, i)
-        I.append(np.power(-1, i-1) * Nchoosei * np.power((1-i*fisherG), N-1))
-    pVal = np.sum(I)
-
-    if pVal < 0.01:
-        avgRippleF = f[PxxRipple.argmax() + rippleS]
-    else:
-        avgRippleF = np.nan
-
-    power = sum(Pxx)
-    tmp = sum(PxxRipple)
-    rippleP = (tmp / power) * 100
+    return np.mean(rate), rAC, maxAC, tMaxAC, maxACR, tMaxACR, f, Pxx, avgRippleF, rippleP
 
 
-    return meanr, rAC, maxAC, tMaxAC, maxACR, tMaxACR, f, Pxx, avgRippleF, rippleP
-
-
-def gamma(f, Pxx):
+def gamma(f, Pxx, p=0.01):
     """
-    Decides if there is a gamma oscillation or not
-    and applies a Fisher g-test (on the spectrum) and if p value is smaller than 0.01 it's gamma
-    :param f: calculated frequecies of the power spectrum
-    :param Pxx: power spectrum of the neural activity
+    Decides if there is a significant high freq. gamma oscillation
+    by applying Fisher g-test (on the spectrum)
+    :param f: calculated frequecies of the power spectrum see `ripple()`
+    :param Pxx: power spectrum of the neural activity see `ripple()`
+    :param p: significance threshold for Fisher g-test
     :return: avgGammaF, gammaP: average frequency and power of the oscillation
     """
 
+    # get gamma freq
     f = np.asarray(f)
-    gammaS = np.where(30 < f)[0][0]
-    gammaE = np.where(f < 100)[0][-1]
-    f.tolist()
-    PxxGamma = Pxx[gammaS:gammaE]
-
-    # Fisher g-test
-    fisherG = PxxGamma.max() / np.sum(PxxGamma)
-
-    N = len(PxxGamma)
-    upper = int(np.floor(1 / fisherG))
-    I = []
-    for i in range(1, upper):
-        Nchoosei = misc.comb(N, i)
-        I.append(np.power(-1, i-1) * Nchoosei * np.power((1-i*fisherG), N-1))
-    pVal = np.sum(I)
-
-    if pVal < 0.01:
-        avgGammaF = f[PxxGamma.argmax() + gammaS]
-    else:
-        avgGammaF = np.nan
-
-    power = sum(Pxx)
-    tmp = sum(PxxGamma)
-    gammaP = (tmp / power) * 100
+    PxxGamma = Pxx[np.where((30 < f) & (f < 100))]
+    
+    # apply Fisher g-test
+    pVal = _fisher(PxxGamma)
+    avgGammaF = f[np.where(30 < f)[0][0] + PxxGamma.argmax()] if pVal < p else np.nan
+    
+    # get gamma power
+    gammaP = (sum(PxxGamma) / sum(Pxx)) * 100
 
     return avgGammaF, gammaP
     

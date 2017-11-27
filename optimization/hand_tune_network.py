@@ -40,9 +40,9 @@ def run_simulation_analyse_results(Wee, J_PyrInh, J_BasExc, J_BasInh, mult, J_Py
         
         if not np.isnan(avgReplayInterval):  # evaluate only if there's sequence replay!
 
-            meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE, 1000)
+            meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE)
             avgGammaFE, gammaPE = gamma(fE, PxxE)
-            meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI, 1000)
+            meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI)
             avgGammaFI, gammaPI = gamma(fI, PxxI)
     
             plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier_=tmp)

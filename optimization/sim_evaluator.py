@@ -64,9 +64,9 @@ class Brian2Evaluator(bpop.evaluators.Evaluator):
             if not np.isnan(avgReplayInterval):  # evaluate only if there's sequence replay!
             
                 # call detect_oscillation functions:
-                meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE, 1000)
+                meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE)
                 avgGammaFE, gammaPE = gamma(fE, PxxE)
-                meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI, 1000)
+                meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI)
                 avgGammaFI, gammaPI = gamma(fI, PxxI)
             
                 # look for significant ripple peak close to 180 Hz

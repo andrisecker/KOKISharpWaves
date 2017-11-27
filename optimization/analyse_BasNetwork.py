@@ -95,7 +95,7 @@ def run_simulation_analyse_results(exc_rate):
     if smi.num_spikes > 0:  # check if there is any activity
 
         spikeTimesI, spikingNeuronsI, poprI = preprocess_monitors(smi, popri, calc_ISI=False)
-        meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI, 1000)
+        meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI)
         avgGammaFI, gammaPI = gamma(fI, PxxI)
         
         # Print out some info

@@ -40,9 +40,9 @@ def run_simulation_analyse_results(Wee, multiplier, X, STDP_mode="asym", detaile
         # calling detect_oscillation functions:
         avgReplayInterval = replay(ISIhist[3:16])  # bins from 150 to 850 (range of interest)
 
-        meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE, 1000)
+        meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE)
         avgGammaFE, gammaPE = gamma(fE, PxxE)
-        meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI, 1000)
+        meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI)
         avgGammaFI, gammaPI = gamma(fI, PxxI)
 
         print "Avg. exc. ripple freq:%s, Avg. inh. ripple freq:%s"%(avgRippleFE, avgRippleFI)
@@ -84,11 +84,11 @@ if __name__ == "__main__":
     except:
         STDP_mode = "asym"
     assert(STDP_mode in ["sym", "asym"])
-    fIn = "wmxR_%s_binary.txt"%STDP_mode    
+    fIn = "wmxR_%s_shuf_block.txt"%STDP_mode    
     fName = os.path.join(SWBasePath, "files", fIn)
     Wee = load_Wee(fName)
     
-    fOut = "%s_binary_v2.txt"%STDP_mode
+    fOut = "%s_shuf_block_v2.txt"%STDP_mode
     
     # range of Wee multipliers tested:
     first = 0.6
