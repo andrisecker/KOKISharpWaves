@@ -114,7 +114,7 @@ def run_simulation(Wee, STDP_mode="asym", detailed=True, verbose=True):
     :param Wee: np.array representing synaptic weight matrix
     :param STDP_mode: symmetric or asymmetric weight matrix flag (used for synapse parameters)
     :param detailed: bool - useage of multi state monitor (for membrane pot and inh. and exc. inputs of some singe cells)
-    :param verbose: report status of simulation
+    :param verbose: bool - report status of simulation
     :return sme, smi, popre, popri, selection, msMe: brian2 monitors (+ array of selected cells used by multi state monitor) 
     """
 
@@ -197,49 +197,77 @@ if __name__ == "__main__":
     except:
         STDP_mode = "asym"
     assert(STDP_mode in ["sym", "asym"])
-    fIn = "wmxR_%s.txt"%STDP_mode    
+    
+    fIn = "wmxR_%s.txt"%STDP_mode
+    
+    detailed = True
+    TFR = True
+    
+    # load in weight matrix
     fName = os.path.join(SWBasePath, "files", fIn)
     Wee = load_Wee(fName)
-    
+        
     # run simulation
-    sme, smi, popre, popri, selection, mSME, sMI = run_simulation(Wee, STDP_mode)
+    if detailed:   
+        sme, smi, popre, popri, selection, mSME, sMI = run_simulation(Wee, STDP_mode)
+    else:
+        sme, smi, popre, popri = run_simulation(Wee, STDP_mode, detailed=False)
 
     # analyse results
     if sme.num_spikes > 0 and smi.num_spikes > 0:  # check if there is any activity
 
+        # analyse spikes
         spikeTimesE, spikingNeuronsE, poprE, ISIhist, bin_edges = preprocess_monitors(sme, popre)
         spikeTimesI, spikingNeuronsI, poprI = preprocess_monitors(smi, popri, calc_ISI=False)
-
-        # calling detect_oscillation functions:
+        # detect replay
         avgReplayInterval = replay(ISIhist[3:16])  # bins from 150 to 850 (range of interest)
-
-        meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE)
-        avgGammaFE, gammaPE = gamma(fE, PxxE)
-        meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI)
+        
+        # analyse rates
+        if TFR:
+            meanEr, rEAC, maxEAC, tMaxEAC, fE, PxxE, trfE, tE, freqsE = analyse_rate(poprE, TFR=True)
+            meanIr, rIAC, maxIAC, tMaxIAC, fI, PxxI, trfI, tI, freqsI = analyse_rate(poprI, TFR=True)
+        else:
+            meanEr, rEAC, maxEAC, tMaxEAC, fE, PxxE = analyse_rate(poprE)
+            meanIr, rIAC, maxIAC, tMaxIAC, fI, PxxI = analyse_rate(poprI)
+        maxEACR, tMaxEACR, avgRippleFE, ripplePE = ripple(rEAC, fE, PxxE)
+        maxIACR, tMaxIACR, avgRippleFI, ripplePI = ripple(rIAC, fI, PxxI)
+        avgGammaFE, gammaPE = gamma(fE, PxxE)       
         avgGammaFI, gammaPI = gamma(fI, PxxI)
 
-        # Print out some info
-        print 'Mean excitatory rate: ', meanEr
-        print 'Mean inhibitory rate: ', meanIr
-        print 'Average exc. ripple freq:', avgRippleFE
-        print 'Exc. ripple power:', ripplePE
-        print 'Average exc. gamma freq:', avgGammaFE
-        print 'Exc. gamma power:', gammaPE
-        print 'Average inh. ripple freq:', avgRippleFI
-        print 'Inh. ripple power:', ripplePI
-        print 'Average inh. gamma freq:', avgGammaFI
-        print 'Inh. gamma power:', gammaPI
+        # print out some info
+        print "Mean excitatory rate: %.3f"%meanEr
+        print "Mean inhibitory rate: %.3f"%meanIr
+        print "Average exc. ripple freq: %.3f"%avgRippleFE
+        print "Exc. ripple power: %.3f"%ripplePE
+        print "Average exc. gamma freq: %.3f"%avgGammaFE
+        print "Exc. gamma power: %.3f"%gammaPE
+        print "Average inh. ripple freq: %.3f"%avgRippleFI
+        print "Inh. ripple power: %.3f"%ripplePI
+        print "Average inh. gamma freq: %.3f"%avgGammaFI
+        print "Inh. gamma power: %.3f"%gammaPI
         print "--------------------------------------------------"
-
 
         # Plots
         plot_raster_ISI(spikeTimesE, spikingNeuronsE, poprE, [ISIhist, bin_edges], "blue", multiplier_=1)
-        plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier_=1)
-        plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier_=1)
-
-        subset = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1, sm=mSME, selection=selection)
-        plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1, Pyr_pop=False, sm=sMI)        
-        plot_detailed(mSME, subset, multiplier_=1, new_network=True)
+        if TFR:
+            plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", "blue", multiplier_=1,
+                     TFR=True, tfr=trfE, t=tE, freqs=freqsE, fs=1000)
+            plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", "green", multiplier_=1,
+                     TFR=True, tfr=trfI, t=tI, freqs=freqsI, fs=1000)
+        else:
+            plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", "blue", multiplier_=1)
+            plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", "green", multiplier_=1)
+   
+        if detailed:
+            subset = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1,
+                                 sm=mSME, selection=selection)
+            plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1,
+                        Pyr_pop=False, sm=sMI)
+            plot_detailed(mSME, subset, multiplier_=1, new_network=True)
+        else:
+            plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
+            plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1, Pyr_pop=False)
+            
 
     else:  # if there is no activity the auto-correlation function will throw an error!
 
