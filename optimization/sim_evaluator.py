@@ -1,9 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
-'''
+"""
 BluePyOpt evaluator for optimization
-authors: Bence Bagi, András Ecker last update: 06.2017
-'''
+authors: Bence Bagi, András Ecker last update: 11.2017
+"""
 
 import os
 import sys
@@ -55,18 +55,21 @@ class Brian2Evaluator(bpop.evaluators.Evaluator):
         sme, smi, popre, popri = self.generate_model(individual)
         fitness = 0
         if sme.num_spikes > 0 and smi.num_spikes > 0:  # check if there is any activity
-
+            
+            # analyse spikes
             spikeTimesE, spikingNeuronsE, poprE, ISIhist, bin_edges = preprocess_monitors(sme, popre)
             spikeTimesI, spikingNeuronsI, poprI = preprocess_monitors(smi, popri, calc_ISI=False)
-            # call replay detection functions:
+            # detect replay
             avgReplayInterval = replay(ISIhist[3:16])  # bins from 150 to 850 (range of interest)
             
             if not np.isnan(avgReplayInterval):  # evaluate only if there's sequence replay!
             
-                # call detect_oscillation functions:
-                meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE)
-                avgGammaFE, gammaPE = gamma(fE, PxxE)
-                meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI)
+                # analyse rates
+                meanEr, rEAC, maxEAC, tMaxEAC, fE, PxxE = analyse_rate(poprE)
+                meanIr, rIAC, maxIAC, tMaxIAC, fI, PxxI = analyse_rate(poprI)
+                maxEACR, tMaxEACR, avgRippleFE, ripplePE = ripple(rEAC, fE, PxxE)
+                maxIACR, tMaxIACR, avgRippleFI, ripplePI = ripple(rIAC, fI, PxxI)
+                avgGammaFE, gammaPE = gamma(fE, PxxE)       
                 avgGammaFI, gammaPI = gamma(fI, PxxI)
             
                 # look for significant ripple peak close to 180 Hz

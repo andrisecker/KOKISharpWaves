@@ -74,8 +74,6 @@ def preprocess_spikes(spiketimes, N_norm, calc_ISI=True):
         
     # normalize rate
     rate = rate/(N_norm*(1./fs))
-    # highpass filter rate
-    rate = _filter_rate(rate, fs)
 
     if calc_ISI:
         return spikeTimes, spikingNeurons, rate, ISIs
@@ -143,8 +141,44 @@ def _filter_rate(rate, fs, cut=2., order=5):
     filt_rate = signal.filtfilt(b, a, rate)
     
     return filt_rate
+
+
+def analyse_rate(rate, fs=1000, TFR=False):
+    """
+    Basic analysis of firing rate: autocorrelatio, PSD, TFR (wavelet analysis)
+    :param rate: firing rate of the neuron population
+    :param fs: sampling frequency (for the spectral analysis)
+    :param TFR: bool - calculate time freq. repr. (using wavelet analysis) - this might take some time and RAM...
+    :return: rM, rAC: mean rate, autocorrelation of the rate
+             maxAC, tMaxAC: maximum autocorrelation, time interval of maxAC
+             f, Pxx: sample frequencies and power spectral density (results of PSD analysis)
+             tfr, t, freqs: calculated TFR matrix and time points and frequencies used to calculate it      
+    """
     
+    rM = np.mean(rate)
     
+    # analyse autocorrelation function
+    rAC = _autocorrelation(rate)
+    # random hard coded values by Eszter:(
+    maxAC = rAC[1:].max()
+    tMaxAC = rAC[1:].argmax()+1
+    
+    # highpass filter rate before calculating PSD
+    rate = _filter_rate(rate, fs)
+    
+    # get PSD - see more: http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.signal.welch.html
+    f, Pxx = signal.welch(rate, fs, window="hamming", nperseg=512, scaling="spectrum")
+    
+    if not TFR:
+        return rM, rAC, maxAC, tMaxAC, f, Pxx
+    else:
+        from tftb.processing import Scalogram
+        
+        tfr, t, freqs, _ = Scalogram(rate, fmin=0.02, fmax=0.45, nvoices=512).run()
+        
+        return rM, rAC, maxAC, tMaxAC, f, Pxx, tfr, t, freqs
+
+
 def _fisher(Pxx):
     """
     Performs Fisher g-test on PSD (see Fisher 1929: http://www.jstor.org/stable/95247?seq=1#page_scan_tab_contents)
@@ -166,35 +200,21 @@ def _fisher(Pxx):
     return pVal
 
 
-def ripple(rate, fs=1000, p=0.01):
+def ripple(rAC, f, Pxx, p=0.01):
     """
     Decides if there is a significant high freq. ripple oscillation
-    calculates the autocorrelation and the power spectrum of the activity
-    and applies a Fisher g-test (on the spectrum)
-    :param rate: firing rate of the neuron population
-    :param fs: sampling frequency (for the spectral analysis)
+    by applying Fisher g-test (on the spectrum)
+    :param rAC: auto correlation function of rate see `analyse_rate()`
+    :param Pxx, f: calculated power spectrum of the neural activity (and frequencies used to calculate it) see `analyse_rate()`
     :param p: significance threshold for Fisher g-test
-    :return: meanr, rAC: mean rate, autocorrelation of the rate
-             maxAC, tMaxAC: maximum autocorrelation, time interval of maxAC
-             maxACR, tMaxAC: maximum autocorrelation in ripple range, time interval of maxACR
-             f, Pxx: sample frequencies and power spectral density (results of PSD analysis)
+    :return: maxAC, tMaxAC: maximum autocorrelation in ripple range, time interval of maxACR
              avgRippleF, rippleP: average frequency and power of the oscillation
     """
 
-    # analyse autocorrelation function (TODO: factor this out from here...)
-    rAC = _autocorrelation(rate)
     # random hard coded values by Eszter:(
-    maxAC = rAC[1:].max()
-    tMaxAC = rAC[1:].argmax()+1
     maxACR = rAC[3:9].max()
     tMaxACR = rAC[3:9].argmax()+3
-
-    # highpass filter rate before calculating PSD
-    rate = _filter_rate(rate, fs)
-
-    # get PSD - see more: http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.signal.welch.html
-    f, Pxx = signal.welch(rate, fs, window="hamming", nperseg=512, scaling="spectrum")
-
+    
     # get ripple freq
     f = np.asarray(f)
     PxxRipple = Pxx[np.where((160 < f) & (f < 230))]
@@ -206,15 +226,14 @@ def ripple(rate, fs=1000, p=0.01):
     # get ripple power
     rippleP = (sum(PxxRipple) / sum(Pxx)) * 100
 
-    return np.mean(rate), rAC, maxAC, tMaxAC, maxACR, tMaxACR, f, Pxx, avgRippleF, rippleP
+    return maxACR, tMaxACR, avgRippleF, rippleP
 
 
 def gamma(f, Pxx, p=0.01):
     """
-    Decides if there is a significant high freq. gamma oscillation
+    Decides if there is a significant gamma freq. oscillation
     by applying Fisher g-test (on the spectrum)
-    :param f: calculated frequecies of the power spectrum see `ripple()`
-    :param Pxx: power spectrum of the neural activity see `ripple()`
+    :param Pxx, f: calculated power spectrum of the neural activity (and frequencies used to calculate it) see `analyse_rate()`
     :param p: significance threshold for Fisher g-test
     :return: avgGammaF, gammaP: average frequency and power of the oscillation
     """
@@ -238,4 +257,6 @@ def load_Wee(fName):  # this function does not belong to here ... (should be eg.
     Wee = np.genfromtxt(fName) * 1e9
     np.fill_diagonal(Wee, 0)  # just to make sure
     return Wee
+    
+    
     

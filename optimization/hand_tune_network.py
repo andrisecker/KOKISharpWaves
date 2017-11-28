@@ -27,30 +27,32 @@ def run_simulation_analyse_results(Wee, J_PyrInh, J_BasExc, J_BasInh, mult, J_Py
     tmp = "%s_%s_%s_%s"%(mult, J_PyrMF, rate_MF, J_PyrInh)
     print tmp
     
-    sme, smi, popre, popri  = run_simulation(Wee, J_PyrInh, J_BasExc, J_BasInh, mult, J_PyrMF, rate_MF, verbose=True)
+    sme, smi, popre, popri = run_simulation(Wee, J_PyrInh, J_BasExc, J_BasInh, mult, J_PyrMF, rate_MF, verbose=True)
     
     if sme.num_spikes > 0 and smi.num_spikes > 0:  # check if there is any activity
 
+        # analyse spikes
         spikeTimesE, spikingNeuronsE, poprE, ISIhist, bin_edges = preprocess_monitors(sme, popre)
         spikeTimesI, spikingNeuronsI, poprI = preprocess_monitors(smi, popri, calc_ISI=False)
-        plot_raster_ISI(spikeTimesE, spikingNeuronsE, poprE, [ISIhist, bin_edges], 'blue', multiplier_=tmp)
-
-        # call detect_oscillation functions:
+        # detect replay
         avgReplayInterval = replay(ISIhist[3:16])  # bins from 150 to 850 (range of interest)
         
         if not np.isnan(avgReplayInterval):  # evaluate only if there's sequence replay!
-
-            meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE)
-            avgGammaFE, gammaPE = gamma(fE, PxxE)
-            meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI)
+        
+            # analyse rates
+            meanEr, rEAC, maxEAC, tMaxEAC, fE, PxxE = analyse_rate(poprE)
+            meanIr, rIAC, maxIAC, tMaxIAC, fI, PxxI = analyse_rate(poprI)
+            maxEACR, tMaxEACR, avgRippleFE, ripplePE = ripple(rEAC, fE, PxxE)
+            maxIACR, tMaxIACR, avgRippleFI, ripplePI = ripple(rIAC, fI, PxxI)
+            avgGammaFE, gammaPE = gamma(fE, PxxE)       
             avgGammaFI, gammaPI = gamma(fI, PxxI)
     
-            plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier_=tmp)
-            plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier_=tmp)
-
-            _ = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=tmp)
-            plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=tmp, Pyr_pop=False)
-            plt.close("all")
+            # plot results
+            plot_raster_ISI(spikeTimesE, spikingNeuronsE, poprE, [ISIhist, bin_edges], "blue", multiplier_=1)
+            plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", "blue", multiplier_=1)
+            plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", "green", multiplier_=1)
+            plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
+            plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1, Pyr_pop=False)
             
         print "--------------------------------------------------"
 

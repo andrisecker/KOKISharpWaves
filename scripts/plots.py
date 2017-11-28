@@ -89,58 +89,80 @@ def plot_raster_ISI(spikeTimes, spikingNeurons, rate, hist, color_, multiplier_)
     fig.savefig(figName)
 
 
-def plot_PSD(rate, rippleAC, f, Pxx, title_, linespec_, multiplier_):
+def plot_PSD(rate, rAC, f, Pxx, title_, color_, multiplier_, TFR=False, tfr=None, t=None, freqs=None, fs=None):
     """
-    saves figure with rate, auto-correlation plot, and PSD
-    :param rate: firing rate - precalculated by detect_oscillation.py/preprocess_spikes
-    :param rippleAC: auto-correlation function of the rate (returned by detect_oscillation.py/ripple)
-    :param f, Pxx (returned by PSD analysis) see more: http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.signal.welch.html
-    :param title_, linespec_, multiplier: outline and naming parameters
+    saves figure with rate, auto-correlation plot, PSD and optionally TFR
+    :param rate: firing rate - precalculated by `detect_oscillation.py/preprocess_spikes()`
+    :param rAC: auto-correlation function of the rate (returned by `detect_oscillation.py/analyse_rate()`)
+    :param f, Pxx (returned by `detect_oscillation.py/analyse_rate()`) see more: http://docs.scipy.org/doc/scipy-dev/reference/generated/scipy.signal.welch.html
+    :param title_, color_, multiplier: outline and naming parameters
+    :param TFR: bool - to plot time frequency representation
+    :param tfr, t, freqs: calculated TRF and time points and frequencies used - returned by `tftb.processing.Scalogram()`
+    :param fs: sampling freq to scale normalized freqs from `tftb.processing.Scalogram()`
     """
 
-    rEACPlot = rippleAC[2:201] # 500 - 5 Hz interval
-
-    f = np.asarray(f)
-    rippleS = np.where(160 < f)[0][0]  # 145 -> replaced to have the same lenght as for gamma, to get the significance test unbiased...
-    rippleE = np.where(f < 230)[0][-1]  # 250 -> replaced to have the same lenght as for gamma, to get the significance test unbiased...
-    gammaS = np.where(30 < f)[0][0]
-    gammaE = np.where(f < 100)[0][-1]
-    f.tolist()
-    # ripple range
-    PxxRipple = Pxx[rippleS:rippleE]
-    PxxGamma = Pxx[gammaS:gammaE]
-    # gamma range
-    fRipple = f[rippleS:rippleE]
-    fGamma = f[gammaS:gammaE]
-
+    # bin rate
+    bin_ = 20
+    avg_rate = _avg_rate(rate, bin_)
+    # get AC in 'interesting' range
+    rEACPlot = rAC[2:201] # 500 - 5 Hz interval
+    # get gamma and ripple range
+    f = np.asarray(f)    
+    fRipple = f[np.where((160 < f) & (f < 230))]; PxxRipple = Pxx[np.where((160 < f) & (f < 230))]
+    fGamma = f[np.where((30 < f) & (f < 100))]; PxxGamma = Pxx[np.where((30 < f) & (f < 100))]
     PxxPlot = 10 * np.log10(Pxx / max(Pxx))
     PxxRipplePlot = 10 * np.log10(PxxRipple / max(Pxx))
     PxxGammaPlot = 10 * np.log10(PxxGamma / max(Pxx))
-
-    fig = plt.figure(figsize=(10, 8))
-
-    ax = fig.add_subplot(3, 1, 1)
-    ax.plot(np.linspace(0, 10000, len(rate)), rate, linespec_)
-    ax.set_title("%s rate"%title_)
+    
+    if TFR:  # 4 subplots with Scalogram
+    
+        tfr = np.abs(tfr) ** 2
+        tfr[tfr <= np.amax(tfr) * 0.05] = 0.0
+        t_, f_ = np.meshgrid(t, freqs*fs)
+        
+        fig = plt.figure(figsize=(15, 8))
+        
+        ax = fig.add_subplot(2, 2, 1)    
+        ax2 = fig.add_subplot(2, 2, 2)        
+        ax3 = fig.add_subplot(2, 2, 4)  # name changed to match 3 subplot version
+        
+        ax4 = fig.add_subplot(2, 2, 3)  # name changed       
+        ax4.contour(t_, f_, tfr, 20, cmap=plt.get_cmap("jet"))
+        ax4.grid(True)
+        ax4.set_title("TFR (Morlet spectogram)")
+        ax4.set_xlabel("Time (ms)")
+        ax4.set_xlim([0, 10000])
+        ax4.set_ylabel("Frequency (Hz)")
+        ax4.set_ylim([2, 250])
+    
+    else:  # 3 subplots as previously
+    
+        fig = plt.figure(figsize=(10, 8))
+        
+        ax = fig.add_subplot(3, 1, 1)
+        ax.set_xlabel("Time (ms)")
+        ax2 = fig.add_subplot(3, 1, 2)
+        ax3 = fig.add_subplot(3, 1, 3)
+       
+    ax.bar(np.linspace(0, 10000, len(avg_rate)), avg_rate, width=bin_, align="edge", color=color_, edgecolor="black", linewidth=0.5, alpha=0.9)
     ax.set_xlim([0, 10000])
+    ax.set_title("%s rate"%title_)
     ax.set_ylabel("Rate (Hz)")
-
-    ax2 = fig.add_subplot(3, 1, 2)
-    ax2.plot(np.linspace(2, 200, len(rEACPlot)), rEACPlot, linespec_)
+    
+    ax2.plot(np.linspace(2, 200, len(rEACPlot)), rEACPlot, color=color_)
     ax2.set_title("Autocorrelogram 2-200 ms")
     ax2.set_xlabel("Time (ms)")
     ax2.set_xlim([2, 200])
     ax2.set_ylabel("AutoCorrelation")
-
-    ax3 = fig.add_subplot(3, 1, 3)
-    ax3.plot(f, PxxPlot, linespec_, marker='o')
+    
+    ax3.plot(f, PxxPlot, color=color_, marker='o')
     ax3.plot(fRipple, PxxRipplePlot, 'r-', marker='o', linewidth=1.5, label="ripple (160-230Hz)")
     ax3.plot(fGamma, PxxGammaPlot, 'k-', marker='o', linewidth=1.5, label="gamma (30-100Hz)")
     ax3.set_title("Power Spectrum Density")
     ax3.set_xlim([0, 500])
     ax3.set_xlabel("Frequency (Hz)")
     ax3.set_ylabel("PSD (dB)")
-    ax3.legend()
+    ax3.legend()      
 
     fig.tight_layout()
 
@@ -216,7 +238,8 @@ def plot_zoomed(spikeTimes, spikingNeurons, rate, title_, color_, multiplier_, P
             t = sm.t_ * 1000.  # *1000 ms convertion
             v = sm[id_].vm*1000  # *1000 mV conversion        
         else:
-            pass  # TODO: add code for brian1 monitor (if needed...)
+            t = sm.times*1000.  # *1000 ms convertion
+            v = sm["vm", id_]*1000  # *1000 mV conversion
 
     fig = plt.figure(figsize=(10, 8))
     if sm:
@@ -276,7 +299,7 @@ def plot_detailed(msM, subset, multiplier_, plot_adaptation=True, new_network=Fa
     :param new_network: boolean flag for plotting AMPA conductance (in the new network it's a sum)
     """
 
-    fig = plt.figure(figsize=(15, 12))
+    fig = plt.figure(figsize=(15, 8))
     #fig.suptitle("Detailed plots of selected vars. (Pyr. pop)")
     ax = fig.add_subplot(2, 2, 1)
     ax2 = fig.add_subplot(2, 2, 2)

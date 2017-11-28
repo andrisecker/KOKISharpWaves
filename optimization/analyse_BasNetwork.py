@@ -80,7 +80,7 @@ def run_simulation(exc_rate):
 
     smi = SpikeMonitor(PI)
     popri = PopulationRateMonitor(PI) 
-    sMI = StateMonitor(PI, "vm", record=[500])         
+    sMI = StateMonitor(PI, "vm", record=[500])  
 
     run(10000*ms, report="text")
     
@@ -95,19 +95,20 @@ def run_simulation_analyse_results(exc_rate):
     if smi.num_spikes > 0:  # check if there is any activity
 
         spikeTimesI, spikingNeuronsI, poprI = preprocess_monitors(smi, popri, calc_ISI=False)
-        meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI)
+        meanIr, rIAC, maxIAC, tMaxIAC, fI, PxxI = analyse_rate(poprI)
+        maxIACR, tMaxIACR, avgRippleFI, ripplePI = ripple(rIAC, fI, PxxI)
         avgGammaFI, gammaPI = gamma(fI, PxxI)
         
-        # Print out some info
-        print 'Mean inhibitory rate: ', meanIr
-        print 'Average inh. ripple freq:', avgRippleFI
-        print 'Inh. ripple power:', ripplePI
-        print 'Average inh. gamma freq:', avgGammaFI
-        print 'Inh. gamma power:', gammaPI
+        # print out some info
+        print "Mean inhibitory rate: %.3f"%meanIr
+        print "Average inh. ripple freq: %.3f"%avgRippleFI
+        print "Inh. ripple power: %.3f"%ripplePI
+        print "Average inh. gamma freq: %.3f"%avgGammaFI
+        print "Inh. gamma power: %.3f"%gammaPI
         print "--------------------------------------------------"
         
         # Plots
-        plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier_=exc_rate)
+        plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", "green", multiplier_=exc_rate)
         plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, sMI, "Bas_population", "green", multiplier_=exc_rate, Pyr_pop=False)
         plt.close("all")
 
