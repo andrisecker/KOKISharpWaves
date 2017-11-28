@@ -1,22 +1,24 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
-'''
+"""
 creates PC (adExp IF) and BC (IF) population in Brian2, loads in recurrent connection matrix for PC population
 runs simulation and checks the dynamics
 see more: https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view
 author: András Ecker last update: 04.2017
-'''
+"""
 
 import os
 from brian2 import *
 #set_device('cpp_standalone')  # speed up the simulation with generated C++ code
 import numpy as np
 import matplotlib.pyplot as plt
+import warnings
+warnings.filterwarnings("ignore") # ignore scipy 0.18 sparse matrix warning...
 from detect_oscillations import *
 from plots import *
 
 
-fIn = "wmxR_asym.txt"
+fIn = "wmxR_asym_old.txt"
 
 SWBasePath = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2])
 np.random.seed(12345)
@@ -155,37 +157,40 @@ run(10000*ms, report="text")
 
 if sme.num_spikes > 0 and smi.num_spikes > 0:  # check if there is any activity
 
+    # analyse spikes
     spikeTimesE, spikingNeuronsE, poprE, ISIhist, bin_edges = preprocess_monitors(sme, popre)
     spikeTimesI, spikingNeuronsI, poprI = preprocess_monitors(smi, popri, calc_ISI=False)
-
-    # calling detect_oscillation functions:
+    # detect replay
     avgReplayInterval = replay(ISIhist[3:16])  # bins from 150 to 850 (range of interest)
-
-    meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE)
-    avgGammaFE, gammaPE = gamma(fE, PxxE)
-    meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI)
+    
+    # analyse rates
+    meanEr, rEAC, maxEAC, tMaxEAC, fE, PxxE = analyse_rate(poprE)
+    meanIr, rIAC, maxIAC, tMaxIAC, fI, PxxI = analyse_rate(poprI)
+    maxEACR, tMaxEACR, avgRippleFE, ripplePE = ripple(rEAC, fE, PxxE)
+    maxIACR, tMaxIACR, avgRippleFI, ripplePI = ripple(rIAC, fI, PxxI)
+    avgGammaFE, gammaPE = gamma(fE, PxxE)       
     avgGammaFI, gammaPI = gamma(fI, PxxI)
 
-    # Print out some info
-    print 'Mean excitatory rate: ', meanEr
-    print 'Mean inhibitory rate: ', meanIr
-    print 'Average exc. ripple freq:', avgRippleFE
-    print 'Exc. ripple power:', ripplePE
-    print 'Average exc. gamma freq:', avgGammaFE
-    print 'Exc. gamma power:', gammaPE
-    print 'Average inh. ripple freq:', avgRippleFI
-    print 'Inh. ripple power:', ripplePI
-    print 'Average inh. gamma freq:', avgGammaFI
-    print 'Inh. gamma power:', gammaPI
+    # print out some info
+    print "Mean excitatory rate: %.3f"%meanEr
+    print "Mean inhibitory rate: %.3f"%meanIr
+    print "Average exc. ripple freq: %.3f"%avgRippleFE
+    print "Exc. ripple power: %.3f"%ripplePE
+    print "Average exc. gamma freq: %.3f"%avgGammaFE
+    print "Exc. gamma power: %.3f"%gammaPE
+    print "Average inh. ripple freq: %.3f"%avgRippleFI
+    print "Inh. ripple power: %.3f"%ripplePI
+    print "Average inh. gamma freq: %.3f"%avgGammaFI
+    print "Inh. gamma power: %.3f"%gammaPI
     print "--------------------------------------------------"
 
 
     # Plots
     plot_raster_ISI(spikeTimesE, spikingNeuronsE, poprE, [ISIhist, bin_edges], "blue", multiplier_=1)
-    plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", "b-", multiplier_=1)
-    plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", "g-", multiplier_=1)
+    plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", "blue", multiplier_=1)
+    plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", "green", multiplier_=1)
 
-    _  = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
+    plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
     plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1, Pyr_pop=False)
 
 else:  # if there is no activity the auto-correlation function will throw an error!

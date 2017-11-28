@@ -1,11 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
-'''
+"""
 crates PC (adExp IF) and BC (IF) population in Brian, loads in recurrent connection matrix for PC population
 runs simulation and checks the dynamics
 see more: https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view
 authors: András Ecker, Eszter Vértes, Szabolcs Káli last update: 05.2017
-'''
+"""
 
 import os
 from brian import *
@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from detect_oscillations import *
 from plots import *
 
-fIn = "wmxR_asym.txt"
+fIn = "wmxR_asym_old.txt"
 
 SWBasePath = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2])
 
@@ -150,15 +150,18 @@ run(10000*ms, report='text')
 
 if sme.nspikes > 0 and smi.nspikes > 0:  # check if there is any activity
 
+    # analyse spikes
     spikeTimesE, spikingNeuronsE, poprE, ISIhist, bin_edges = preprocess_monitors(sme, popre)
     spikeTimesI, spikingNeuronsI, poprI = preprocess_monitors(smi, popri, calc_ISI=False)
-
-    # calling detect_oscillation functions:
+    # detect replay
     avgReplayInterval = replay(ISIhist[3:16])  # bins from 150 to 850 (range of interest)
-
-    meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE)
-    avgGammaFE, gammaPE = gamma(fE, PxxE)
-    meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI)
+    
+    # analyse rates
+    meanEr, rEAC, maxEAC, tMaxEAC, fE, PxxE = analyse_rate(poprE)
+    meanIr, rIAC, maxIAC, tMaxIAC, fI, PxxI = analyse_rate(poprI)
+    maxEACR, tMaxEACR, avgRippleFE, ripplePE = ripple(rEAC, fE, PxxE)
+    maxIACR, tMaxIACR, avgRippleFI, ripplePI = ripple(rIAC, fI, PxxI)
+    avgGammaFE, gammaPE = gamma(fE, PxxE)       
     avgGammaFI, gammaPI = gamma(fI, PxxI)
 
     # Print out some info
@@ -179,13 +182,13 @@ if sme.nspikes > 0 and smi.nspikes > 0:  # check if there is any activity
     print 'Inh. gamma power:', gammaPI
     print "--------------------------------------------------"
 
-
     # Plots
-    plot_raster_ISI(spikeTimesE, spikingNeuronsE, poprE, [ISIhist, bin_edges], 'blue', multiplier_=1)
-    plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier_=1)
-    plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier_=1)
+    plot_raster_ISI(spikeTimesE, spikingNeuronsE, poprE, [ISIhist, bin_edges], "blue", multiplier_=1)
+    plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", "blue", multiplier_=1)
+    plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", "green", multiplier_=1)
 
-    subset = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
+    subset = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1,
+                         sm=msMe, selection=selection)
     plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1, Pyr_pop=False)
     plot_detailed(msMe, subset, multiplier_=1)
     #plot_adaptation(msMe, selection, multiplier_=1)

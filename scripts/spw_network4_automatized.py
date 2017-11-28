@@ -1,10 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
-'''
+"""
 looped version of spw_network4a_1.py -> checks the dynamics for different multipliers of the learned weight matrix
 see more: https://drive.google.com/file/d/0B089tpx89mdXZk55dm0xZm5adUE/view
 authors: András Ecker, Eszter Vértes, Szabolcs Káli last update: 05.2017
-'''
+"""
 
 import os
 import gc
@@ -16,8 +16,8 @@ from detect_oscillations import *
 from plots import *
 
 
-fIn = "wmxR_asym_shuf_old.txt"
-fOut = "results_asym_shuf_old.txt"
+fIn = "wmxR_asym_old.txt"
+fOut = "results_asym_old_v1.txt"
 
 SWBasePath = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2])
 
@@ -171,15 +171,18 @@ for k, multiplier in enumerate(multipliers):
 
     if sme.nspikes > 0 and smi.nspikes > 0:  # check if there is any activity
     
+        # analyse spikes
         spikeTimesE, spikingNeuronsE, poprE, ISIhist, bin_edges = preprocess_monitors(sme, popre)
         spikeTimesI, spikingNeuronsI, poprI = preprocess_monitors(smi, popri, calc_ISI=False)
-
-        # call detect_oscillation functions:
+        # detect replay
         avgReplayInterval = replay(ISIhist[3:16])  # bins from 150 to 850 (range of interest)
-
-        meanEr, rEAC, maxEAC, tMaxEAC, maxEACR, tMaxEACR, fE, PxxE, avgRippleFE, ripplePE = ripple(poprE)
-        avgGammaFE, gammaPE = gamma(fE, PxxE)
-        meanIr, rIAC, maxIAC, tMaxIAC, maxIACR, tMaxIACR, fI, PxxI, avgRippleFI, ripplePI = ripple(poprI)
+        
+        # analyse rates
+        meanEr, rEAC, maxEAC, tMaxEAC, fE, PxxE = analyse_rate(poprE)
+        meanIr, rIAC, maxIAC, tMaxIAC, fI, PxxI = analyse_rate(poprI)
+        maxEACR, tMaxEACR, avgRippleFE, ripplePE = ripple(rEAC, fE, PxxE)
+        maxIACR, tMaxIACR, avgRippleFI, ripplePI = ripple(rIAC, fI, PxxI)
+        avgGammaFE, gammaPE = gamma(fE, PxxE)       
         avgGammaFI, gammaPI = gamma(fI, PxxI)
 
         print "Avg. exc. ripple freq:%s, Avg. inh. ripple freq:%s"%(avgRippleFE, avgRippleFI)
@@ -194,14 +197,15 @@ for k, multiplier in enumerate(multipliers):
                    avgRippleFI, ripplePI, avgGammaFI, gammaPI]
 
         # Plots
-        plot_raster_ISI(spikeTimesE, spikingNeuronsE, poprE, [ISIhist, bin_edges], "blue", multiplier)
-        plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", 'b-', multiplier)
-        plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", 'g-', multiplier)
+        plot_raster_ISI(spikeTimesE, spikingNeuronsE, poprE, [ISIhist, bin_edges], "blue", multiplier_=1)
+        plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", "blue", multiplier_=1)
+        plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", "green", multiplier_=1)
 
-        subset = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier)
-        plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier, Pyr_pop=False)
-        plot_detailed(msMe, subset, multiplier)
-        #plot_adaptation(msMe, selection, multiplier)
+        subset = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1,
+                             sm=msMe, selection=selection)
+        plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1, Pyr_pop=False)
+        plot_detailed(msMe, subset, multiplier_=1)
+        #plot_adaptation(msMe, selection, multiplier_=1)
 
         plt.close("all")
 
