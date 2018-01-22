@@ -34,7 +34,7 @@ def run_simulation_analyse_results(Wee, multiplier, X, STDP_mode="asym", detaile
 
     # run simulation (neuronal parameters are in `spw_network_new_brian2.py`)
     if detailed:   
-        sme, smi, popre, popri, selection, mSME, sMI = run_simulation(Wee, STDP_mode, detailed=True, verbose=verbose)
+        sme, smi, popre, popri, selection, mSME, sMI = run_simulation(Wee_tmp, STDP_mode, detailed=True, verbose=verbose)
     else:
         sme, smi, popre, popri = run_simulation(Wee, STDP_mode, detailed=False, verbose=verbose)
 
@@ -70,25 +70,25 @@ def run_simulation_analyse_results(Wee, multiplier, X, STDP_mode="asym", detaile
                    avgRippleFI, ripplePI, avgGammaFI, gammaPI]
 
         # Plots
-        plot_raster_ISI(spikeTimesE, spikingNeuronsE, poprE, [ISIhist, bin_edges], "blue", multiplier_=1)
+        plot_raster_ISI(spikeTimesE, spikingNeuronsE, poprE, [ISIhist, bin_edges], "blue", multiplier_=multiplier)
         if TFR:
-            plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", "blue", multiplier_=1,
+            plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", "blue", multiplier_=multiplier,
                      TFR=True, tfr=trfE, t=tE, freqs=freqsE, fs=1000)
-            plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", "green", multiplier_=1,
+            plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", "green", multiplier_=multiplier,
                      TFR=True, tfr=trfI, t=tI, freqs=freqsI, fs=1000)
         else:
-            plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", "blue", multiplier_=1)
-            plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", "green", multiplier_=1)
+            plot_PSD(poprE, rEAC, fE, PxxE, "Pyr_population", "blue", multiplier_=multiplier)
+            plot_PSD(poprI, rIAC, fI, PxxI, "Bas_population", "green", multiplier_=multiplier)
    
         if detailed:
-            subset = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1,
+            subset = plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=multiplier,
                                  sm=mSME, selection=selection)
-            plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1,
+            plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=multiplier,
                         Pyr_pop=False, sm=sMI)
-            plot_detailed(mSME, subset, multiplier_=1, new_network=True)
+            plot_detailed(mSME, subset, multiplier_=multiplier, new_network=True)
         else:
-            plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=1)
-            plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=1, Pyr_pop=False)
+            plot_zoomed(spikeTimesE, spikingNeuronsE, poprE, "Pyr_population", "blue", multiplier_=multiplier)
+            plot_zoomed(spikeTimesI, spikingNeuronsI, poprI, "Bas_population", "green", multiplier_=multiplier, Pyr_pop=False)
         
         plt.close("all")
 
@@ -112,16 +112,16 @@ if __name__ == "__main__":
     
     detailed = True; TFR = True
     
-    fIn = "wmxR_%s_shuf_subpop_inp.txt"%STDP_mode    
+    fIn = "wmxR_%s_binary.txt"%STDP_mode    
     fName = os.path.join(SWBasePath, "files", fIn)
     Wee = load_Wee(fName)
     
     fOut = "%s_shuf_subpop_inp_v3.txt"%STDP_mode
     
     # range of Wee multipliers tested:
-    first = 0.6
+    first = 0.7
     last = 1.5
-    dataPoints = 10
+    dataPoints = 9
     multipliers = np.linspace(first, last, dataPoints)
     
     # plot matrix (and some selected weights)
